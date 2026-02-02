@@ -1,0 +1,14 @@
+{
+  "name": "ai-dlc",
+  "private": true,
+  "workspaces": ["website", "plugin"],
+  "scripts": {
+    "build": "bun run --filter '*' build",
+    "dev": "bun run --cwd website dev",
+    "lint": "biome check .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4"
+  }
+}

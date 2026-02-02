@@ -1,0 +1,11 @@
+# AI-DLC Code Owners
+# These owners will be requested for review on PRs
+
+# Default owners for everything
+* @jwaldrip
+
+# Website
+/website/ @jwaldrip
+
+# Plugin
+/plugin/ @jwaldrip

@@ -125,6 +125,11 @@ export const navigation: NavCategory[] = [
 						description: "Day-to-day AI-DLC usage",
 					},
 					{
+						title: "For Designers",
+						href: "/docs/guide-designer/",
+						description: "UX/UI collaboration with AI-DLC",
+					},
+					{
 						title: "For Tech Leads",
 						href: "/docs/guide-tech-lead/",
 						description: "Leading an AI-DLC team",
@@ -133,11 +138,6 @@ export const navigation: NavCategory[] = [
 						title: "For Managers",
 						href: "/docs/guide-manager/",
 						description: "Tracking progress and metrics",
-					},
-					{
-						title: "For AI Assistants",
-						href: "/docs/guide-ai/",
-						description: "System prompts and best practices",
 					},
 				],
 			},

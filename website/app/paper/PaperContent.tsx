@@ -129,7 +129,7 @@ export function PaperContent({ content, toc }: PaperContentProps) {
 			</aside>
 
 			{/* Main content */}
-			<article className="prose min-w-0 flex-1">
+			<article className="prose prose-gray dark:prose-invert prose-headings:scroll-mt-20 prose-a:text-blue-600 dark:prose-a:text-blue-400 min-w-0 flex-1">
 				<ReactMarkdown
 					remarkPlugins={[remarkGfm]}
 					rehypePlugins={[rehypeSlug, rehypeHighlight]}

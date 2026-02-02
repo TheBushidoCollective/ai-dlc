@@ -6,6 +6,9 @@ import remarkGfm from "remark-gfm"
 import rehypeHighlight from "rehype-highlight"
 import rehypeSlug from "rehype-slug"
 import { getAllBlogPosts, getBlogPostBySlug } from "@/lib/blog"
+import { ArticleJsonLd, BreadcrumbJsonLd } from "@/app/components"
+
+const SITE_URL = "https://ai-dlc.dev"
 
 interface Props {
 	params: Promise<{ slug: string }>
@@ -24,13 +27,41 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 	if (!post) {
 		return {
-			title: "Post Not Found - AI-DLC 2026",
+			title: "Post Not Found",
 		}
 	}
 
+	const postUrl = `${SITE_URL}/blog/${post.slug}/`
+
 	return {
-		title: `${post.title} - AI-DLC 2026`,
+		title: post.title,
 		description: post.description,
+		authors: post.author ? [{ name: post.author }] : undefined,
+		openGraph: {
+			title: post.title,
+			description: post.description || "",
+			url: postUrl,
+			type: "article",
+			publishedTime: new Date(post.date).toISOString(),
+			authors: post.author ? [post.author] : undefined,
+			images: [
+				{
+					url: "/og-image.png",
+					width: 1200,
+					height: 630,
+					alt: post.title,
+				},
+			],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: post.title,
+			description: post.description || "",
+			images: ["/og-image.png"],
+		},
+		alternates: {
+			canonical: postUrl,
+		},
 	}
 }
 
@@ -51,8 +82,27 @@ export default async function BlogPostPage({ params }: Props) {
 		notFound()
 	}
 
+	const postUrl = `${SITE_URL}/blog/${post.slug}/`
+
 	return (
 		<article>
+			<ArticleJsonLd
+				title={post.title}
+				description={post.description || ""}
+				url={postUrl}
+				datePublished={new Date(post.date).toISOString()}
+				authorName={post.author}
+				publisherName="AI-DLC"
+				publisherLogo={`${SITE_URL}/logo.png`}
+				image={`${SITE_URL}/og-image.png`}
+			/>
+			<BreadcrumbJsonLd
+				items={[
+					{ name: "Home", url: SITE_URL },
+					{ name: "Blog", url: `${SITE_URL}/blog/` },
+					{ name: post.title, url: postUrl },
+				]}
+			/>
 			<Link
 				href="/blog/"
 				className="mb-8 inline-flex items-center gap-2 text-sm text-gray-600 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"

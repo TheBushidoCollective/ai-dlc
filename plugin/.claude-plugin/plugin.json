@@ -1,9 +1,0 @@
-{
-  "name": "ai-dlc",
-  "version": "0.1.0",
-  "description": "AI-DLC 2026 - Hat-based methodology for iterative AI-driven development",
-  "author": "The Bushido Collective",
-  "license": "Apache-2.0",
-  "homepage": "https://ai-dlc.dev",
-  "repository": "https://github.com/thebushidocollective/ai-dlc"
-}

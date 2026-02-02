@@ -9,6 +9,7 @@
     "lint": "biome check ."
   },
   "dependencies": {
+    "framer-motion": "^12.30.0",
     "gray-matter": "^4.0.3",
     "highlight.js": "^11.11.1",
     "next": "^15.1.6",

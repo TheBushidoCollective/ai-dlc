@@ -92,7 +92,11 @@ const sectionDefinitions: { title: string; slugs: string[] }[] = [
 	},
 	{
 		title: "Checklists",
-		slugs: ["checklist-first-intent", "checklist-team-onboarding", "assessment"],
+		slugs: [
+			"checklist-first-intent",
+			"checklist-team-onboarding",
+			"assessment",
+		],
 	},
 	{
 		title: "Examples",

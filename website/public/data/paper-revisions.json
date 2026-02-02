@@ -1,0 +1,302 @@
+{
+  "ai-dlc-2026": {
+    "slug": "ai-dlc-2026",
+    "currentVersion": "1",
+    "revisions": [
+      {
+        "version": "1",
+        "date": "2026-02-02",
+        "commitHash": "5b3294d",
+        "fullCommitHash": "5b3294d92bf574c961fb7c287d2a3b077a634486",
+        "commitMessage": "feat: transform AI-DLC into comprehensive methodology site",
+        "stats": {
+          "linesAdded": 813,
+          "linesRemoved": 0
+        },
+        "sectionChanges": [
+          {
+            "section": "Introduction",
+            "originalSection": "Introduction",
+            "isNew": false,
+            "linesAdded": 8,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Acknowledgments & Attribution",
+            "originalSection": "Acknowledgments & Attribution",
+            "isNew": true,
+            "linesAdded": 1,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Foundational Work",
+            "originalSection": "Foundational Work",
+            "isNew": true,
+            "linesAdded": 1,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Key Influences for 2026",
+            "originalSection": "Key Influences for 2026",
+            "isNew": true,
+            "linesAdded": 11,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Preface: The State of AI-Driven Development",
+            "originalSection": "Preface: The State of AI-Driven Development",
+            "isNew": true,
+            "linesAdded": 18,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Context",
+            "originalSection": "Context",
+            "isNew": true,
+            "linesAdded": 1,
+            "linesRemoved": 0
+          },
+          {
+            "section": "The Evolution of Software Engineering",
+            "originalSection": "The Evolution of Software Engineering",
+            "isNew": true,
+            "linesAdded": 5,
+            "linesRemoved": 0
+          },
+          {
+            "section": "The Problem with Traditional Methods",
+            "originalSection": "The Problem with Traditional Methods",
+            "isNew": true,
+            "linesAdded": 12,
+            "linesRemoved": 0
+          },
+          {
+            "section": "The New Reality",
+            "originalSection": "The New Reality",
+            "isNew": true,
+            "linesAdded": 3,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Why AI-DLC Over Ad-Hoc AI Assistance",
+            "originalSection": "Why AI-DLC Over Ad-Hoc AI Assistance",
+            "isNew": true,
+            "linesAdded": 51,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Core Principles",
+            "originalSection": "Core Principles",
+            "isNew": true,
+            "linesAdded": 1,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Reimagine Rather Than Retrofit",
+            "originalSection": "Reimagine Rather Than Retrofit",
+            "isNew": true,
+            "linesAdded": 11,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Three Operating Modes: HITL, OHOTL, and AHOTL",
+            "originalSection": "Three Operating Modes: HITL, OHOTL, and AHOTL",
+            "isNew": true,
+            "linesAdded": 48,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Backpressure Over Prescription",
+            "originalSection": "Backpressure Over Prescription",
+            "isNew": true,
+            "linesAdded": 26,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Embrace the Collapsing SDLC",
+            "originalSection": "Embrace the Collapsing SDLC",
+            "isNew": true,
+            "linesAdded": 15,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Context Is Abundant—Use It Wisely",
+            "originalSection": "Context Is Abundant—Use It Wisely",
+            "isNew": true,
+            "linesAdded": 21,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Memory Providers Expand Knowledge",
+            "originalSection": "Memory Providers Expand Knowledge",
+            "isNew": true,
+            "linesAdded": 31,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Completion Criteria Enable Autonomy",
+            "originalSection": "Completion Criteria Enable Autonomy",
+            "isNew": true,
+            "linesAdded": 22,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Design Techniques Are Tools, Not Requirements",
+            "originalSection": "Design Techniques Are Tools, Not Requirements",
+            "isNew": true,
+            "linesAdded": 19,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Everyone Becomes a Builder",
+            "originalSection": "Everyone Becomes a Builder",
+            "isNew": true,
+            "linesAdded": 28,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Streamline Responsibilities",
+            "originalSection": "Streamline Responsibilities",
+            "isNew": true,
+            "linesAdded": 13,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Tool and Platform Agnostic",
+            "originalSection": "Tool and Platform Agnostic",
+            "isNew": true,
+            "linesAdded": 15,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Core Framework",
+            "originalSection": "Core Framework",
+            "isNew": true,
+            "linesAdded": 1,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Artifacts",
+            "originalSection": "Artifacts",
+            "isNew": true,
+            "linesAdded": 246,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Phases & Rituals",
+            "originalSection": "Phases & Rituals",
+            "isNew": true,
+            "linesAdded": 171,
+            "linesRemoved": 0
+          },
+          {
+            "section": "The Workflow",
+            "originalSection": "The Workflow",
+            "isNew": true,
+            "linesAdded": 11,
+            "linesRemoved": 0
+          },
+          {
+            "section": "AI-DLC 2026 in Action: Greenfield Development",
+            "originalSection": "AI-DLC 2026 in Action: Greenfield Development",
+            "isNew": true,
+            "linesAdded": 1,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Inception Phase (Mob Elaboration)",
+            "originalSection": "Inception Phase (Mob Elaboration)",
+            "isNew": true,
+            "linesAdded": 86,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Construction Phase",
+            "originalSection": "Construction Phase",
+            "isNew": true,
+            "linesAdded": 30,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Operations Phase",
+            "originalSection": "Operations Phase",
+            "isNew": true,
+            "linesAdded": 28,
+            "linesRemoved": 0
+          },
+          {
+            "section": "AI-DLC 2026 in Action: Brownfield Development",
+            "originalSection": "AI-DLC 2026 in Action: Brownfield Development",
+            "isNew": true,
+            "linesAdded": 1,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Key Difference: Context Building",
+            "originalSection": "Key Difference: Context Building",
+            "isNew": true,
+            "linesAdded": 30,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Pre-Inception Artifacts",
+            "originalSection": "Pre-Inception Artifacts",
+            "isNew": true,
+            "linesAdded": 9,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Decision Framework: Selecting Operating Mode",
+            "originalSection": "Decision Framework: Selecting Operating Mode",
+            "isNew": true,
+            "linesAdded": 15,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Implementing Autonomous Bolts",
+            "originalSection": "Implementing Autonomous Bolts",
+            "isNew": true,
+            "linesAdded": 14,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Adoption Path",
+            "originalSection": "Adoption Path",
+            "isNew": true,
+            "linesAdded": 11,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Measuring AI-DLC Effectiveness",
+            "originalSection": "Measuring AI-DLC Effectiveness",
+            "isNew": true,
+            "linesAdded": 12,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Compliance and Audit Integration",
+            "originalSection": "Compliance and Audit Integration",
+            "isNew": true,
+            "linesAdded": 8,
+            "linesRemoved": 0
+          },
+          {
+            "section": "Glossary",
+            "originalSection": "Glossary",
+            "isNew": true,
+            "linesAdded": 21,
+            "linesRemoved": 0
+          },
+          {
+            "section": "References",
+            "originalSection": "References",
+            "isNew": true,
+            "linesAdded": 23,
+            "linesRemoved": 0
+          }
+        ]
+      }
+    ],
+    "newSections": []
+  }
+}

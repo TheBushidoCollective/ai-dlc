@@ -4,6 +4,9 @@
 @source "../app";
 @source "../lib";
 
+/* Enable class-based dark mode for next-themes compatibility */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
 	--font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
 		"Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -64,10 +67,8 @@ html.dark {
 	@apply text-xl text-gray-600 dark:text-gray-400;
 }
 
-/* Smooth scrolling */
-html {
-	scroll-behavior: smooth;
-}
+/* Smooth scrolling - only for explicit navigation, not global */
+/* Note: We handle smooth scroll manually in click handlers to avoid interference with scroll spy */
 
 /* Focus styles */
 :focus-visible {
@@ -81,6 +82,58 @@ html {
 
 .dark ::selection {
 	@apply bg-blue-900 text-blue-100;
+}
+
+/* Diff highlighting styles for version comparison */
+.diff-added {
+	background-color: rgb(187 247 208);
+	border-radius: 0.125rem;
+	padding: 0 0.125rem;
+	text-decoration: none;
+}
+
+.dark .diff-added {
+	background-color: rgb(20 83 45 / 0.6);
+}
+
+.diff-removed {
+	background-color: rgb(254 202 202);
+	border-radius: 0.125rem;
+	padding: 0 0.125rem;
+	text-decoration: line-through;
+}
+
+.dark .diff-removed {
+	background-color: rgb(127 29 29 / 0.6);
+}
+
+/* Block-level diff styles for multi-line content */
+.diff-added-block {
+	background-color: rgb(187 247 208 / 0.3);
+	border-left: 4px solid rgb(34 197 94);
+	padding: 1rem;
+	margin: 1rem 0;
+	border-radius: 0.25rem;
+}
+
+.dark .diff-added-block {
+	background-color: rgb(20 83 45 / 0.3);
+	border-left-color: rgb(34 197 94);
+}
+
+.diff-removed-block {
+	background-color: rgb(254 202 202 / 0.3);
+	border-left: 4px solid rgb(239 68 68);
+	padding: 1rem;
+	margin: 1rem 0;
+	border-radius: 0.25rem;
+	text-decoration: line-through;
+	opacity: 0.7;
+}
+
+.dark .diff-removed-block {
+	background-color: rgb(127 29 29 / 0.3);
+	border-left-color: rgb(239 68 68);
 }
 
 /* Print styles */

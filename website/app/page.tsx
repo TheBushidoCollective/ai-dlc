@@ -1,5 +1,5 @@
-import Link from "next/link"
 import { getAllBlogPosts } from "@/lib/blog"
+import Link from "next/link"
 
 const hats = [
 	{
@@ -20,7 +20,8 @@ const hats = [
 				/>
 			</svg>
 		),
-		description: "Gather context, understand requirements, and research patterns.",
+		description:
+			"Gather context, understand requirements, and research patterns.",
 		color: "text-blue-600 dark:text-blue-400",
 		bgColor: "bg-blue-50 dark:bg-blue-950/50",
 		borderColor: "border-blue-200 dark:border-blue-900",
@@ -142,7 +143,7 @@ const differentiators = [
 	{
 		title: "Intentional Context Switching",
 		description:
-			'Instead of letting context drift, switch "hats" deliberately. Both you and your AI understand what mode you\'re in and what\'s expected.',
+			"Instead of letting context drift, switch \"hats\" deliberately. Both you and your AI understand what mode you're in and what's expected.",
 		icon: (
 			<svg
 				className="h-6 w-6"

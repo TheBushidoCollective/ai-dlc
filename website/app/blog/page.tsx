@@ -1,6 +1,6 @@
+import { getAllBlogPosts } from "@/lib/blog"
 import type { Metadata } from "next"
 import Link from "next/link"
-import { getAllBlogPosts } from "@/lib/blog"
 
 export const metadata: Metadata = {
 	title: "Blog - AI-DLC",

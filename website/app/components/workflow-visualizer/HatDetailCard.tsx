@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, AnimatePresence } from "framer-motion"
+import { AnimatePresence, motion } from "framer-motion"
 import type { Hat, WorkflowStep } from "./types"
 
 interface HatDetailCardProps {
@@ -38,16 +38,6 @@ export function HatDetailCard({ hat, step }: HatDetailCardProps) {
 								>
 									{hat.name}
 								</h3>
-								<span
-									className={`
-										text-xs px-2 py-0.5 rounded-full font-medium
-										${hat.mode === "HITL" ? "bg-blue-200 text-blue-800 dark:bg-blue-900 dark:text-blue-200" : ""}
-										${hat.mode === "OHOTL" ? "bg-green-200 text-green-800 dark:bg-green-900 dark:text-green-200" : ""}
-										${hat.mode === "AHOTL" ? "bg-orange-200 text-orange-800 dark:bg-orange-900 dark:text-orange-200" : ""}
-									`}
-								>
-									{hat.mode}
-								</span>
 							</div>
 
 							{/* Step description */}

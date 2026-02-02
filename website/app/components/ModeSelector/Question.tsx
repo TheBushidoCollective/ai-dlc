@@ -8,7 +8,11 @@ interface QuestionProps {
 	onSelect: (index: number) => void
 }
 
-export function Question({ question, selectedAnswer, onSelect }: QuestionProps) {
+export function Question({
+	question,
+	selectedAnswer,
+	onSelect,
+}: QuestionProps) {
 	return (
 		<div className="space-y-6">
 			<div>

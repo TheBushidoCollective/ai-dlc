@@ -1,6 +1,6 @@
 "use client"
 
-import { categoryColors, type DiagramNode } from "./types"
+import { type DiagramNode, categoryColors } from "./types"
 
 interface DiagramTooltipProps {
 	node: DiagramNode | null
@@ -46,7 +46,10 @@ export function DiagramTooltip({ node, isDarkMode }: DiagramTooltipProps) {
 						{categoryName}
 					</span>
 				</div>
-				<h3 className="mb-1 text-lg font-semibold" style={{ color: labelColor }}>
+				<h3
+					className="mb-1 text-lg font-semibold"
+					style={{ color: labelColor }}
+				>
 					{node.label}
 				</h3>
 				<p className="text-sm" style={{ color: textColor }}>

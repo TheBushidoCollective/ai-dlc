@@ -1,12 +1,9 @@
-export type OperatingMode = "HITL" | "OHOTL" | "AHOTL"
-
 export interface Hat {
 	id: string
 	name: string
 	emoji: string
 	description: string
 	responsibilities: string[]
-	mode: OperatingMode
 	color: {
 		bg: string
 		bgDark: string

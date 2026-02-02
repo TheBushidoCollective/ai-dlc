@@ -85,8 +85,8 @@ Add the plugin to your Claude Code settings file manually.
 After installation, verify the plugin is working:
 
 1. Start a new Claude Code session in your project
-2. Type `/elaborate` - you should see the elaboration command activate
-3. Type `/construct` - this should ask about your current intent
+2. Type `/elaborate` - you should see the elaboration flow start
+3. If `/elaborate` works, your installation is successful
 
 If commands aren't recognized, restart your Claude Code session.
 

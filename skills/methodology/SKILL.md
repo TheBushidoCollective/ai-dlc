@@ -6,7 +6,7 @@ argument-hint: "[your question]"
 
 ## Name
 
-`ai-dlc:methodology` - Get answers about the AI-DLC 2026 methodology.
+`ai-dlc:methodology` - Get answers about the AI-DLC methodology.
 
 ## Synopsis
 
@@ -16,7 +16,7 @@ argument-hint: "[your question]"
 
 ## Description
 
-**User-facing command** - Ask questions about the AI-DLC 2026 methodology without bloating your main context window.
+**User-facing command** - Ask questions about the AI-DLC methodology without bloating your main context window.
 
 This command spawns a **research agent** that reads the AI-DLC paper and runbooks to answer your question. The agent's research stays in its own context, returning only the concise answer to you.
 
@@ -39,10 +39,10 @@ The user's question follows the command. If no question provided, ask what they'
 Use the Task tool to spawn an Explore agent with this prompt:
 
 ```
-Research the AI-DLC 2026 methodology to answer this question: {question}
+Research the AI-DLC methodology to answer this question: {question}
 
 Sources to consult (in order of relevance):
-1. The AI-DLC 2026 paper: website/content/papers/ai-dlc-2026.md
+1. The AI-DLC paper: website/content/papers/ai-dlc-2026.md
 2. Runbooks in: website/content/papers/ai-dlc-2026/runbooks/
 3. The jutsu-ai-dlc plugin: jutsu/jutsu-ai-dlc/
 

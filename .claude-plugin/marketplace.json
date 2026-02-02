@@ -1,0 +1,29 @@
+{
+	"name": "ai-dlc",
+	"owner": {
+		"name": "The Bushido Collective",
+		"url": "https://thebushido.co"
+	},
+	"metadata": {
+		"description": "AI-DLC methodology for iterative AI-driven development with hat-based workflows, completion criteria, and automatic context preservation.",
+		"version": "1.1.0"
+	},
+	"plugins": [
+		{
+			"name": "ai-dlc",
+			"description": "AI-DLC methodology - iterative AI-driven development with hat-based workflows, completion criteria, and automatic context preservation",
+			"source": "./",
+			"category": "Pattern",
+			"keywords": [
+				"ai-dlc",
+				"methodology",
+				"workflow",
+				"iteration",
+				"completion-criteria",
+				"hat-switching",
+				"context-preservation",
+				"human-ai-collaboration"
+			]
+		}
+	]
+}

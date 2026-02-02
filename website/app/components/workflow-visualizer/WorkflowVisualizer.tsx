@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { workflowData } from "./data"
-import { WorkflowSelector } from "./WorkflowSelector"
-import { WorkflowDiagram } from "./WorkflowDiagram"
-import { PlaybackControls } from "./PlaybackControls"
+import { AnimatePresence, motion } from "framer-motion"
+import { useCallback, useEffect, useState } from "react"
 import { HatDetailCard } from "./HatDetailCard"
+import { PlaybackControls } from "./PlaybackControls"
+import { WorkflowDiagram } from "./WorkflowDiagram"
+import { WorkflowSelector } from "./WorkflowSelector"
+import { workflowData } from "./data"
 
 const STEP_DURATION = 2000 // 2 seconds per step
 

@@ -1,6 +1,6 @@
+import { getDocsNavigation } from "@/lib/docs"
 import type { ReactNode } from "react"
 import { DocsSidebar } from "../components"
-import { getDocsNavigation } from "@/lib/docs"
 
 export default function DocsLayout({ children }: { children: ReactNode }) {
 	const navigation = getDocsNavigation()

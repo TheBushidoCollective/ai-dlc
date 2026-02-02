@@ -1,12 +1,18 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react"
 import { useTheme } from "next-themes"
-import { diagramData, DIAGRAM_VIEWBOX } from "./data"
+import {
+	type KeyboardEvent,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react"
 import { DiagramConnector } from "./DiagramConnector"
 import { DiagramLayer } from "./DiagramLayer"
 import { DiagramNode } from "./DiagramNode"
 import { DiagramTooltip } from "./DiagramTooltip"
+import { DIAGRAM_VIEWBOX, diagramData } from "./data"
 import type { DiagramNode as DiagramNodeType } from "./types"
 
 export function BigPictureDiagram() {
@@ -33,7 +39,9 @@ export function BigPictureDiagram() {
 	}, [])
 
 	// Get hovered node for tooltip
-	const hoveredNode = hoveredNodeId ? nodesMap.get(hoveredNodeId) ?? null : null
+	const hoveredNode = hoveredNodeId
+		? (nodesMap.get(hoveredNodeId) ?? null)
+		: null
 
 	const handleNodeSelect = useCallback((id: string) => {
 		setSelectedNodeId(id)
@@ -86,7 +94,7 @@ export function BigPictureDiagram() {
 				}
 			}
 		},
-		[focusedIndex]
+		[focusedIndex],
 	)
 
 	// Background color for the SVG
@@ -99,13 +107,19 @@ export function BigPictureDiagram() {
 
 			{/* Legend */}
 			<div className="mb-4 flex flex-wrap justify-center gap-4 text-sm">
-				<LegendItem color={isDarkMode ? "#60a5fa" : "#2563eb"} label="Artifacts" />
+				<LegendItem
+					color={isDarkMode ? "#60a5fa" : "#2563eb"}
+					label="Artifacts"
+				/>
 				<LegendItem color={isDarkMode ? "#c084fc" : "#9333ea"} label="Hats" />
 				<LegendItem
 					color={isDarkMode ? "#fbbf24" : "#d97706"}
 					label="Operating Modes"
 				/>
-				<LegendItem color={isDarkMode ? "#4ade80" : "#16a34a"} label="Principles" />
+				<LegendItem
+					color={isDarkMode ? "#4ade80" : "#16a34a"}
+					label="Principles"
+				/>
 			</div>
 
 			{/* SVG Diagram */}
@@ -126,8 +140,8 @@ export function BigPictureDiagram() {
 						An interactive diagram showing the AI-DLC methodology structure with
 						four layers: Development Phases (Intent, Unit, Bolt, Deploy), Hats
 						(Researcher, Planner, Builder, Reviewer), Operating Modes (HITL,
-						OHOTL, AHOTL), and Core Principles (Backpressure, Completion Criteria,
-						Collapsed SDLC, State Management).
+						OHOTL, AHOTL), and Core Principles (Backpressure, Completion
+						Criteria, Collapsed SDLC, State Management).
 					</desc>
 
 					{/* Layers (background bands) */}
@@ -186,7 +200,7 @@ export function BigPictureDiagram() {
 								{diagramData.nodes
 									.filter(
 										(node) =>
-											node.y >= layer.y && node.y < layer.y + layer.height
+											node.y >= layer.y && node.y < layer.y + layer.height,
 									)
 									.map((node) => (
 										<MobileNodeLink key={node.id} node={node} />

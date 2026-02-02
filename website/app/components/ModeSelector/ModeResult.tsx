@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import type { Mode, Scores } from "../../../lib/mode-selector"
-import { modeInfo, getScoreSummary } from "../../../lib/mode-selector"
+import { getScoreSummary, modeInfo } from "../../../lib/mode-selector"
 
 interface ModeResultProps {
 	recommendedMode: Mode
@@ -40,9 +40,7 @@ export function ModeResult({
 	return (
 		<div className="space-y-8">
 			{/* Main Result Card */}
-			<div
-				className={`rounded-2xl border-2 p-8 ${colors.bg} ${colors.border}`}
-			>
+			<div className={`rounded-2xl border-2 p-8 ${colors.bg} ${colors.border}`}>
 				<div className="mb-4 flex items-center justify-between">
 					<div>
 						<div className="mb-1 text-sm font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">

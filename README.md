@@ -1,6 +1,6 @@
 # AI-DLC
 
-AI-DLC 2026 methodology plugin for Claude Code. Provides iterative AI-driven development with convention-based artifacts, hat-based workflows, and automatic context preservation.
+AI-DLC methodology plugin for Claude Code. Provides iterative AI-driven development with convention-based artifacts, hat-based workflows, and automatic context preservation.
 
 ## Overview
 
@@ -13,7 +13,7 @@ AI-DLC (AI-Driven Development Lifecycle) is a methodology for collaborative huma
 - **Completion criteria enable autonomy** - Clear criteria = less human oversight needed
 - **Artifacts are memory** - Intent and progress persist in committed files
 
-> **Learn More:** Read the full [AI-DLC 2026 Paper](https://ai-dlc.dev/papers/ai-dlc-2026) for the complete methodology, including runbooks for reimagining the SDLC, roles, and adoption paths.
+> **Learn More:** Read the full [AI-DLC Paper](https://ai-dlc.dev/papers/ai-dlc-2026) for the complete methodology, including runbooks for reimagining the SDLC, roles, and adoption paths.
 
 ## Installation
 
@@ -410,9 +410,9 @@ bun run format
 
 ## Learn More
 
-### The AI-DLC 2026 Paper
+### The AI-DLC Paper
 
-This plugin implements the [AI-DLC 2026 methodology](https://ai-dlc.dev/papers/ai-dlc-2026). The paper covers:
+This plugin implements the [AI-DLC methodology](https://ai-dlc.dev/papers/ai-dlc-2026). The paper covers:
 
 - Core principles and philosophy
 - Operating modes (HITL, OHOTL, AHOTL)

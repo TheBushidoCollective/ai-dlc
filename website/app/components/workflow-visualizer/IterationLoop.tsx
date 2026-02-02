@@ -14,16 +14,21 @@ export function IterationLoop({
 	isActive,
 	stepCount,
 }: IterationLoopProps) {
-	// Calculate the span of the loop (how many steps it covers)
-	const loopSpan = loop.fromStep - loop.toStep
+	// Calculate positions as percentages based on step count
+	// Each step is centered in its "slot", so position = (index + 0.5) / stepCount * 100
+	const fromX = ((loop.fromStep + 0.5) / stepCount) * 100
+	const toX = ((loop.toStep + 0.5) / stepCount) * 100
+
+	// Calculate label position (centered between from and to)
+	const labelX = (fromX + toX) / 2
 
 	return (
 		<div className="relative w-full mt-6">
 			{/* The curved arrow going backwards */}
 			<svg
 				className="w-full h-16 overflow-visible"
-				viewBox="0 0 400 60"
-				preserveAspectRatio="xMidYMid meet"
+				viewBox="0 0 100 60"
+				preserveAspectRatio="none"
 			>
 				<defs>
 					<marker
@@ -37,7 +42,7 @@ export function IterationLoop({
 						<polygon
 							points="0 0, 10 3.5, 0 7"
 							fill="currentColor"
-							className="text-gray-400 dark:text-gray-500"
+							className="text-gray-400 dark:text-gray-300"
 						/>
 					</marker>
 					<marker
@@ -58,28 +63,22 @@ export function IterationLoop({
 
 				{/* Background path */}
 				<motion.path
-					d={`M ${80 + loop.fromStep * 80} 0
-						 C ${80 + loop.fromStep * 80} 50,
-						   ${80 + loop.toStep * 80} 50,
-						   ${80 + loop.toStep * 80} 0`}
+					d={`M ${fromX} 0 C ${fromX} 50, ${toX} 50, ${toX} 0`}
 					fill="none"
 					stroke="currentColor"
-					strokeWidth="2"
-					strokeDasharray="6 4"
-					className="text-gray-300 dark:text-gray-600"
+					strokeWidth="0.5"
+					strokeDasharray="2 1.5"
+					className="text-gray-300 dark:text-gray-400"
 					markerEnd="url(#arrowhead)"
 				/>
 
 				{/* Animated path */}
 				<motion.path
-					d={`M ${80 + loop.fromStep * 80} 0
-						 C ${80 + loop.fromStep * 80} 50,
-						   ${80 + loop.toStep * 80} 50,
-						   ${80 + loop.toStep * 80} 0`}
+					d={`M ${fromX} 0 C ${fromX} 50, ${toX} 50, ${toX} 0`}
 					fill="none"
 					stroke="currentColor"
-					strokeWidth="2"
-					strokeDasharray="6 4"
+					strokeWidth="0.5"
+					strokeDasharray="2 1.5"
 					className="text-amber-500"
 					initial={{ pathLength: 0, opacity: 0 }}
 					animate={{
@@ -91,9 +90,10 @@ export function IterationLoop({
 				/>
 			</svg>
 
-			{/* Label */}
+			{/* Label - positioned based on actual loop span */}
 			<motion.div
-				className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+				className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+				style={{ left: `${labelX}%` }}
 				animate={{
 					opacity: isActive ? 1 : 0.5,
 					scale: isActive ? 1.1 : 1,

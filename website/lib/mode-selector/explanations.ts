@@ -1,5 +1,5 @@
-import type { Mode, Scores } from "./scoring"
 import type { Question } from "./questions"
+import type { Mode, Scores } from "./scoring"
 
 export interface ModeInfo {
 	name: string
@@ -130,9 +130,9 @@ export function generateExplanation(
 
 		const weights = option.weights
 		const maxWeight = Math.max(weights.HITL, weights.OHOTL, weights.AHOTL)
-		const dominantMode = (
-			Object.entries(weights) as [Mode, number][]
-		).find(([_, w]) => w === maxWeight)?.[0]
+		const dominantMode = (Object.entries(weights) as [Mode, number][]).find(
+			([_, w]) => w === maxWeight,
+		)?.[0]
 
 		if (dominantMode && maxWeight >= 2) {
 			factors.push({

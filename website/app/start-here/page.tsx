@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 
 interface Step {
 	id: string
@@ -82,8 +82,7 @@ const steps: Step[] = [
 	{
 		id: "practice",
 		title: "4. Try Your First Intent",
-		description:
-			"Put AI-DLC into practice with a real task.",
+		description: "Put AI-DLC into practice with a real task.",
 		items: [
 			{
 				id: "first-intent",
@@ -209,10 +208,10 @@ export default function StartHerePage() {
 				<div className="space-y-6">
 					{steps.map((step, stepIndex) => {
 						const stepCompleted = step.items.every((item) =>
-							completedItems.has(item.id)
+							completedItems.has(item.id),
 						)
 						const stepStarted = step.items.some((item) =>
-							completedItems.has(item.id)
+							completedItems.has(item.id),
 						)
 
 						return (
@@ -258,10 +257,7 @@ export default function StartHerePage() {
 										const isCompleted = completedItems.has(item.id)
 
 										return (
-											<li
-												key={item.id}
-												className="flex items-center gap-3"
-											>
+											<li key={item.id} className="flex items-center gap-3">
 												<button
 													type="button"
 													onClick={() => toggleItem(item.id)}
@@ -296,7 +292,9 @@ export default function StartHerePage() {
 												<Link
 													href={item.href}
 													target={item.external ? "_blank" : undefined}
-													rel={item.external ? "noopener noreferrer" : undefined}
+													rel={
+														item.external ? "noopener noreferrer" : undefined
+													}
 													className={`flex-1 transition hover:text-blue-600 dark:hover:text-blue-400 ${
 														isCompleted
 															? "text-gray-500 line-through dark:text-gray-500"
@@ -353,7 +351,8 @@ export default function StartHerePage() {
 							Congratulations!
 						</h3>
 						<p className="mb-4 text-green-700 dark:text-green-300">
-							You've completed the AI-DLC onboarding. You're ready to use AI-DLC in your projects.
+							You've completed the AI-DLC onboarding. You're ready to use AI-DLC
+							in your projects.
 						</p>
 						<div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
 							<Link

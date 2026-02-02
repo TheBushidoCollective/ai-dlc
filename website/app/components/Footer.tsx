@@ -1,5 +1,5 @@
-import Link from "next/link"
 import { footerNavigation } from "@/lib/navigation"
+import Link from "next/link"
 
 export function Footer() {
 	const columns = [

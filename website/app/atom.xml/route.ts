@@ -41,7 +41,9 @@ export async function GET() {
 		.join("\n")
 
 	const latestDate =
-		posts.length > 0 ? formatISO8601(posts[0].date) : formatISO8601(new Date().toISOString())
+		posts.length > 0
+			? formatISO8601(posts[0].date)
+			: formatISO8601(new Date().toISOString())
 
 	const atom = `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">

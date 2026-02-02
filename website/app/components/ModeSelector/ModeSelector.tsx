@@ -1,18 +1,18 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useCallback, useEffect, useState } from "react"
 import {
-	questions,
 	calculateScores,
-	encodeAnswers,
 	decodeAnswers,
+	encodeAnswers,
 	isValidAnswers,
+	questions,
 } from "../../../lib/mode-selector"
+import { ModeExplanation } from "./ModeExplanation"
+import { ModeResult } from "./ModeResult"
 import { ProgressIndicator } from "./ProgressIndicator"
 import { Question } from "./Question"
-import { ModeResult } from "./ModeResult"
-import { ModeExplanation } from "./ModeExplanation"
 
 type State = "questionnaire" | "results"
 
@@ -46,22 +46,23 @@ export function ModeSelector() {
 	const [copied, setCopied] = useState(false)
 
 	// Calculate results
-	const completedAnswers = answers.filter(
-		(a): a is number => a !== undefined,
-	)
+	const completedAnswers = answers.filter((a): a is number => a !== undefined)
 	const isComplete = completedAnswers.length === questions.length
 	const result = isComplete
 		? calculateScores(questions, completedAnswers)
 		: null
 
 	// Handle answer selection
-	const handleSelect = useCallback((index: number) => {
-		setAnswers((prev) => {
-			const next = [...prev]
-			next[currentQuestion] = index
-			return next
-		})
-	}, [currentQuestion])
+	const handleSelect = useCallback(
+		(index: number) => {
+			setAnswers((prev) => {
+				const next = [...prev]
+				next[currentQuestion] = index
+				return next
+			})
+		},
+		[currentQuestion],
+	)
 
 	// Navigation
 	const goNext = useCallback(() => {
@@ -159,7 +160,9 @@ export function ModeSelector() {
 							disabled={answers[currentQuestion] === undefined}
 							className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
 						>
-							{currentQuestion === questions.length - 1 ? "See Results" : "Next"}
+							{currentQuestion === questions.length - 1
+								? "See Results"
+								: "Next"}
 							<svg
 								className="h-4 w-4"
 								fill="none"

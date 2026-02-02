@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useRef } from "react"
 import type { NavCategory } from "@/lib/navigation"
-import { MegaMenuSection } from "./MegaMenuSection"
+import { useEffect, useRef } from "react"
 import { MegaMenuPreview } from "./MegaMenuPreview"
+import { MegaMenuSection } from "./MegaMenuSection"
 
 interface MegaMenuProps {
 	category: NavCategory
@@ -69,9 +69,7 @@ export function MegaMenu({ category, isOpen, onClose }: MegaMenuProps) {
 					{/* Featured preview card */}
 					{category.featured && (
 						<div
-							className={
-								sectionCount <= 2 ? "md:col-span-1" : "md:col-span-1"
-							}
+							className={sectionCount <= 2 ? "md:col-span-1" : "md:col-span-1"}
 						>
 							<MegaMenuPreview
 								title={category.featured.title}

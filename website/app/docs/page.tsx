@@ -1,11 +1,10 @@
+import { getAllDocs } from "@/lib/docs"
 import type { Metadata } from "next"
 import Link from "next/link"
-import { getAllDocs } from "@/lib/docs"
 
 export const metadata: Metadata = {
 	title: "Documentation - AI-DLC",
-	description:
-		"Learn how to use AI-DLC for iterative AI-driven development.",
+	description: "Learn how to use AI-DLC for iterative AI-driven development.",
 }
 
 export default function DocsPage() {

@@ -1,11 +1,11 @@
 "use client"
 
+import { navigation } from "@/lib/navigation"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ThemeToggle } from "./ThemeToggle"
-import { MegaMenu, MobileNav, BottomNav } from "./navigation"
-import { navigation } from "@/lib/navigation"
+import { BottomNav, MegaMenu, MobileNav } from "./navigation"
 
 export function Header() {
 	const pathname = usePathname()
@@ -17,10 +17,7 @@ export function Header() {
 	// Close mega menu when clicking outside
 	useEffect(() => {
 		const handleClickOutside = (e: MouseEvent) => {
-			if (
-				headerRef.current &&
-				!headerRef.current.contains(e.target as Node)
-			) {
+			if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
 				setOpenCategory(null)
 			}
 		}
@@ -65,15 +62,20 @@ export function Header() {
 
 	const isActiveCategory = (category: (typeof navigation)[0]) => {
 		if (category.title === "Overview") {
-			return pathname === "/" || pathname === "/about/" || pathname === "/big-picture/"
+			return (
+				pathname === "/" ||
+				pathname === "/about/" ||
+				pathname === "/big-picture/"
+			)
 		}
 		// Check if any section item matches the current path
 		return category.sections.some((section) =>
 			section.items.some(
 				(item) =>
 					!item.href.startsWith("http") &&
-					(pathname === item.href || pathname.startsWith(item.href.replace(/\/$/, "")))
-			)
+					(pathname === item.href ||
+						pathname.startsWith(item.href.replace(/\/$/, ""))),
+			),
 		)
 	}
 

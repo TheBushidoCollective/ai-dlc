@@ -1,5 +1,11 @@
 import type { Metadata } from "next"
-import { Footer, Header, ThemeProvider, WebSiteJsonLd, SoftwareApplicationJsonLd } from "./components"
+import {
+	Footer,
+	Header,
+	SoftwareApplicationJsonLd,
+	ThemeProvider,
+	WebSiteJsonLd,
+} from "./components"
 import "./globals.css"
 
 const SITE_URL = "https://ai-dlc.dev"

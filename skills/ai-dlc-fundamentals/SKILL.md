@@ -1,6 +1,6 @@
 ---
 name: ai-dlc-fundamentals
-description: Use when understanding AI-DLC 2026 methodology fundamentals. Covers core principles, iteration patterns, hat-based workflows, and the philosophy of human-AI collaboration in software development.
+description: Use when understanding AI-DLC methodology fundamentals. Covers core principles, iteration patterns, hat-based workflows, and the philosophy of human-AI collaboration in software development.
 allowed-tools:
   - Read
   - Grep

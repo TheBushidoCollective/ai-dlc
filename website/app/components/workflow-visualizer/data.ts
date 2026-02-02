@@ -12,7 +12,6 @@ const hats: Record<string, Hat> = {
 			"Expand high-level goals into specifics",
 			"Document assumptions and constraints",
 		],
-		mode: "HITL",
 		color: {
 			bg: "bg-blue-100",
 			bgDark: "bg-blue-900/30",
@@ -34,7 +33,6 @@ const hats: Record<string, Hat> = {
 			"Define completion criteria",
 			"Estimate complexity and scope",
 		],
-		mode: "HITL",
 		color: {
 			bg: "bg-purple-100",
 			bgDark: "bg-purple-900/30",
@@ -56,7 +54,6 @@ const hats: Record<string, Hat> = {
 			"Follow established patterns",
 			"Handle edge cases",
 		],
-		mode: "OHOTL",
 		color: {
 			bg: "bg-green-100",
 			bgDark: "bg-green-900/30",
@@ -78,7 +75,6 @@ const hats: Record<string, Hat> = {
 			"Check completion criteria",
 			"Identify remaining issues",
 		],
-		mode: "HITL",
 		color: {
 			bg: "bg-amber-100",
 			bgDark: "bg-amber-900/30",
@@ -100,7 +96,6 @@ const hats: Record<string, Hat> = {
 			"Cover edge cases and error states",
 			"Ensure tests are deterministic",
 		],
-		mode: "OHOTL",
 		color: {
 			bg: "bg-red-100",
 			bgDark: "bg-red-900/30",
@@ -122,7 +117,6 @@ const hats: Record<string, Hat> = {
 			"Avoid premature optimization",
 			"Keep implementation simple",
 		],
-		mode: "OHOTL",
 		color: {
 			bg: "bg-cyan-100",
 			bgDark: "bg-cyan-900/30",
@@ -144,7 +138,6 @@ const hats: Record<string, Hat> = {
 			"Improve naming and structure",
 			"Ensure tests still pass",
 		],
-		mode: "OHOTL",
 		color: {
 			bg: "bg-indigo-100",
 			bgDark: "bg-indigo-900/30",
@@ -166,7 +159,6 @@ const hats: Record<string, Hat> = {
 			"Test error handling paths",
 			"Challenge assumptions",
 		],
-		mode: "OHOTL",
 		color: {
 			bg: "bg-rose-100",
 			bgDark: "bg-rose-900/30",
@@ -188,7 +180,6 @@ const hats: Record<string, Hat> = {
 			"Improve error handling",
 			"Add input validation",
 		],
-		mode: "OHOTL",
 		color: {
 			bg: "bg-sky-100",
 			bgDark: "bg-sky-900/30",
@@ -210,7 +201,6 @@ const hats: Record<string, Hat> = {
 			"Note anomalies and patterns",
 			"Prepare data for analysis",
 		],
-		mode: "AHOTL",
 		color: {
 			bg: "bg-slate-100",
 			bgDark: "bg-slate-900/30",
@@ -232,7 +222,6 @@ const hats: Record<string, Hat> = {
 			"Formulate testable hypotheses",
 			"Prioritize hypotheses to test",
 		],
-		mode: "HITL",
 		color: {
 			bg: "bg-yellow-100",
 			bgDark: "bg-yellow-900/30",
@@ -254,7 +243,6 @@ const hats: Record<string, Hat> = {
 			"Run experiments systematically",
 			"Collect experiment data",
 		],
-		mode: "OHOTL",
 		color: {
 			bg: "bg-teal-100",
 			bgDark: "bg-teal-900/30",
@@ -276,7 +264,6 @@ const hats: Record<string, Hat> = {
 			"Draw actionable conclusions",
 			"Recommend next steps",
 		],
-		mode: "HITL",
 		color: {
 			bg: "bg-orange-100",
 			bgDark: "bg-orange-900/30",

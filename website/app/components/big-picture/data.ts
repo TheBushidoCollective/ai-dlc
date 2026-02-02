@@ -250,7 +250,12 @@ export const diagramData: DiagramData = {
 		{ id: "bolt-builder", from: "bolt", to: "builder", type: "contains" },
 
 		// Operating modes influence hats
-		{ id: "hitl-researcher", from: "hitl", to: "researcher", type: "influences" },
+		{
+			id: "hitl-researcher",
+			from: "hitl",
+			to: "researcher",
+			type: "influences",
+		},
 		{ id: "ohotl-builder", from: "ohotl", to: "builder", type: "influences" },
 
 		// Principles support phases

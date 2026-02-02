@@ -1,6 +1,9 @@
 "use client"
 
-import type { DiagramConnector as DiagramConnectorType, DiagramNode } from "./types"
+import type {
+	DiagramConnector as DiagramConnectorType,
+	DiagramNode,
+} from "./types"
 
 interface DiagramConnectorProps {
 	connector: DiagramConnectorType
@@ -87,7 +90,11 @@ export function DiagramConnector({
 	const strokeColor = getStrokeColor()
 	const strokeWidth = isHighlighted ? 2 : 1.5
 	const strokeDasharray =
-		connector.type === "influences" ? "4 2" : connector.type === "contains" ? "6 3" : "none"
+		connector.type === "influences"
+			? "4 2"
+			: connector.type === "contains"
+				? "6 3"
+				: "none"
 	const opacity = isHighlighted ? 1 : 0.6
 
 	return (

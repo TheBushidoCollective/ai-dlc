@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import matter from "gray-matter"
+import { getFileContributorNames } from "./git-contributors"
 
 const papersDirectory = path.join(process.cwd(), "content/papers")
 
@@ -23,24 +24,27 @@ export interface Paper {
 }
 
 /**
- * Generate a slug from heading text (matches rehype-slug behavior)
+ * Generate a slug from heading text (matches rehype-slug/github-slugger behavior)
+ * github-slugger does NOT collapse multiple hyphens, so "Phases & Rituals" becomes "phases--rituals"
  */
 function slugify(text: string): string {
 	return text
 		.toLowerCase()
+		.trim()
 		.replace(/[^\w\s-]/g, "") // Remove non-word chars except spaces and hyphens
 		.replace(/\s+/g, "-") // Replace spaces with hyphens
-		.replace(/-+/g, "-") // Replace multiple hyphens with single
-		.trim()
+		// Note: Do NOT collapse multiple hyphens - github-slugger preserves them
 }
 
 /**
  * Extract headings from markdown content to build table of contents
+ * Handles duplicate headings by appending -1, -2, etc. (matching rehype-slug behavior)
  */
 export function extractHeadings(content: string): PaperHeading[] {
 	const headingRegex = /^(#{2,4})\s+(.+)$/gm
 	const headings: PaperHeading[] = []
 	const stack: PaperHeading[] = []
+	const seenIds = new Map<string, number>()
 
 	let match: RegExpExecArray | null
 	while (true) {
@@ -48,7 +52,15 @@ export function extractHeadings(content: string): PaperHeading[] {
 		if (match === null) break
 		const level = match[1].length
 		const text = match[2].trim()
-		const id = slugify(text)
+		const baseId = slugify(text)
+
+		// Handle duplicate IDs (matching rehype-slug behavior)
+		let id = baseId
+		const count = seenIds.get(baseId) || 0
+		if (count > 0) {
+			id = `${baseId}-${count}`
+		}
+		seenIds.set(baseId, count + 1)
 
 		const heading: PaperHeading = {
 			id,
@@ -101,15 +113,57 @@ export function getPaperBySlug(slug: string): Paper | null {
 	const fileContents = fs.readFileSync(fullPath, "utf8")
 	const { data, content } = matter(fileContents)
 
+	// Get authors from git history, sorted by number of contributions
+	const gitAuthors = getFileContributorNames(fullPath)
+	// Fall back to frontmatter authors if no git history
+	const authors = gitAuthors.length > 0 ? gitAuthors : data.authors || []
+
+	// Strip duplicate title and subtitle from content
+	let processedContent = content
+	const lines = content.split("\n")
+	let startIndex = 0
+
+	// Skip leading empty lines
+	while (startIndex < lines.length && lines[startIndex].trim() === "") {
+		startIndex++
+	}
+
+	// Check if first non-empty line is an H1 heading
+	if (startIndex < lines.length && lines[startIndex].startsWith("# ")) {
+		startIndex++ // Skip the H1
+
+		// Skip any empty lines after H1
+		while (startIndex < lines.length && lines[startIndex].trim() === "") {
+			startIndex++
+		}
+
+		// Check if next line is an H2 heading (subtitle)
+		if (startIndex < lines.length && lines[startIndex].startsWith("## ")) {
+			startIndex++ // Skip the H2
+
+			// Skip any empty lines after H2
+			while (startIndex < lines.length && lines[startIndex].trim() === "") {
+				startIndex++
+			}
+
+			// Check if next line is a horizontal rule
+			if (startIndex < lines.length && lines[startIndex].trim() === "---") {
+				startIndex++ // Skip the horizontal rule
+			}
+		}
+
+		processedContent = lines.slice(startIndex).join("\n")
+	}
+
 	return {
 		slug,
 		title: data.title || slug,
 		subtitle: data.subtitle,
 		description: data.description,
 		date: data.date || new Date().toISOString(),
-		authors: data.authors,
+		authors,
 		tags: data.tags,
-		content,
+		content: processedContent,
 	}
 }
 

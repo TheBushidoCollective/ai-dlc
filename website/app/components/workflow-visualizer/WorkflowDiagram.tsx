@@ -1,10 +1,10 @@
 "use client"
 
 import { motion } from "framer-motion"
-import type { Hat, Workflow } from "./types"
 import { HatNode } from "./HatNode"
-import { TransitionArrow } from "./TransitionArrow"
 import { IterationLoop } from "./IterationLoop"
+import { TransitionArrow } from "./TransitionArrow"
+import type { Hat, Workflow } from "./types"
 
 interface WorkflowDiagramProps {
 	workflow: Workflow

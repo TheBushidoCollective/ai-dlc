@@ -45,9 +45,8 @@ export default function ModeSelectorPage() {
 					Mode Selector
 				</h1>
 				<p className="text-lg text-gray-600 dark:text-gray-400">
-					Answer 5 questions to find the right operating mode for your task.
-					Get a recommendation for{" "}
-					<span className="font-medium">HITL</span>,{" "}
+					Answer 5 questions to find the right operating mode for your task. Get
+					a recommendation for <span className="font-medium">HITL</span>,{" "}
 					<span className="font-medium">OHOTL</span>, or{" "}
 					<span className="font-medium">AHOTL</span>.
 				</p>

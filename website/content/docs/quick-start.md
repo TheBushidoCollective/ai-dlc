@@ -6,73 +6,105 @@ order: 2
 
 # Quick Start
 
-Get AI-DLC running in your project in 5 minutes.
+Get AI-DLC running in your project and complete your first feature.
 
 ## Installation
 
-Install the AI-DLC plugin in your Claude Code session:
-
-```
-/install-plugin thebushidocollective/ai-dlc
-```
-
-The plugin will be added to your project's Claude Code configuration.
-
-## Basic Usage
-
-### Switching Hats
-
-Use the hat commands to switch between modes:
-
-```
-/researcher   # Enter research mode
-/planner      # Enter planning mode
-/builder      # Enter building mode
-/reviewer     # Enter review mode
+**Option 1: Via Han (recommended)**
+```bash
+han plugin install thebushidocollective/ai-dlc
 ```
 
-Each command switches your context and loads the appropriate system prompt for that phase.
-
-### Defining a Unit
-
-Before starting work, define your unit of work with clear criteria:
-
+**Option 2: Direct in Claude Code**
 ```
-/unit "Add user authentication"
-- Users can register with email/password
-- Users can log in with credentials
-- Sessions persist across browser refreshes
-- Invalid credentials show error messages
+/install-github-plugin thebushidocollective/ai-dlc
 ```
 
-### Working Through Phases
+## The Two Commands You Need
 
-**Research Phase**
-```
-/researcher
-Let's understand the current codebase and authentication requirements...
-```
+AI-DLC uses just two main commands:
 
-**Planning Phase**
-```
-/planner
-Based on our research, here's the implementation plan...
-```
+| Command | What it does |
+|---------|--------------|
+| `/elaborate` | Define what you're building and how you'll know it's done |
+| `/construct` | Start the autonomous build loop |
 
-**Building Phase**
+## Your First Feature
+
+### Step 1: Elaborate
+
 ```
-/builder
-Implementing the authentication system as planned...
+/elaborate
 ```
 
-**Review Phase**
+The AI guides you through:
+1. **What** you want to build
+2. **Success criteria** - how you'll know it's done
+3. **Units** - how to break down the work (for complex features)
+
+Example session:
 ```
-/reviewer
-Let's verify all success criteria are met...
+User: /elaborate
+AI: What do you want to build?
+User: Add user authentication with email/password
+AI: [Asks clarifying questions via interactive prompts]
+AI: Here are the success criteria I captured...
+AI: Elaboration complete! Run /construct to start.
+```
+
+### Step 2: Construct
+
+```
+/construct
+```
+
+The AI now works autonomously:
+- Creates a feature branch
+- Plans the implementation
+- Builds to meet your criteria
+- Reviews its own work
+- Continues until all criteria are satisfied
+
+You can watch, intervene if needed, or let it run.
+
+### Step 3: Continue After Context Resets
+
+If the session runs long, the AI will suggest clearing context:
+```
+AI: "Context getting full. Run /clear to continue."
+User: /clear
+User: /construct
+```
+
+Your progress is preserved - the AI picks up where it left off.
+
+## Other Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/resume [slug]` | Resume an existing intent after a break |
+| `/reset` | Abandon current work and start fresh |
+| `/methodology [question]` | Ask questions about AI-DLC |
+
+## Example: Complete Workflow
+
+```
+User: /elaborate
+AI: What do you want to build?
+User: Add a dark mode toggle to the settings page
+AI: [Guides through requirements and criteria]
+AI: Elaboration complete!
+
+User: /construct
+AI: [Works autonomously through planner → builder → reviewer]
+AI: Intent complete! All criteria satisfied.
+
+User: Great, let's create a PR
+AI: [Creates PR with summary of changes]
 ```
 
 ## Next Steps
 
-- Read the [Core Concepts](/docs/concepts/) guide
-- Learn about [Units of Work](/docs/units/)
-- Explore the [Hat System](/docs/hats/)
+- [Core Concepts](/docs/concepts/) - Understand intents, units, and hats
+- [Workflows](/docs/workflows/) - Learn about TDD, adversarial, and hypothesis workflows
+- [Installation](/docs/installation/) - Detailed setup including Han CLI

@@ -1,8 +1,8 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useCallback, useState, type KeyboardEvent } from "react"
-import { categoryColors, type DiagramNode as DiagramNodeType } from "./types"
+import { type KeyboardEvent, useCallback, useState } from "react"
+import { type DiagramNode as DiagramNodeType, categoryColors } from "./types"
 
 interface DiagramNodeProps {
 	node: DiagramNodeType
@@ -39,7 +39,7 @@ export function DiagramNode({
 				handleClick()
 			}
 		},
-		[handleClick]
+		[handleClick],
 	)
 
 	const handleMouseEnter = useCallback(() => {

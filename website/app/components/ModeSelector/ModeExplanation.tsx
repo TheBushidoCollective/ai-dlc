@@ -1,6 +1,6 @@
 "use client"
 
-import type { Question as QuestionType, Mode } from "../../../lib/mode-selector"
+import type { Mode, Question as QuestionType } from "../../../lib/mode-selector"
 import { modeInfo } from "../../../lib/mode-selector"
 
 interface ModeExplanationProps {
@@ -33,9 +33,9 @@ export function ModeExplanation({
 		const maxWeight = Math.max(weights.HITL, weights.OHOTL, weights.AHOTL)
 
 		if (maxWeight >= 2) {
-			const dominantMode = (
-				Object.entries(weights) as [Mode, number][]
-			).reduce((a, b) => (a[1] > b[1] ? a : b))[0]
+			const dominantMode = (Object.entries(weights) as [Mode, number][]).reduce(
+				(a, b) => (a[1] > b[1] ? a : b),
+			)[0]
 
 			factors.push({
 				question: question.title.replace("?", ""),

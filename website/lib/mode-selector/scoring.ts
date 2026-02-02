@@ -51,9 +51,7 @@ export function calculateScores(
 	}
 
 	// Calculate margin (difference between winner and second place)
-	const sortedScores = [...modes]
-		.map((m) => scores[m])
-		.sort((a, b) => b - a)
+	const sortedScores = [...modes].map((m) => scores[m]).sort((a, b) => b - a)
 	const margin = sortedScores[0] - sortedScores[1]
 
 	// Calculate confidence: 50% base + (margin / maxPossible) * 50%
@@ -83,7 +81,7 @@ export function encodeAnswers(answers: number[]): string {
  */
 export function decodeAnswers(encoded: string): number[] {
 	return encoded.split("").map((c) => {
-		const num = parseInt(c, 10)
+		const num = Number.parseInt(c, 10)
 		return isNaN(num) ? 0 : num
 	})
 }

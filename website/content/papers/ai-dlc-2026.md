@@ -159,6 +159,15 @@ AI-DLC 2026 introduces the concept of AI initiating and directing conversations,
 
 **Human-in-the-Loop (HITL):** Human judgment is directly involved in decision-making. AI proposes options, human validates, AI executes. The human approves each significant step before proceeding.
 
+```mermaid
+flowchart TB
+    A0["🎯 Human Defines Task"] --> A1["🤖 AI Proposes"]
+    A1 --> A2["🕵️ Human Validates"]
+    A2 --> A3["🤖 AI Executes"]
+    A3 --> A4["🕵️ Human Reviews"]
+    A4 --> A1
+```
+
 This mode is essential for:
 
 - **Novel domains** or first-time implementations where patterns aren't established
@@ -167,6 +176,19 @@ This mode is essential for:
 - **Foundational decisions** that will shape subsequent autonomous work
 
 **OHOTL (Observed Human-on-the-Loop):** The system operates while a human watches in real-time, able to intervene at any moment but not required to approve each step. The human maintains **synchronous awareness with asynchronous control**—they see what's happening and can redirect, but progress isn't blocked waiting for approval.
+
+```mermaid
+flowchart TB
+    O1["🎯 Human Defines Criteria"] --> O2["🤖 AI Works"]
+    O2 --> O3["👁️ Human Observes<br/><i>Real-time visibility</i>"]
+    O3 --> O4{"🛑 Intervention<br/>Needed?"}
+    O4 -->|"No"| O2
+    O4 -->|"Yes"| O5["🦸 Human Redirects"]
+    O5 --> O2
+    O2 --> O6{"✅ Criteria Met?"}
+    O6 -->|"No"| O2
+    O6 -->|"Yes"| O7["🧐 Human Reviews Output"]
+```
 
 This mode is appropriate for:
 
@@ -177,6 +199,25 @@ This mode is appropriate for:
 - **Iterative refinement** where human taste guides direction
 
 **AHOTL (Autonomous Human-on-the-Loop):** The system operates autonomously while humans receive periodic updates and intervene only when needed. AI executes within defined boundaries until success criteria are met, alerting humans only when intervention is required.
+
+```mermaid
+flowchart TB
+    B1["🎯 Human Defines Criteria"] --> B2["🤖 AI Iterates Autonomously"]
+    B2 --> B3{"✅ Quality Gates Pass?<br/><i>Tests, types, lint, hooks</i>"}
+    B3 -->|"No"| B2
+    B3 -->|"Yes"| B4{"❓ Criteria Met?<br/><i>Work complete?</i>"}
+    B3 -.->|"Stuck"| B6["🦸 Human Intervenes"]
+    B4 -->|"No"| B2
+    B4 -.->|"Yes"| B5["🧐 Human Reviews Output"]
+    B4 -.->|"Blocked"| B6
+    B6 --> B2
+
+    linkStyle 2 stroke:#ef4444,stroke-width:2px
+    linkStyle 4 stroke:#f59e0b,stroke-width:2px
+    linkStyle 5 stroke:#ef4444,stroke-width:2px
+    linkStyle 6 stroke:#22c55e,stroke-width:2px
+    linkStyle 7 stroke:#f59e0b,stroke-width:2px
+```
 
 This mode is appropriate for:
 
@@ -239,6 +280,31 @@ Traditional SDLC phases existed because iteration was expensive. Each handoff be
 
 With AI, that economic calculus inverts. Iteration is nearly free. Context loss from handoffs becomes the dominant cost. AI-DLC 2026 models development as **continuous flow** with strategic checkpoints rather than discrete phases.
 
+#### ❌ Traditional Sequential Phases
+
+```mermaid
+flowchart TB
+    T1["Requirements"] --> T2["Design"]
+    T2 --> T3["Implementation"]
+    T3 --> T4["Testing"]
+    T4 --> T5["Deployment"]
+```
+
+Work stops completely at each handoff. Context transfers between specialized roles. Each new party must rebuild understanding.
+
+#### ✅ AI-DLC 2026 Collapsed Flow
+
+```mermaid
+flowchart TB
+    C1["🎯 Intent"] --> C2["🔄 Continuous Loop"]
+    C2 --> C2
+    C2 --> C3["🔍 Checkpoint"]
+    C3 -->|"Continue"| C2
+    C3 -->|"Done"| C4["🚀 Deploy"]
+```
+
+Work pauses briefly at checkpoints. Same agent continues with feedback. Context is preserved throughout.
+
 **Checkpoints differ from handoffs:**
 
 | Handoff (Traditional) | Checkpoint (AI-DLC 2026) |
@@ -289,6 +355,30 @@ Traditional SDLC processes created extensive documentation that often went unuse
 - Retrospectives and post-mortems
 
 These artifacts represent institutional memory—decisions made, rationales documented, patterns established. Through modern integration protocols (MCP servers, API connectors, knowledge bases), AI agents can now access this memory directly.
+
+```mermaid
+flowchart TB
+    Agent["🤖 AI Agent"]
+
+    subgraph Filesystem["💭 Working Memory"]
+        direction TB
+        F1["✏️ Rules"]
+        F2["📂 Modified files"]
+        F3["🕥 Git history"]
+        F4["📝 Scratchpads"]
+    end
+
+    subgraph Organizational["🏛️ Institutional Memory"]
+        direction TB
+        O1["📋 Work Memory"]
+        O2["📝 Decision Memory"]
+        O3["📚 Knowledge Memory"]
+        O4["📊 Runtime Memory"]
+    end
+
+    Agent --> Filesystem
+    Agent --> Organizational
+```
 
 **Memory Layers in AI-DLC 2026:**
 
@@ -425,6 +515,23 @@ Choose tools and infrastructure based on requirements, cost constraints, and tea
 
 This section outlines the core framework of AI-DLC 2026, detailing its artifacts, phases, rituals, and workflows.
 
+```mermaid
+graph TB
+    subgraph Inception["🎯 Inception"]
+        I["💡 Intent"]
+        I --> U["📦 Units"]
+    end
+
+    subgraph Construction["🔨 Construction"]
+        U --> B["⚡ Bolts"]
+        B --> D["📦 Deployment Units"]
+    end
+
+    subgraph Operations["🚀 Operations"]
+        D --> P["🌐 Production"]
+    end
+```
+
 ### Artifacts
 
 #### Intent
@@ -560,6 +667,15 @@ A **Bolt** is the smallest iteration cycle in AI-DLC 2026, designed for rapid im
 
 Human validates each major step before proceeding. AI proposes, human reviews, AI implements, human validates. Used for high-risk, novel, or foundational work.
 
+```mermaid
+flowchart TB
+    A0["🎯 Human Defines Task"] --> A1["🤖 AI Proposes"]
+    A1 --> A2["🕵️ Human Validates"]
+    A2 --> A3["🤖 AI Executes"]
+    A3 --> A4["🕵️ Human Reviews"]
+    A4 --> A1
+```
+
 **Supervised Bolt characteristics:**
 
 - Human approval required before each significant step
@@ -570,6 +686,18 @@ Human validates each major step before proceeding. AI proposes, human reviews, A
 #### Observed Bolt (OHOTL)
 
 AI works while human watches in real-time. Human can intervene at any moment but doesn't block progress. Used for creative, subjective, or training scenarios.
+
+```mermaid
+flowchart TB
+    O1["🎯 Human Defines Criteria"] --> O2["🤖 AI Works"]
+    O2 --> O3["👁️ Human Observes<br/><i>Real-time streaming</i>"]
+    O3 --> O4{"🛑 Redirect?"}
+    O4 -->|"No"| O5{"✅ Criteria Met?"}
+    O4 -->|"Yes"| O6["🦸 Human Provides Guidance"]
+    O6 --> O2
+    O5 -->|"No"| O2
+    O5 -->|"Yes"| O7["🧐 Human Reviews Output"]
+```
 
 **Observed Bolt characteristics:**
 
@@ -592,6 +720,25 @@ AI works while human watches in real-time. Human can intervene at any moment but
 #### Autonomous Bolt (AHOTL)
 
 AI iterates until completion criteria are met, using test results and quality gates as feedback. Human reviews final output. Used for well-defined tasks with programmatic verification.
+
+```mermaid
+flowchart TB
+    B1["🎯 Human Defines Criteria"] --> B2["🤖 AI Iterates Autonomously"]
+    B2 --> B3{"✅ Quality Gates Pass?<br/><i>Tests, types, lint, hooks</i>"}
+    B3 -->|"No"| B2
+    B3 -->|"Yes"| B4{"❓ Criteria Met?<br/><i>Work complete?</i>"}
+    B3 -.->|"Stuck"| B6["🦸 Human Intervenes"]
+    B4 -->|"No"| B2
+    B4 -.->|"Yes"| B5["🧐 Human Reviews Output"]
+    B4 -.->|"Blocked"| B6
+    B6 --> B2
+
+    linkStyle 2 stroke:#ef4444,stroke-width:2px
+    linkStyle 4 stroke:#f59e0b,stroke-width:2px
+    linkStyle 5 stroke:#ef4444,stroke-width:2px
+    linkStyle 6 stroke:#22c55e,stroke-width:2px
+    linkStyle 7 stroke:#f59e0b,stroke-width:2px
+```
 
 **Autonomous Bolt characteristics:**
 
@@ -678,6 +825,44 @@ Deployment Units should be independently deployable and include automated rollba
 
 AI-DLC 2026 organizes work into three phases, each with distinct rituals and human-AI interaction patterns.
 
+```mermaid
+flowchart TB
+    subgraph Inception["🎯 INCEPTION"]
+        direction TB
+        I1["👤 Human provides Intent"]
+        I2["🤖 AI clarifies"]
+        I3["📋 Decompose to Units"]
+        I4["✅ Define Criteria"]
+        I5["⚡ Plan Bolts"]
+        I1 --> I2 --> I3 --> I4 --> I5
+    end
+
+    Inception --> Construction
+
+    subgraph Construction["🔨 CONSTRUCTION"]
+        direction TB
+        C1{"Select Mode"}
+        C2["🧑‍💻 Supervised"]
+        C3["🤖 Autonomous"]
+        C4["🔍 Checkpoint"]
+        C1 -->|"HITL"| C2
+        C1 -->|"AHOTL"| C3
+        C2 --> C4
+        C3 --> C4
+    end
+
+    Construction --> Operations
+
+    subgraph Operations["📊 OPERATIONS"]
+        direction TB
+        O1["🚀 Deploy"]
+        O2["📈 Monitor"]
+        O3["⚠️ Detect"]
+        O4["🔧 Respond"]
+        O1 --> O2 --> O3 --> O4
+    end
+```
+
 #### Inception Phase
 
 The Inception Phase focuses on capturing Intents and translating them into Units with clear Completion Criteria for development.
@@ -687,6 +872,26 @@ The Inception Phase focuses on capturing Intents and translating them into Units
 The central ritual of Inception is **Mob Elaboration**—a collaborative requirements elaboration and decomposition session. This happens with stakeholders and AI working together, either in a shared room with a screen or via collaborative tools.
 
 During Mob Elaboration:
+
+```mermaid
+sequenceDiagram
+    participant PO as 👤 PO
+    participant AI as 🤖 AI
+    participant Team as 👥 Team
+
+    PO->>AI: Intent
+    AI->>PO: Clarifying questions
+    PO->>AI: Context & answers
+    AI->>Team: Proposed Stories
+    Team->>AI: Technical refinement
+    AI->>PO: Units & scope
+    PO->>AI: Business validation
+    AI->>Team: Completion Criteria
+    Team->>AI: Feasibility check
+    AI->>Team: Test scenarios
+    Team->>AI: Edge cases
+    AI->>PO: Final Plan + Bolts
+```
 
 1. **AI asks clarifying questions** to minimize ambiguity in the original Intent
 2. **AI elaborates** the clarified intention into user stories, NFRs, and risk descriptions
@@ -851,6 +1056,27 @@ autonomous_actions:
 ### The Workflow
 
 The complete AI-DLC 2026 workflow integrates all phases into a continuous flow:
+
+```mermaid
+flowchart TB
+    W1["🎯 1. Capture Intent<br/><i>Human articulates goal</i>"]
+    W2["💬 2. AI Elaborates<br/><i>Clarifies ambiguities</i>"]
+    W3["📋 3. Decompose<br/><i>Break into Units</i>"]
+    W4["✅ 4. Define Criteria<br/><i>Measurable success conditions</i>"]
+    W5["⚡ 5. Execute Bolts<br/><i>Supervised or Autonomous</i>"]
+    W6["🔄 6. Iterate<br/><i>Until criteria met</i>"]
+    W7["🔍 7. Checkpoint<br/><i>Human reviews output</i>"]
+    W8["🚀 8. Deploy<br/><i>To production</i>"]
+    W9["📊 9. Operate<br/><i>Monitor & maintain</i>"]
+
+    W1 --> W2 --> W3 --> W4 --> W5
+    W5 --> W6 --> W7
+    W7 -->|"More work"| W5
+    W7 -->|"Adjustments"| W4
+    W7 -->|"Ready"| W8
+    W8 --> W9
+    W9 -.->|"New Intent"| W1
+```
 
 **Key principles of the workflow:**
 
@@ -1084,6 +1310,8 @@ Selecting the right operating mode is critical to AI-DLC success. The decision d
 
 Work can transition between modes as understanding develops. The flexibility to switch modes mid-work is a key feature of AI-DLC 2026.
 
+**→ See the [Mode Selection Runbook](./ai-dlc-2026/runbooks/construction/mode-selection) for the complete decision tree and transition triggers.**
+
 ---
 
 ## Implementing Autonomous Bolts
@@ -1101,6 +1329,10 @@ The pattern has evolved from simple single-agent loops to hat-based orchestratio
 
 Teams can customize hat behavior through configuration files, defining custom hats with specific triggers, events, and instructions tailored to their workflows.
 
+**→ See the [Autonomous Bolt Runbook](./ai-dlc-2026/runbooks/construction/autonomous-bolt) for implementation templates, safety configuration, and the Many Hats orchestration pattern.**
+
+**→ See the [Han Runbook](./ai-dlc-2026/runbooks/tooling/han) for Claude Code-native implementation with the `ai-dlc` plugin.**
+
 ---
 
 ## Adoption Path
@@ -1114,6 +1346,8 @@ AI-DLC adoption follows a progressive pattern: start with Mob Elaboration to bui
 3. **Scaling:** Expand to more task types, develop team-specific patterns
 
 **Skills evolve** from writing code to defining success criteria, from reviewing PRs to designing quality gates, from manual testing to test specification.
+
+**→ See the [Incremental Adoption Runbook](./ai-dlc-2026/runbooks/adoption/incremental-adoption) for step-by-step guidance and the [Organizational Adoption Runbook](./ai-dlc-2026/runbooks/adoption/organizational-adoption) for governance and scaling considerations.**
 
 ---
 
@@ -1130,6 +1364,8 @@ AI-DLC shifts from activity-based metrics (lines of code, story points) to outco
 | **Churn Rate** | Iterations per bolt (high = poor criteria) |
 | **Criteria Escape Rate** | Defects found post-deployment |
 
+**→ See the [Metrics & Measurement Runbook](./ai-dlc-2026/runbooks/adoption/metrics-measurement) for dashboards, ROI calculation, and early warning signs.**
+
 ---
 
 ## Compliance and Audit Integration
@@ -1140,6 +1376,14 @@ AI-DLC integrates with regulated environments through structured audit patterns 
 2. **Automated Compliance Gates:** Quality gates as compliance verification with audit logging
 
 The key insight: audit trails emerge naturally from the AI-DLC workflow rather than being bolted on afterward. The workflow *is* the audit trail.
+
+**→ See the [Compliance & Audit Runbook](./ai-dlc-2026/runbooks/operations/compliance-audit) for framework mappings (SOC2, HIPAA, PCI-DSS) and implementation patterns.**
+
+---
+
+## Implementation Guides
+
+For detailed runbooks with system prompts, entry/exit criteria, and failure modes, see the [AI-DLC 2026 Runbooks](./ai-dlc-2026/runbooks).
 
 ---
 
@@ -1192,3 +1436,5 @@ The key insight: audit trails emerge naturally from the AI-DLC workflow rather t
 ---
 
 *AI-DLC 2026 is an open methodology. Contributions and adaptations are welcome.*
+
+**[View source on GitHub →](https://github.com/thebushidocollective/ai-dlc/blob/main/website/content/papers/ai-dlc-2026.md)**

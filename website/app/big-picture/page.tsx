@@ -23,8 +23,8 @@ export default function BigPicturePage() {
 						The Big Picture
 					</h1>
 					<p className="mx-auto max-w-2xl text-lg text-gray-600 dark:text-gray-400">
-						An interactive overview of the AI-DLC methodology. Click any
-						element to explore its documentation.
+						An interactive overview of the AI-DLC methodology. Click any element
+						to explore its documentation.
 					</p>
 				</div>
 

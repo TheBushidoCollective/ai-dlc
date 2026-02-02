@@ -53,7 +53,7 @@ export function TransitionArrow({
 				>
 					{isHorizontal ? (
 						<svg
-							className="w-3 h-3 text-gray-400 dark:text-gray-500"
+							className="w-3 h-3 text-gray-400 dark:text-gray-300"
 							fill="currentColor"
 							viewBox="0 0 20 20"
 						>
@@ -65,7 +65,7 @@ export function TransitionArrow({
 						</svg>
 					) : (
 						<svg
-							className="w-3 h-3 text-gray-400 dark:text-gray-500"
+							className="w-3 h-3 text-gray-400 dark:text-gray-300"
 							fill="currentColor"
 							viewBox="0 0 20 20"
 						>

@@ -3,22 +3,22 @@ import { Footer, Header, ThemeProvider, WebSiteJsonLd, SoftwareApplicationJsonLd
 import "./globals.css"
 
 const SITE_URL = "https://ai-dlc.dev"
-const SITE_TITLE = "AI-DLC 2026 - AI-Driven Development Lifecycle"
+const SITE_TITLE = "AI-DLC - AI-Driven Development Lifecycle"
 const SITE_DESCRIPTION =
 	"A methodology for iterative AI-driven development with hat-based workflows"
 
 export const metadata: Metadata = {
 	title: {
 		default: SITE_TITLE,
-		template: "%s - AI-DLC 2026",
+		template: "%s - AI-DLC",
 	},
 	description: SITE_DESCRIPTION,
 	metadataBase: new URL(SITE_URL),
 	openGraph: {
-		title: "AI-DLC 2026",
+		title: "AI-DLC",
 		description: SITE_DESCRIPTION,
 		url: SITE_URL,
-		siteName: "AI-DLC 2026",
+		siteName: "AI-DLC",
 		type: "website",
 		locale: "en_US",
 		images: [
@@ -26,13 +26,13 @@ export const metadata: Metadata = {
 				url: "/og-image.png",
 				width: 1200,
 				height: 630,
-				alt: "AI-DLC 2026 - AI-Driven Development Lifecycle",
+				alt: "AI-DLC - AI-Driven Development Lifecycle",
 			},
 		],
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "AI-DLC 2026",
+		title: "AI-DLC",
 		description: SITE_DESCRIPTION,
 		images: ["/og-image.png"],
 	},
@@ -66,7 +66,7 @@ export default function RootLayout({
 		<html lang="en" suppressHydrationWarning>
 			<head>
 				<WebSiteJsonLd
-					name="AI-DLC 2026"
+					name="AI-DLC"
 					url={SITE_URL}
 					description={SITE_DESCRIPTION}
 				/>

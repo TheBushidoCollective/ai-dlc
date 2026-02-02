@@ -118,10 +118,10 @@ export function BigPictureDiagram() {
 					className="min-w-[600px]"
 					style={{ width: "100%", height: "auto" }}
 					role="img"
-					aria-label="AI-DLC 2026 methodology diagram showing the relationship between development phases, hats, operating modes, and core principles"
+					aria-label="AI-DLC methodology diagram showing the relationship between development phases, hats, operating modes, and core principles"
 					onKeyDown={handleKeyDown}
 				>
-					<title>AI-DLC 2026 Big Picture Diagram</title>
+					<title>AI-DLC Big Picture Diagram</title>
 					<desc>
 						An interactive diagram showing the AI-DLC methodology structure with
 						four layers: Development Phases (Intent, Unit, Bolt, Deploy), Hats

@@ -1,0 +1,317 @@
+---
+title: Core Concepts
+description: Fundamental concepts of AI-DLC - completion criteria, backpressure, operating modes, and units
+order: 4
+---
+
+# Core Concepts
+
+Understanding these concepts is essential to using AI-DLC effectively. They form the foundation of the methodology.
+
+## Intents and Units
+
+### Intent
+
+An **Intent** is a high-level statement of purpose - what you want to achieve. It encapsulates a business goal, feature, or technical outcome.
+
+Every Intent includes:
+- **Description** - What you're building and why
+- **Completion Criteria** - Verifiable conditions that define success
+- **Context** - Business background and constraints
+
+```markdown
+# Intent: Product Recommendation Engine
+
+## Description
+Build a recommendation engine that suggests complementary products
+based on purchase history and browsing behavior.
+
+## Business Context
+- E-commerce platform with 50,000 products
+- 1 million monthly active users
+- Need real-time recommendations (<100ms)
+
+## Completion Criteria
+- [ ] API responds in <100ms p99
+- [ ] Recommendations improve click-through by 10%+
+- [ ] Works for new users (cold start handled)
+```
+
+### Unit
+
+A **Unit** is a cohesive, self-contained work element derived from an Intent. Think of it as a focused piece of the larger goal.
+
+**Characteristics:**
+- Cohesive - user stories within are highly related
+- Loosely coupled - minimal dependencies on other units
+- Independently deployable - can go to production alone
+- Clear boundaries - ownership and scope are unambiguous
+
+```
+add-recommendation-engine/
+  INTENT.md
+  unit-01-data-collection.md    # Capture user behavior
+  unit-02-model.md              # Train ML model
+  unit-03-api.md                # Real-time serving API
+  unit-04-frontend.md           # Display recommendations
+```
+
+### Unit Dependencies (DAG)
+
+Units can declare dependencies, forming a Directed Acyclic Graph:
+
+```yaml
+# unit-04-frontend.md frontmatter
+---
+status: pending
+depends_on: [unit-02-model, unit-03-api]
+---
+```
+
+This enables:
+- **Fan-out**: Independent units execute in parallel
+- **Fan-in**: Units wait for all dependencies before starting
+- **Maximum parallelism**: Ready units start immediately
+
+## Completion Criteria
+
+Completion Criteria are the most important concept in AI-DLC. They define success in measurable, verifiable terms.
+
+### Why They Matter
+
+```
+Autonomy = f(Criteria Clarity)
+```
+
+- **Vague criteria** = Constant human oversight required
+- **Clear criteria** = AI can self-verify and operate autonomously
+
+### Good Criteria Are:
+
+| Attribute | Bad Example | Good Example |
+|-----------|-------------|--------------|
+| **Specific** | "Make login work" | "Users can log in with email/password" |
+| **Measurable** | "Be performant" | "API responds in <200ms p95" |
+| **Atomic** | "Handle all edge cases" | "Returns 400 for missing fields" |
+| **Verifiable** | "Code is clean" | "No ESLint errors or warnings" |
+
+### Include Negative Cases
+
+Don't just specify what should work - specify what should fail:
+
+```markdown
+## Completion Criteria
+
+### Success Cases
+- [ ] Valid credentials -> user logged in
+- [ ] Remember me checked -> session persists 30 days
+
+### Failure Cases
+- [ ] Invalid password -> "Incorrect password" error
+- [ ] Non-existent email -> "Account not found" error
+- [ ] Empty fields -> validation errors shown
+```
+
+### Quality Gates
+
+Quality gates are automated criteria that every change must pass:
+
+```markdown
+## Quality Gates
+- [ ] All tests pass (`bun test`)
+- [ ] No TypeScript errors (`tsc --noEmit`)
+- [ ] No lint warnings (`biome check`)
+- [ ] Coverage > 80%
+```
+
+## Backpressure
+
+Backpressure is the principle that quality gates should **block** non-conforming work rather than just flag it.
+
+### Prescription vs. Backpressure
+
+**Prescription** (traditional): "First write the interface, then implement, then write tests, then integration tests..."
+
+**Backpressure** (AI-DLC): "These conditions must be satisfied. Figure out how."
+
+### How It Works
+
+Instead of telling AI exactly what to do, define constraints:
+
+- All tests must pass
+- Type checks must succeed
+- Linting must be clean
+- Security scans must clear
+- Coverage must exceed threshold
+
+AI iterates until all constraints are satisfied.
+
+### Benefits
+
+- **Leverages AI fully** - AI applies its training without artificial constraints
+- **Simpler prompts** - Success criteria are easier than step-by-step instructions
+- **Measurable success** - Programmatic verification enables autonomy
+- **Better iteration** - Each failure provides signal
+
+### The Philosophy
+
+> "Better to fail predictably than succeed unpredictably."
+
+Each failure is data. Each iteration refines the approach. The skill shifts from directing AI step-by-step to writing criteria and tests that converge toward correct solutions.
+
+## Operating Modes
+
+AI-DLC distinguishes three levels of human involvement, chosen based on the nature of the work.
+
+### HITL (Human-in-the-Loop)
+
+Human validates each significant step before AI proceeds.
+
+```
+Human defines task
+    ↓
+AI proposes approach
+    ↓
+Human validates  ←──┐
+    ↓               │
+AI executes         │
+    ↓               │
+Human reviews ──────┘
+```
+
+**Use when:**
+- Novel domains or first-time implementations
+- Architectural decisions with long-term consequences
+- High-risk operations (production data, security)
+- Foundational decisions shaping later work
+
+### OHOTL (Observed Human-on-the-Loop)
+
+Human watches in real-time, can intervene, but doesn't block progress.
+
+```
+Human defines criteria
+    ↓
+AI works ←──────────┐
+    ↓               │
+Human observes      │
+    ↓               │
+Redirect? ──Yes─────┘
+    │
+    No
+    ↓
+Criteria met? ──No──→ (continue)
+    │
+    Yes
+    ↓
+Human reviews output
+```
+
+**Use when:**
+- Creative and subjective work (UX, design, content)
+- Training scenarios where observation has value
+- Medium-risk changes benefiting from awareness
+- Iterative refinement where taste guides direction
+
+### AHOTL (Autonomous Human-on-the-Loop)
+
+AI operates autonomously within boundaries until criteria are met.
+
+```
+Human defines criteria
+    ↓
+AI iterates autonomously ←──┐
+    ↓                       │
+Quality gates pass? ──No────┘
+    │
+    Yes
+    ↓
+Criteria met? ──No──────────┘
+    │
+    Yes
+    ↓
+Human reviews output
+```
+
+**Use when:**
+- Well-defined tasks with clear acceptance criteria
+- Programmatically verifiable work
+- Batch operations (migrations, refactors)
+- Mechanical transformations following patterns
+
+### Comparison
+
+| Aspect | HITL | OHOTL | AHOTL |
+|--------|------|-------|-------|
+| **Human Attention** | Continuous, blocking | Continuous, non-blocking | Periodic, on-demand |
+| **Approval Model** | Before each step | Any time (interrupt) | At completion |
+| **AI Autonomy** | Minimal | Moderate | Full within boundaries |
+| **Best For** | Novel, high-risk | Creative, subjective | Mechanical, verifiable |
+
+### The Google Maps Analogy
+
+- **HITL**: You tell GPS each turn, it confirms, you approve
+- **OHOTL**: GPS drives while you watch, you can redirect anytime
+- **AHOTL**: You set destination, define acceptable routes, check when you arrive
+
+## Bolts
+
+A **Bolt** is a single iteration cycle - one focused work session bounded by context resets (`/clear`).
+
+### Why "Bolt"?
+
+The term emphasizes intense focus and high-velocity delivery. Bolts are measured in hours, not weeks.
+
+### The Bolt Cycle
+
+1. Load context from committed artifacts
+2. Execute work through hat transitions
+3. Iterate until quality gates pass or blocked
+4. Save state (commit artifacts, update ephemeral state)
+5. Clear context if needed
+6. Repeat
+
+### Bolt Boundaries
+
+A Bolt naturally ends when:
+- Context window gets heavy (prompting `/clear`)
+- A unit is completed
+- Work is blocked and needs human input
+- The session times out
+
+## State Management
+
+AI-DLC uses a two-tier state model:
+
+### Committed Artifacts (`.ai-dlc/`)
+
+Persisted across sessions, branches, and team members:
+
+| File | Purpose |
+|------|---------|
+| `INTENT.md` | What we're building, overall criteria |
+| `unit-*.md` | Individual units with their criteria |
+
+### Ephemeral State (`han keep`)
+
+Session-scoped, cleared on `/reset`:
+
+| Key | Purpose |
+|-----|---------|
+| `iteration.json` | Current hat, iteration count, status |
+| `scratchpad.md` | Learnings and progress notes |
+| `blockers.md` | Documented blockers |
+
+### Recovery from Context Loss
+
+If you `/clear` without the stop hook:
+
+1. Committed artifacts (`.ai-dlc/`) are safe
+2. Ephemeral state persists in `han keep`
+3. Run `/construct` to continue
+
+## Next Steps
+
+- **[Workflows](/docs/workflows/)** - Learn the four named workflows
+- **[Hats](/docs/hats/)** - Understand each hat's responsibilities
+- **[Example: Feature Implementation](/docs/example-feature/)** - See concepts in action

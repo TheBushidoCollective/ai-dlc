@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 	description:
 		"Find the right AI operating mode for your task. Answer 5 questions to get a recommendation for HITL, OHOTL, or AHOTL.",
 	openGraph: {
-		title: "Mode Selector - AI-DLC 2026",
+		title: "Mode Selector - AI-DLC",
 		description:
 			"Find the right AI operating mode for your task. Answer 5 questions to get a recommendation for HITL, OHOTL, or AHOTL.",
 	},

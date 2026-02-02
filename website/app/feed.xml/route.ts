@@ -4,7 +4,7 @@ export const dynamic = "force-static"
 export const revalidate = false
 
 const SITE_URL = "https://ai-dlc.dev"
-const SITE_TITLE = "AI-DLC 2026"
+const SITE_TITLE = "AI-DLC"
 const SITE_DESCRIPTION =
 	"A methodology for iterative AI-driven development with hat-based workflows"
 

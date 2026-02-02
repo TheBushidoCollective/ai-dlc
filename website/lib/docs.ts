@@ -18,6 +18,11 @@ export interface NavItem {
 	items?: NavItem[]
 }
 
+export interface NavSection {
+	title: string
+	items: NavItem[]
+}
+
 export function getDocSlugs(): string[] {
 	if (!fs.existsSync(docsDirectory)) {
 		return []
@@ -65,11 +70,86 @@ export function getAllDocs(): DocPage[] {
 	})
 }
 
-export function getDocsNavigation(): NavItem[] {
+// Define which docs belong to which section
+const sectionDefinitions: { title: string; slugs: string[] }[] = [
+	{
+		title: "Getting Started",
+		slugs: ["index", "quick-start", "installation"],
+	},
+	{
+		title: "Core Concepts",
+		slugs: ["hats", "concepts", "workflows"],
+	},
+	{
+		title: "Adoption",
+		slugs: [
+			"adoption-roadmap",
+			"guide-developer",
+			"guide-tech-lead",
+			"guide-manager",
+			"guide-ai",
+		],
+	},
+	{
+		title: "Checklists",
+		slugs: ["checklist-first-intent", "checklist-team-onboarding", "assessment"],
+	},
+	{
+		title: "Examples",
+		slugs: ["example-feature", "example-bugfix"],
+	},
+	{
+		title: "Community",
+		slugs: ["community"],
+	},
+]
+
+export function getDocsNavigation(): NavSection[] {
+	const docs = getAllDocs()
+	const docsBySlug = new Map(docs.map((doc) => [doc.slug, doc]))
+
+	const sections: NavSection[] = []
+
+	for (const section of sectionDefinitions) {
+		const items: NavItem[] = []
+		for (const slug of section.slugs) {
+			const doc = docsBySlug.get(slug)
+			if (doc) {
+				items.push({
+					title: doc.title,
+					href: `/docs/${doc.slug}/`,
+				})
+				docsBySlug.delete(slug)
+			}
+		}
+		if (items.length > 0) {
+			sections.push({
+				title: section.title,
+				items,
+			})
+		}
+	}
+
+	// Add any remaining docs to an "Other" section
+	const remainingDocs = Array.from(docsBySlug.values())
+	if (remainingDocs.length > 0) {
+		sections.push({
+			title: "Other",
+			items: remainingDocs.map((doc) => ({
+				title: doc.title,
+				href: `/docs/${doc.slug}/`,
+			})),
+		})
+	}
+
+	return sections
+}
+
+// Keep the old function for backward compatibility
+export function getDocsNavigationFlat(): NavItem[] {
 	const docs = getAllDocs()
 
-	// Create navigation structure
-	const nav: NavItem[] = [
+	return [
 		{
 			title: "Getting Started",
 			href: "/docs/",
@@ -79,6 +159,4 @@ export function getDocsNavigation(): NavItem[] {
 			})),
 		},
 	]
-
-	return nav
 }

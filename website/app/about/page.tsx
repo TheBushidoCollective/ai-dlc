@@ -1,9 +1,9 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-	title: "About - AI-DLC 2026",
+	title: "About - AI-DLC",
 	description:
-		"Learn about AI-DLC 2026, a methodology for iterative AI-driven development with hat-based workflows.",
+		"Learn about AI-DLC, a methodology for iterative AI-driven development with hat-based workflows.",
 }
 
 export default function AboutPage() {
@@ -16,7 +16,7 @@ export default function AboutPage() {
 
 				<div className="prose prose-gray dark:prose-invert max-w-none">
 					<p className="lead text-xl text-gray-600 dark:text-gray-400">
-						AI-DLC 2026 is a methodology for structured, iterative software
+						AI-DLC is a methodology for structured, iterative software
 						development with AI assistants. It provides a framework for
 						organizing work into focused units with clear phases and
 						responsibilities.

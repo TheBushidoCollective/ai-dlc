@@ -1,11 +1,11 @@
 ---
-title: Introducing AI-DLC 2026
+title: Introducing AI-DLC
 description: A methodology for iterative AI-driven development with hat-based workflows
 date: 2026-02-02
 author: The Bushido Collective
 ---
 
-We're excited to introduce **AI-DLC 2026**, a methodology for structured, iterative software development with AI assistants.
+We're excited to introduce **AI-DLC**, a methodology for structured, iterative software development with AI assistants.
 
 ## The Challenge
 

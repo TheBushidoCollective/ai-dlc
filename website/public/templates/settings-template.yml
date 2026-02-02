@@ -1,0 +1,105 @@
+# AI-DLC Settings Template
+# Place this file at: .ai-dlc/settings.yml
+# These settings customize AI-DLC behavior for your project.
+
+# =============================================================================
+# Workflow Configuration
+# =============================================================================
+
+# Default workflow to use when not specified
+# Options: default, tdd, adversarial, hypothesis
+default_workflow: default
+
+# Custom workflows can be defined here
+# workflows:
+#   my-workflow:
+#     description: Custom workflow for my team
+#     hats: [elaborator, researcher, planner, builder, reviewer]
+
+# =============================================================================
+# Operating Mode Defaults
+# =============================================================================
+
+# Default operating mode for each hat
+# Options: hitl (Human-in-the-Loop), ohotl (Observed), ahotl (Autonomous)
+modes:
+  elaborator: hitl    # Always human-involved for requirements
+  researcher: ohotl   # Observe but don't block
+  planner: hitl       # Human approves plans
+  builder: ohotl      # Observe during building
+  reviewer: hitl      # Human validates completion
+
+# =============================================================================
+# Quality Gates
+# =============================================================================
+
+# Commands to run for quality gates
+# These should return exit code 0 on success
+quality_gates:
+  test: "npm test"                    # or "bun test", "pytest", etc.
+  typecheck: "tsc --noEmit"           # TypeScript check
+  lint: "biome check"                 # or "eslint .", "ruff check", etc.
+  # coverage: "npm run coverage"      # Optional: coverage check
+
+# Minimum test coverage percentage (if coverage gate enabled)
+# min_coverage: 80
+
+# =============================================================================
+# Unit Configuration
+# =============================================================================
+
+# Maximum recommended time for a single unit (in hours)
+# Units exceeding this should be split
+max_unit_hours: 4
+
+# Require all quality gates to pass before marking unit complete
+require_quality_gates: true
+
+# Auto-commit on unit completion
+auto_commit: false
+
+# =============================================================================
+# Artifact Configuration
+# =============================================================================
+
+# Directory for AI-DLC artifacts (relative to repo root)
+artifact_directory: .ai-dlc
+
+# Include timestamps in artifact filenames
+timestamp_artifacts: false
+
+# =============================================================================
+# Team Configuration
+# =============================================================================
+
+# Team members (for assignment tracking, optional)
+# team:
+#   - name: Alice
+#     github: alice
+#   - name: Bob
+#     github: bob
+
+# =============================================================================
+# Integration Configuration
+# =============================================================================
+
+# PR template inclusion
+pr_template:
+  include_intent: true      # Include intent reference in PR description
+  include_criteria: true    # Include completion criteria checklist
+
+# Commit message format
+# Available variables: {unit}, {status}, {summary}
+commit_format: "feat({unit}): {summary}"
+
+# =============================================================================
+# Advanced Configuration
+# =============================================================================
+
+# Enable experimental features
+experimental:
+  parallel_units: false     # Allow parallel unit execution (future)
+  auto_decompose: false     # Auto-suggest unit decomposition (future)
+
+# Debug mode (verbose logging)
+debug: false

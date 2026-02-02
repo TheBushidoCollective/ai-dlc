@@ -9,8 +9,13 @@ interface NavItem {
 	items?: NavItem[]
 }
 
+interface NavSection {
+	title: string
+	items: NavItem[]
+}
+
 interface DocsSidebarProps {
-	navigation: NavItem[]
+	navigation: NavSection[]
 }
 
 export function DocsSidebar({ navigation }: DocsSidebarProps) {
@@ -21,43 +26,28 @@ export function DocsSidebar({ navigation }: DocsSidebarProps) {
 			<nav className="space-y-6">
 				{navigation.map((section) => (
 					<div key={section.title}>
-						{section.href ? (
-							<Link
-								href={section.href}
-								className={`mb-2 block font-semibold transition hover:text-gray-900 dark:hover:text-white ${
-									pathname === section.href
-										? "text-gray-900 dark:text-white"
-										: "text-gray-600 dark:text-gray-400"
-								}`}
-							>
-								{section.title}
-							</Link>
-						) : (
-							<h4 className="mb-2 font-semibold text-gray-900 dark:text-white">
-								{section.title}
-							</h4>
-						)}
-						{section.items && (
-							<ul className="space-y-1 border-l border-gray-200 dark:border-gray-800">
-								{section.items.map((item) => {
-									const isActive = pathname === item.href
-									return (
-										<li key={item.href}>
-											<Link
-												href={item.href}
-												className={`-ml-px block border-l-2 py-1 pl-4 text-sm transition ${
-													isActive
-														? "border-blue-500 font-medium text-blue-600 dark:text-blue-400"
-														: "border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:text-white"
-												}`}
-											>
-												{item.title}
-											</Link>
-										</li>
-									)
-								})}
-							</ul>
-						)}
+						<h4 className="mb-2 font-semibold text-gray-900 dark:text-white">
+							{section.title}
+						</h4>
+						<ul className="space-y-1 border-l border-gray-200 dark:border-gray-800">
+							{section.items.map((item) => {
+								const isActive = pathname === item.href
+								return (
+									<li key={item.href}>
+										<Link
+											href={item.href}
+											className={`-ml-px block border-l-2 py-1 pl-4 text-sm transition ${
+												isActive
+													? "border-blue-500 font-medium text-blue-600 dark:text-blue-400"
+													: "border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:text-white"
+											}`}
+										>
+											{item.title}
+										</Link>
+									</li>
+								)
+							})}
+						</ul>
 					</div>
 				))}
 			</nav>

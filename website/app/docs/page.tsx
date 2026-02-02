@@ -3,9 +3,9 @@ import Link from "next/link"
 import { getAllDocs } from "@/lib/docs"
 
 export const metadata: Metadata = {
-	title: "Documentation - AI-DLC 2026",
+	title: "Documentation - AI-DLC",
 	description:
-		"Learn how to use AI-DLC 2026 for iterative AI-driven development.",
+		"Learn how to use AI-DLC for iterative AI-driven development.",
 }
 
 export default function DocsPage() {
@@ -15,7 +15,7 @@ export default function DocsPage() {
 		<div className="max-w-3xl">
 			<h1 className="mb-4 text-4xl font-bold tracking-tight">Documentation</h1>
 			<p className="mb-8 text-lg text-gray-600 dark:text-gray-400">
-				Learn how to use AI-DLC 2026 to structure your AI-driven development
+				Learn how to use AI-DLC to structure your AI-driven development
 				workflow.
 			</p>
 

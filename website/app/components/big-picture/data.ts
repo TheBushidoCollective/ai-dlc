@@ -47,7 +47,7 @@ export const diagramData: DiagramData = {
 			label: "Intent",
 			description:
 				"High-level statement of purpose defining what you want to achieve with clear completion criteria.",
-			href: "/docs/concepts/#intent",
+			href: "/paper/#intent",
 			category: "artifact",
 			x: xPos(0, 4),
 			y: 30,
@@ -59,7 +59,7 @@ export const diagramData: DiagramData = {
 			label: "Unit",
 			description:
 				"Cohesive, self-contained work element derived from an Intent. Independently deployable with clear boundaries.",
-			href: "/docs/concepts/#unit",
+			href: "/paper/#unit",
 			category: "artifact",
 			x: xPos(1, 4),
 			y: 30,
@@ -71,7 +71,7 @@ export const diagramData: DiagramData = {
 			label: "Bolt",
 			description:
 				"Single iteration cycle - one focused work session bounded by context resets. High-velocity delivery.",
-			href: "/docs/concepts/#bolts",
+			href: "/paper/#bolt",
 			category: "artifact",
 			x: xPos(2, 4),
 			y: 30,
@@ -83,7 +83,7 @@ export const diagramData: DiagramData = {
 			label: "Deploy",
 			description:
 				"Ship verified work to production. Units are independently deployable when criteria are met.",
-			href: "/docs/concepts/#unit",
+			href: "/paper/#deployment-unit",
 			category: "artifact",
 			x: xPos(3, 4),
 			y: 30,
@@ -147,7 +147,7 @@ export const diagramData: DiagramData = {
 			label: "HITL",
 			description:
 				"Human-in-the-Loop: Human validates each step. Use for novel domains, high-risk, and foundational decisions.",
-			href: "/docs/concepts/#hitl-human-in-the-loop",
+			href: "/paper/#three-operating-modes-hitl-ohotl-and-ahotl",
 			category: "operating-mode",
 			x: xPos(0.5, 3),
 			y: (LAYER_HEIGHT + LAYER_PADDING) * 2 + 30,
@@ -159,7 +159,7 @@ export const diagramData: DiagramData = {
 			label: "OHOTL",
 			description:
 				"Observed Human-on-the-Loop: Human watches, can intervene. Use for creative work and medium-risk changes.",
-			href: "/docs/concepts/#ohotl-observed-human-on-the-loop",
+			href: "/paper/#three-operating-modes-hitl-ohotl-and-ahotl",
 			category: "operating-mode",
 			x: xPos(1.5, 3),
 			y: (LAYER_HEIGHT + LAYER_PADDING) * 2 + 30,
@@ -171,7 +171,7 @@ export const diagramData: DiagramData = {
 			label: "AHOTL",
 			description:
 				"Autonomous Human-on-the-Loop: AI operates autonomously within boundaries. Use for well-defined, verifiable tasks.",
-			href: "/docs/concepts/#ahotl-autonomous-human-on-the-loop",
+			href: "/paper/#three-operating-modes-hitl-ohotl-and-ahotl",
 			category: "operating-mode",
 			x: xPos(2.5, 3),
 			y: (LAYER_HEIGHT + LAYER_PADDING) * 2 + 30,
@@ -185,7 +185,7 @@ export const diagramData: DiagramData = {
 			label: "Backpressure",
 			description:
 				"Quality gates should block non-conforming work. Define constraints, let AI figure out how to satisfy them.",
-			href: "/docs/concepts/#backpressure",
+			href: "/paper/#backpressure-over-prescription",
 			category: "principle",
 			x: xPos(0, 4),
 			y: (LAYER_HEIGHT + LAYER_PADDING) * 3 + 30,
@@ -197,7 +197,7 @@ export const diagramData: DiagramData = {
 			label: "Completion Criteria",
 			description:
 				"Measurable, verifiable conditions that define success. Clear criteria enable autonomy.",
-			href: "/docs/concepts/#completion-criteria",
+			href: "/paper/#completion-criteria-enable-autonomy",
 			category: "principle",
 			x: xPos(1, 4),
 			y: (LAYER_HEIGHT + LAYER_PADDING) * 3 + 30,
@@ -209,7 +209,7 @@ export const diagramData: DiagramData = {
 			label: "Collapsed SDLC",
 			description:
 				"AI collapses traditional phases (dev, QA, docs) into parallel streams. Faster delivery without sacrificing quality.",
-			href: "/docs/concepts/#bolts",
+			href: "/paper/#embrace-the-collapsing-sdlc",
 			category: "principle",
 			x: xPos(2, 4),
 			y: (LAYER_HEIGHT + LAYER_PADDING) * 3 + 30,
@@ -221,7 +221,7 @@ export const diagramData: DiagramData = {
 			label: "State Management",
 			description:
 				"Two-tier model: Committed artifacts (.ai-dlc/) persist; ephemeral state (han keep) is session-scoped.",
-			href: "/docs/concepts/#state-management",
+			href: "/paper/#memory-providers-expand-knowledge",
 			category: "principle",
 			x: xPos(3, 4),
 			y: (LAYER_HEIGHT + LAYER_PADDING) * 3 + 30,

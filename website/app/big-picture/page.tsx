@@ -3,11 +3,11 @@ import Link from "next/link"
 import { BigPictureDiagram } from "../components/big-picture"
 
 export const metadata: Metadata = {
-	title: "Big Picture - AI-DLC 2026",
+	title: "Big Picture - AI-DLC",
 	description:
-		"Interactive overview of the AI-DLC 2026 methodology showing the relationship between development phases, hats, operating modes, and core principles.",
+		"Interactive overview of the AI-DLC methodology showing the relationship between development phases, hats, operating modes, and core principles.",
 	openGraph: {
-		title: "Big Picture - AI-DLC 2026",
+		title: "Big Picture - AI-DLC",
 		description:
 			"Interactive diagram showing the complete AI-DLC methodology structure.",
 	},
@@ -23,7 +23,7 @@ export default function BigPicturePage() {
 						The Big Picture
 					</h1>
 					<p className="mx-auto max-w-2xl text-lg text-gray-600 dark:text-gray-400">
-						An interactive overview of the AI-DLC 2026 methodology. Click any
+						An interactive overview of the AI-DLC methodology. Click any
 						element to explore its documentation.
 					</p>
 				</div>

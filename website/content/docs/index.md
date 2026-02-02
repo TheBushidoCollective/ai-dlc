@@ -1,12 +1,12 @@
 ---
 title: Introduction
-description: An introduction to AI-DLC 2026 and its core concepts
+description: An introduction to AI-DLC and its core concepts
 order: 1
 ---
 
-# Introduction to AI-DLC 2026
+# Introduction to AI-DLC
 
-AI-DLC 2026 is a methodology for structured, iterative software development with AI assistants. It provides a framework for organizing work into focused units with clear phases and responsibilities.
+AI-DLC is a methodology for structured, iterative software development with AI assistants. It provides a framework for organizing work into focused units with clear phases and responsibilities.
 
 ## Why AI-DLC?
 

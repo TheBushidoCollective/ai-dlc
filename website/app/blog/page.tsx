@@ -3,8 +3,8 @@ import Link from "next/link"
 import { getAllBlogPosts } from "@/lib/blog"
 
 export const metadata: Metadata = {
-	title: "Blog - AI-DLC 2026",
-	description: "News and updates about AI-DLC 2026 and AI-driven development.",
+	title: "Blog - AI-DLC",
+	description: "News and updates about AI-DLC and AI-driven development.",
 }
 
 function formatDate(dateString: string): string {

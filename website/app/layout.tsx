@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Footer, Header, ThemeProvider } from "./components"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -30,9 +31,13 @@ export default function RootLayout({
 	children: React.ReactNode
 }) {
 	return (
-		<html lang="en">
-			<body className="bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
-				{children}
+		<html lang="en" suppressHydrationWarning>
+			<body className="flex min-h-screen flex-col bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
+				<ThemeProvider>
+					<Header />
+					<main className="flex-1">{children}</main>
+					<Footer />
+				</ThemeProvider>
 			</body>
 		</html>
 	)

@@ -10,3 +10,4 @@ export {
 	WebSiteJsonLd,
 	BreadcrumbJsonLd,
 } from "./JsonLd"
+export { BigPictureDiagram } from "./big-picture"

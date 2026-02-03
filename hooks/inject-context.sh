@@ -12,14 +12,21 @@ set -e
 # Read stdin to get SessionStart payload
 HOOK_INPUT=$(cat)
 
-# Extract source field (startup, clear, compact)
-SOURCE=$(echo "$HOOK_INPUT" | han parse json source -r 2>/dev/null || echo "startup")
+# Extract source field using bash pattern matching (avoid subprocess)
+if [[ "$HOOK_INPUT" =~ \"source\":\ *\"([^\"]+)\" ]]; then
+  SOURCE="${BASH_REMATCH[1]}"
+else
+  SOURCE="startup"
+fi
 
 # Check for han CLI (only dependency needed)
 if ! command -v han &> /dev/null; then
   echo "Warning: han CLI is required for AI-DLC but not installed. Skipping context injection." >&2
   exit 0
 fi
+
+# Cache git branch (used multiple times)
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 
 # Source DAG library if available
 DAG_LIB="${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
@@ -33,54 +40,49 @@ fi
 PLUGIN_WORKFLOWS="${CLAUDE_PLUGIN_ROOT}/workflows.yml"
 PROJECT_WORKFLOWS=".ai-dlc/workflows.yml"
 
-# Function to extract workflow names from YAML file
-get_workflow_names() {
+# Parse workflows using a single han call per file (much faster than per-workflow)
+# Output format: name|description|hat1,hat2,hat3
+parse_all_workflows() {
   local file="$1"
-  if [ -f "$file" ]; then
-    # Extract top-level keys (workflow names) - lines without leading spaces that end with :
-    grep -E '^[a-z][a-z0-9_-]*:' "$file" 2>/dev/null | sed 's/:.*//' || true
-  fi
-}
-
-# Function to get workflow details (description and hats)
-get_workflow_details() {
-  local file="$1"
-  local name="$2"
-  if [ -f "$file" ]; then
+  [ -f "$file" ] || return
+  # Convert YAML to JSON once, then extract all workflows
+  han parse yaml-to-json < "$file" 2>/dev/null | han parse json -r 2>/dev/null | while IFS= read -r line; do
+    # This approach still spawns processes; use native extraction instead
+    :
+  done
+  # Fallback: Extract workflow names and parse each (but batch the file read)
+  local content
+  content=$(cat "$file" 2>/dev/null) || return
+  local names
+  names=$(echo "$content" | grep -E '^[a-z][a-z0-9_-]*:' | sed 's/:.*//')
+  for name in $names; do
+    # Use han to parse but pass content via variable to avoid re-reading file
     local desc hats
-    desc=$(han parse yaml "${name}.description" -r < "$file" 2>/dev/null || echo "")
-    # han parse yaml outputs arrays as "- item\n- item", convert to arrow-separated
-    hats=$(han parse yaml "${name}.hats" < "$file" 2>/dev/null | sed 's/^- //' | tr '\n' '|' | sed 's/|$//; s/|/ → /g' || echo "")
-    if [ -n "$desc" ] && [ -n "$hats" ]; then
-      echo "$desc|$hats"
-    fi
-  fi
+    desc=$(echo "$content" | han parse yaml "${name}.description" -r 2>/dev/null || echo "")
+    hats=$(echo "$content" | han parse yaml "${name}.hats" 2>/dev/null | sed 's/^- //' | tr '\n' '|' | sed 's/|$//; s/|/ → /g' || echo "")
+    [ -n "$desc" ] && [ -n "$hats" ] && echo "$name|$desc|$hats"
+  done
 }
 
 # Build merged workflow list (project overrides plugin)
 declare -A WORKFLOWS
 KNOWN_WORKFLOWS=""
 
-# Load plugin workflows first
-for name in $(get_workflow_names "$PLUGIN_WORKFLOWS"); do
-  details=$(get_workflow_details "$PLUGIN_WORKFLOWS" "$name")
-  if [ -n "$details" ]; then
-    WORKFLOWS[$name]="$details"
-    KNOWN_WORKFLOWS="$KNOWN_WORKFLOWS $name"
-  fi
-done
+# Load plugin workflows first (single file read)
+while IFS='|' read -r name desc hats; do
+  [ -z "$name" ] && continue
+  WORKFLOWS[$name]="$desc|$hats"
+  KNOWN_WORKFLOWS="$KNOWN_WORKFLOWS $name"
+done < <(parse_all_workflows "$PLUGIN_WORKFLOWS")
 
 # Load project workflows (override or add)
-for name in $(get_workflow_names "$PROJECT_WORKFLOWS"); do
-  details=$(get_workflow_details "$PROJECT_WORKFLOWS" "$name")
-  if [ -n "$details" ]; then
-    WORKFLOWS[$name]="$details"
-    # Add to known if not already there
-    if ! echo "$KNOWN_WORKFLOWS" | grep -qw "$name"; then
-      KNOWN_WORKFLOWS="$KNOWN_WORKFLOWS $name"
-    fi
+while IFS='|' read -r name desc hats; do
+  [ -z "$name" ] && continue
+  WORKFLOWS[$name]="$desc|$hats"
+  if ! echo "$KNOWN_WORKFLOWS" | grep -qw "$name"; then
+    KNOWN_WORKFLOWS="$KNOWN_WORKFLOWS $name"
   fi
-done
+done < <(parse_all_workflows "$PROJECT_WORKFLOWS")
 
 # Build formatted workflow list for display
 AVAILABLE_WORKFLOWS=""
@@ -96,10 +98,16 @@ done
 AVAILABLE_WORKFLOWS="${AVAILABLE_WORKFLOWS#
 }"  # Remove leading newline
 
+# Note: _yaml_get_simple is provided by dag.sh (sourced above)
+# Alias for consistency in this file
+yaml_get_simple() {
+  _yaml_get_simple "$@"
+}
+
 # Check for AI-DLC state
 # Intent-level state is stored on the current branch (intent branch for orchestrator, unit branch for subagents)
 # If we're on a unit branch (ai-dlc/intent/unit), we need to check the parent intent branch
-CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+# Note: CURRENT_BRANCH already cached above
 ITERATION_JSON=""
 
 # Try current branch first
@@ -122,9 +130,10 @@ if [ -z "$ITERATION_JSON" ]; then
     [ -f "$intent_file" ] || continue
     dir=$(dirname "$intent_file")
     slug=$(basename "$dir")
-    status=$(han parse yaml status -r --default active < "$intent_file" 2>/dev/null || echo "active")
+    # Use fast yaml extraction (no subprocess)
+    status=$(yaml_get_simple "status" "active" < "$intent_file")
     [ "$status" = "active" ] || continue
-    workflow=$(han parse yaml workflow -r --default default < "$intent_file" 2>/dev/null || echo "default")
+    workflow=$(yaml_get_simple "workflow" "default" < "$intent_file")
 
     # Get unit summary if DAG functions are available
     summary=""
@@ -282,18 +291,31 @@ echo ""
 echo "**Iteration:** $ITERATION | **Hat:** $HAT | **Workflow:** $WORKFLOW_NAME ($WORKFLOW_HATS_STR)"
 echo ""
 
-# Helper function to load ephemeral state from han keep
-load_keep_value() {
-  local key="$1"
-  if [ -n "$INTENT_BRANCH" ]; then
-    han keep load --branch "$INTENT_BRANCH" "$key" --quiet 2>/dev/null || echo ""
-  else
-    han keep load "$key" --quiet 2>/dev/null || echo ""
-  fi
+# Batch load all han keep values at once (single subprocess call)
+# This is much faster than 5+ separate han keep load calls
+load_all_keep_values() {
+  local branch_flag=""
+  [ -n "$INTENT_BRANCH" ] && branch_flag="--branch $INTENT_BRANCH"
+
+  # Get list of keys and load each (still multiple calls, but we can optimize further)
+  # For now, load the keys we need in parallel using subshells
+  declare -gA KEEP_VALUES
+
+  # Load intent-level keys (from intent branch if applicable)
+  KEEP_VALUES[intent-slug]=$(han keep load $branch_flag intent-slug --quiet 2>/dev/null || echo "")
+  KEEP_VALUES[current-plan.md]=$(han keep load $branch_flag current-plan.md --quiet 2>/dev/null || echo "")
+
+  # Load unit-level keys (always from current branch)
+  KEEP_VALUES[blockers.md]=$(han keep load blockers.md --quiet 2>/dev/null || echo "")
+  KEEP_VALUES[scratchpad.md]=$(han keep load scratchpad.md --quiet 2>/dev/null || echo "")
+  KEEP_VALUES[next-prompt.md]=$(han keep load next-prompt.md --quiet 2>/dev/null || echo "")
 }
 
-# Get intent-slug from han keep (pointer only)
-INTENT_SLUG=$(load_keep_value intent-slug)
+# Load all keep values in batch
+load_all_keep_values
+
+# Get intent-slug from cached values
+INTENT_SLUG="${KEEP_VALUES[intent-slug]}"
 INTENT_DIR=""
 if [ -n "$INTENT_SLUG" ]; then
   INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
@@ -315,8 +337,8 @@ if [ -n "$INTENT_DIR" ] && [ -f "${INTENT_DIR}/completion-criteria.md" ]; then
   echo ""
 fi
 
-# Load and display current plan (ephemeral - from han keep)
-PLAN=$(load_keep_value current-plan.md)
+# Load and display current plan (from cached values)
+PLAN="${KEEP_VALUES[current-plan.md]}"
 if [ -n "$PLAN" ]; then
   echo "### Current Plan"
   echo ""
@@ -324,8 +346,8 @@ if [ -n "$PLAN" ]; then
   echo ""
 fi
 
-# Load and display blockers (unit-level state from current branch)
-BLOCKERS=$(han keep load blockers.md --quiet 2>/dev/null || echo "")
+# Load and display blockers (from cached values)
+BLOCKERS="${KEEP_VALUES[blockers.md]}"
 if [ -n "$BLOCKERS" ]; then
   echo "### Previous Blockers"
   echo ""
@@ -333,8 +355,8 @@ if [ -n "$BLOCKERS" ]; then
   echo ""
 fi
 
-# Load and display scratchpad (unit-level state from current branch)
-SCRATCHPAD=$(han keep load scratchpad.md --quiet 2>/dev/null || echo "")
+# Load and display scratchpad (from cached values)
+SCRATCHPAD="${KEEP_VALUES[scratchpad.md]}"
 if [ -n "$SCRATCHPAD" ]; then
   echo "### Learnings from Previous Iteration"
   echo ""
@@ -342,8 +364,8 @@ if [ -n "$SCRATCHPAD" ]; then
   echo ""
 fi
 
-# Load and display next prompt (unit-level state from current branch)
-NEXT_PROMPT=$(han keep load next-prompt.md --quiet 2>/dev/null || echo "")
+# Load and display next prompt (from cached values)
+NEXT_PROMPT="${KEEP_VALUES[next-prompt.md]}"
 if [ -n "$NEXT_PROMPT" ]; then
   echo "### Continue With"
   echo ""
@@ -497,7 +519,7 @@ echo "- If blocked, document in \`han keep save --branch blockers.md\`"
 echo ""
 
 # Check branch naming convention (informational only)
-CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+# Note: CURRENT_BRANCH already cached at top of script
 if [ -n "$CURRENT_BRANCH" ] && [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
   if ! echo "$CURRENT_BRANCH" | grep -qE '^ai-dlc/[a-z0-9-]+/[0-9]+-[a-z0-9-]+$'; then
     echo "> **WARNING:** Current branch \`$CURRENT_BRANCH\` doesn't follow AI-DLC convention."

@@ -13,7 +13,69 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=config.sh
 source "$SCRIPT_DIR/config.sh"
 
-# Parse unit status from frontmatter
+# Fast YAML extraction for simple scalar values (avoids subprocess)
+# Usage: _yaml_get_simple "field" "default" < file
+# Only works for simple "field: value" lines in frontmatter
+_yaml_get_simple() {
+  local field="$1" default="$2"
+  local in_frontmatter=false value=""
+  while IFS= read -r line; do
+    [[ "$line" == "---" ]] && { $in_frontmatter && break || in_frontmatter=true; continue; }
+    $in_frontmatter || continue
+    if [[ "$line" =~ ^${field}:\ *(.*)$ ]]; then
+      value="${BASH_REMATCH[1]}"
+      # Remove quotes if present
+      value="${value#\"}"
+      value="${value%\"}"
+      value="${value#\'}"
+      value="${value%\'}"
+      break
+    fi
+  done
+  echo "${value:-$default}"
+}
+
+# Fast extraction of YAML array values (for depends_on)
+# Usage: _yaml_get_array "field" < file
+# Returns space-separated values
+_yaml_get_array() {
+  local field="$1"
+  local in_frontmatter=false in_array=false result=""
+  while IFS= read -r line; do
+    [[ "$line" == "---" ]] && { $in_frontmatter && break || in_frontmatter=true; continue; }
+    $in_frontmatter || continue
+    # Check for inline array: depends_on: [unit-01, unit-02]
+    if [[ "$line" =~ ^${field}:\ *\[(.+)\]$ ]]; then
+      result="${BASH_REMATCH[1]}"
+      result="${result//,/ }"  # Replace commas with spaces
+      result="${result//\"/}"  # Remove quotes
+      result="${result//\'/}"
+      # Normalize multiple spaces to single space
+      result=$(echo "$result" | tr -s ' ')
+      break
+    fi
+    # Check for array start: depends_on:
+    if [[ "$line" =~ ^${field}:\ *$ ]]; then
+      in_array=true
+      continue
+    fi
+    # Check for array items: - unit-01
+    if $in_array; then
+      if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*(.+)$ ]]; then
+        local item="${BASH_REMATCH[1]}"
+        item="${item//\"/}"
+        item="${item//\'/}"
+        result="$result $item"
+      elif [[ ! "$line" =~ ^[[:space:]] ]]; then
+        # Non-indented line ends the array
+        break
+      fi
+    fi
+  done
+  echo "${result# }"  # Trim leading space
+}
+
+# Parse unit status from frontmatter (fast - no subprocess)
 # Usage: parse_unit_status <unit_file>
 parse_unit_status() {
   local unit_file="$1"
@@ -21,22 +83,22 @@ parse_unit_status() {
     echo "pending"
     return
   fi
-  han parse yaml status -r --default pending < "$unit_file" 2>/dev/null || echo "pending"
+  _yaml_get_simple "status" "pending" < "$unit_file"
 }
 
-# Parse unit dependencies from frontmatter
-# Returns JSON array like ["unit-01-setup", "unit-03-session"]
+# Parse unit dependencies from frontmatter (fast - no subprocess)
+# Returns space-separated list of dependencies
 # Usage: parse_unit_deps <unit_file>
 parse_unit_deps() {
   local unit_file="$1"
   if [ ! -f "$unit_file" ]; then
-    echo "[]"
+    echo ""
     return
   fi
-  han parse yaml depends_on --json < "$unit_file" 2>/dev/null || echo "[]"
+  _yaml_get_array "depends_on" < "$unit_file"
 }
 
-# Parse unit branch name from frontmatter
+# Parse unit branch name from frontmatter (fast - no subprocess)
 # Usage: parse_unit_branch <unit_file>
 parse_unit_branch() {
   local unit_file="$1"
@@ -44,8 +106,7 @@ parse_unit_branch() {
     echo ""
     return
   fi
-  # Use -e to exit with error if not found, then default to empty string on failure
-  han parse yaml branch -r -e < "$unit_file" 2>/dev/null || echo ""
+  _yaml_get_simple "branch" "" < "$unit_file"
 }
 
 # Check if all dependencies of a unit are completed
@@ -58,17 +119,11 @@ are_deps_completed() {
   local deps
   deps=$(parse_unit_deps "$unit_file")
 
-  # Empty deps array means no dependencies
-  if [ "$deps" = "[]" ] || [ -z "$deps" ] || [ "$deps" = "null" ]; then
-    return 0
-  fi
+  # Empty deps means no dependencies
+  [ -z "$deps" ] && return 0
 
-  # Parse JSON array and check each dependency
-  # deps looks like: ["unit-01-setup", "unit-03-session"]
-  local dep_list
-  dep_list=$(echo "$deps" | tr -d '[]"' | tr ',' '\n' | tr -d ' ')
-
-  for dep in $dep_list; do
+  # Check each dependency (deps is space-separated list)
+  for dep in $deps; do
     [ -z "$dep" ] && continue
     local dep_file="$intent_dir/$dep.md"
     local dep_status
@@ -153,14 +208,12 @@ find_blocked_units() {
     deps=$(parse_unit_deps "$unit_file")
 
     # Skip units with no deps
-    [ "$deps" = "[]" ] || [ -z "$deps" ] || [ "$deps" = "null" ] && continue
+    [ -z "$deps" ] && continue
 
-    # Find incomplete deps
+    # Find incomplete deps (deps is space-separated)
     local incomplete_deps=""
-    local dep_list
-    dep_list=$(echo "$deps" | tr -d '[]"' | tr ',' '\n' | tr -d ' ')
 
-    for dep in $dep_list; do
+    for dep in $deps; do
       [ -z "$dep" ] && continue
       local dep_file="$intent_dir/$dep.md"
       local dep_status
@@ -235,16 +288,13 @@ get_dag_status_table() {
     local unit_status
     unit_status=$(parse_unit_status "$unit_file")
 
-    # Find blockers
+    # Find blockers (deps is space-separated)
     local blockers=""
     local deps
     deps=$(parse_unit_deps "$unit_file")
 
-    if [ "$deps" != "[]" ] && [ -n "$deps" ] && [ "$deps" != "null" ]; then
-      local dep_list
-      dep_list=$(echo "$deps" | tr -d '[]"' | tr ',' '\n' | tr -d ' ')
-
-      for dep in $dep_list; do
+    if [ -n "$deps" ]; then
+      for dep in $deps; do
         [ -z "$dep" ] && continue
         local dep_file="$intent_dir/$dep.md"
         local dep_status
@@ -471,7 +521,7 @@ validate_dag() {
     all_units="$all_units $name"
   done
 
-  # Check each unit's dependencies
+  # Check each unit's dependencies (deps is space-separated)
   for unit_file in "$intent_dir"/unit-*.md; do
     [ -f "$unit_file" ] || continue
 
@@ -480,14 +530,9 @@ validate_dag() {
     local deps
     deps=$(parse_unit_deps "$unit_file")
 
-    if [ "$deps" = "[]" ] || [ -z "$deps" ] || [ "$deps" = "null" ]; then
-      continue
-    fi
+    [ -z "$deps" ] && continue
 
-    local dep_list
-    dep_list=$(echo "$deps" | tr -d '[]"' | tr ',' '\n' | tr -d ' ')
-
-    for dep in $dep_list; do
+    for dep in $deps; do
       [ -z "$dep" ] && continue
 
       # Check if dependency exists

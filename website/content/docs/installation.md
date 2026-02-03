@@ -4,8 +4,6 @@ description: Install AI-DLC in your Claude Code project
 order: 2
 ---
 
-# Installation
-
 AI-DLC is distributed as a Claude Code plugin. This guide covers installation methods and prerequisites.
 
 ## Prerequisites

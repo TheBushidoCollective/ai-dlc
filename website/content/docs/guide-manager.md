@@ -4,8 +4,6 @@ description: Business case, metrics, and ROI framework for AI-DLC adoption
 order: 13
 ---
 
-# Manager Guide
-
 This guide helps engineering managers and directors understand AI-DLC's business value, measure its impact, and make the case for adoption.
 
 ## The Business Case for AI-DLC

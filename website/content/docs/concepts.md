@@ -4,8 +4,6 @@ description: Fundamental concepts of AI-DLC - completion criteria, backpressure,
 order: 4
 ---
 
-# Core Concepts
-
 Understanding these concepts is essential to using AI-DLC effectively. They form the foundation of the methodology.
 
 ## Intents and Units

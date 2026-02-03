@@ -4,8 +4,6 @@ description: Understanding the hat-based workflow system
 order: 3
 ---
 
-# The Four Hats
-
 AI-DLC uses a "hat" metaphor to separate concerns. Each hat represents a distinct mindset, set of responsibilities, and communication style.
 
 ## Why Hats?

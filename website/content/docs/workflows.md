@@ -4,8 +4,6 @@ description: Named workflow patterns in AI-DLC - Default, TDD, Adversarial, and 
 order: 5
 ---
 
-# Workflows
-
 AI-DLC provides four named workflows, each optimized for different types of work. Choose the workflow that matches your task.
 
 ## What Is a Workflow?

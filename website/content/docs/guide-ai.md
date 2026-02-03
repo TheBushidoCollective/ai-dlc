@@ -4,8 +4,6 @@ description: Understanding AI-DLC from Claude's perspective - why structure help
 order: 14
 ---
 
-# AI Guide
-
 This guide is written from Claude's perspective, explaining why AI-DLC's structure helps AI assistants work more effectively with humans.
 
 ## Why AI Benefits from Structure

@@ -4,8 +4,6 @@ description: Get started with AI-DLC in 5 minutes
 order: 2
 ---
 
-# Quick Start
-
 Get AI-DLC running in your project and complete your first feature.
 
 ## Installation

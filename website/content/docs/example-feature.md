@@ -4,8 +4,6 @@ description: A complete walkthrough of implementing a real feature using AI-DLC
 order: 7
 ---
 
-# Example: Feature Implementation
-
 This is a complete, realistic example of using AI-DLC to implement a feature. Follow along to see the methodology in action.
 
 ## The Feature

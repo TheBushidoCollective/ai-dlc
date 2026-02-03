@@ -4,8 +4,6 @@ description: Self-assessment to determine if AI-DLC is right for your team
 order: 17
 ---
 
-# Is AI-DLC Right for Us?
-
 This self-assessment helps you evaluate whether AI-DLC is a good fit for your team and organization. Answer honestly for accurate guidance.
 
 ## How to Use This Assessment

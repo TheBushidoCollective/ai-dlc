@@ -28,9 +28,9 @@ If already at the first hat (elaborator by default), this command is blocked.
 
 ### Step 1: Load Current State
 
-```javascript
-// Intent-level state is stored on current branch (intent branch)
-const state = JSON.parse(han_keep_load({ scope: "branch", key: "iteration.json" }));
+```bash
+# Intent-level state is stored on current branch (intent branch)
+state=$(han keep load iteration.json --quiet)
 ```
 
 ### Step 2: Determine Previous Hat
@@ -52,26 +52,19 @@ const prevHat = workflow[prevIndex];
 
 Before updating state, save the reason for failing:
 
-```javascript
-// Append to blockers (unit-level state - saved to current branch)
-const reason = "Reviewer found issues: [describe issues]";
-han_keep_save({
-  scope: "branch",
-  key: "blockers.md",
-  content: reason
-});
+```bash
+# Append to blockers (unit-level state - saved to current branch)
+reason="Reviewer found issues: [describe issues]"
+han keep save blockers.md "$reason"
 ```
 
 ### Step 4: Update State
 
-```javascript
-state.hat = prevHat;
-// Intent-level state saved to current branch (intent branch)
-han_keep_save({
-  scope: "branch",
-  key: "iteration.json",
-  content: JSON.stringify(state)
-});
+```bash
+# Update hat to previous hat
+# Intent-level state saved to current branch (intent branch)
+updated_state=$(echo "$state" | jq --arg hat "$prevHat" '.hat = $hat')
+han keep save iteration.json "$updated_state"
 ```
 
 ### Step 5: Confirm

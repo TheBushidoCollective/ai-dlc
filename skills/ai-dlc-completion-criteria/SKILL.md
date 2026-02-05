@@ -150,12 +150,8 @@ User: "Add Google OAuth to the app"
 
 ### Step 5: Save
 
-```javascript
-han_keep_save({
-  scope: "branch",
-  key: "completion-criteria.md",
-  content: criteriaMarkdown
-});
+```bash
+han keep save completion-criteria.md "$CRITERIA_MARKDOWN"
 ```
 
 ## Criteria Categories

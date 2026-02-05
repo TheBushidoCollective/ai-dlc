@@ -97,10 +97,10 @@ fi
 
 ### Step 1: Load State
 
-```javascript
-// Intent-level state is stored on the current branch (intent branch)
-const state = JSON.parse(han_keep_load({ scope: "branch", key: "iteration.json" }));
-const intentSlug = han_keep_load({ scope: "branch", key: "intent-slug" }) || null;
+```bash
+# Intent-level state is stored on the current branch (intent branch)
+state=$(han keep load iteration.json --quiet)
+intentSlug=$(han keep load intent-slug --quiet)
 ```
 
 If no state exists:
@@ -153,14 +153,11 @@ update_unit_status "$UNIT_FILE" "in_progress"
 
 **Track current unit in iteration state** so `/advance` knows which unit to mark completed:
 
-```javascript
-state.currentUnit = UNIT_NAME;  // e.g., "unit-01-core-backend"
-// Intent-level state saved to current branch (intent branch)
-han_keep_save({
-  scope: "branch",
-  key: "iteration.json",
-  content: JSON.stringify(state)
-});
+```bash
+# Update currentUnit in state, e.g., "unit-01-core-backend"
+# Intent-level state saved to current branch (intent branch)
+updated_state=$(echo "$state" | jq --arg unit "$UNIT_NAME" '.currentUnit = $unit')
+han keep save iteration.json "$updated_state"
 ```
 
 **Note:** The `update_unit_status` function validates that:
@@ -392,10 +389,10 @@ These are managed by the orchestrator and stored on the intent branch (`ai-dlc/{
 | `current-plan.md` | Planner's output |
 | `intent-slug` | Slug identifier |
 
-```javascript
-// Orchestrator reads/writes to current branch (intent branch)
-han_keep_load({ scope: "branch", key: "iteration.json" })
-han_keep_save({ scope: "branch", key: "iteration.json", content: "..." })
+```bash
+# Orchestrator reads/writes to current branch (intent branch)
+han keep load iteration.json --quiet
+han keep save iteration.json "..."
 ```
 
 ### Unit-Level State (use current branch - omit `branch_name`)
@@ -408,10 +405,10 @@ These are specific to each unit's worktree branch:
 | `next-prompt.md` | Continuation prompt for this unit |
 | `blockers.md` | Blockers specific to this unit |
 
-```javascript
-// Subagent reads/writes to its own branch (current branch)
-han_keep_load({ scope: "branch", key: "scratchpad.md" })
-han_keep_save({ scope: "branch", key: "scratchpad.md", content: "..." })
+```bash
+# Subagent reads/writes to its own branch (current branch)
+han keep load scratchpad.md --quiet
+han keep save scratchpad.md "..."
 ```
 
 **Why this matters:** When a subagent runs in a worktree on branch `ai-dlc/{intent}/{unit}`, it saves its own working notes to its unit branch. The orchestrator runs on the intent branch and manages intent-level state there.

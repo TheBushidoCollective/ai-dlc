@@ -212,40 +212,35 @@ workflow_hats=$(han parse yaml "${workflow}.hats" < "$hats_file" 2>/dev/null)
 
 Save to han keep storage (intent-level state goes to current branch, which is now the intent branch):
 
-```javascript
-// Save intent slug (intent-level state → current branch / intent branch)
-han_keep_save({ scope: "branch", key: "intent-slug", content: slug });
+```bash
+# Save intent slug (intent-level state → current branch / intent branch)
+han keep save intent-slug "$slug"
 
-// Save iteration state (intent-level state → current branch / intent branch)
-han_keep_save({
-  scope: "branch",
-  key: "iteration.json",
-  content: JSON.stringify({
-    iteration: 1,
-    hat: startingHat,
-    workflowName: workflow,
-    workflow: workflowHats,  // e.g., ["elaborator", "planner", "builder", "reviewer"]
-    status: "active"
-  })
-});
+# Save iteration state (intent-level state → current branch / intent branch)
+iteration_json=$(jq -n \
+  --arg hat "$starting_hat" \
+  --arg wfName "$workflow" \
+  --argjson wfHats "$workflow_hats" \
+  '{iteration:1, hat:$hat, workflowName:$wfName, workflow:$wfHats, status:"active"}')
+han keep save iteration.json "$iteration_json"
 ```
 
 ### Step 7: Load Intent Content
 
 Load and display the intent for context (save to current branch / intent branch):
 
-```javascript
-const intentContent = Read(`.ai-dlc/${slug}/intent.md`);
-// Intent-level state → current branch (intent branch)
-han_keep_save({ scope: "branch", key: "intent.md", content: intentContent });
+```bash
+# Intent-level state → current branch (intent branch)
+intent_content=$(cat ".ai-dlc/${slug}/intent.md")
+han keep save intent.md "$intent_content"
 
-// Also load completion criteria if exists
-const criteriaFile = `.ai-dlc/${slug}/completion-criteria.md`;
-if (fileExists(criteriaFile)) {
-  const criteria = Read(criteriaFile);
-  // Intent-level state → current branch (intent branch)
-  han_keep_save({ scope: "branch", key: "completion-criteria.md", content: criteria });
-}
+# Also load completion criteria if exists
+criteria_file=".ai-dlc/${slug}/completion-criteria.md"
+if [ -f "$criteria_file" ]; then
+  criteria=$(cat "$criteria_file")
+  # Intent-level state → current branch (intent branch)
+  han keep save completion-criteria.md "$criteria"
+fi
 ```
 
 ### Step 8: Output Confirmation

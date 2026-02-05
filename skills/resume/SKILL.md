@@ -117,22 +117,12 @@ cd "$INTENT_WORKTREE"
 
 Save to han keep storage (intent-level state goes to current branch, which is now the intent branch):
 
-```javascript
-// Save intent slug (intent-level state -> current branch / intent branch)
-han_keep_save({ scope: "branch", key: "intent-slug", content: slug });
+```bash
+# Save intent slug (intent-level state -> current branch / intent branch)
+han keep save intent-slug "$SLUG"
 
-// Save iteration state (intent-level state -> current branch / intent branch)
-han_keep_save({
-  scope: "branch",
-  key: "iteration.json",
-  content: JSON.stringify({
-    iteration: 1,
-    hat: startingHat,
-    workflowName: workflow,
-    workflow: workflowHats,
-    status: "active"
-  })
-});
+# Save iteration state (intent-level state -> current branch / intent branch)
+han keep save iteration.json "{\"iteration\":1,\"hat\":\"$STARTING_HAT\",\"workflowName\":\"$WORKFLOW\",\"workflow\":$WORKFLOW_HATS_JSON,\"status\":\"active\"}"
 ```
 
 ### Step 6: Output Confirmation

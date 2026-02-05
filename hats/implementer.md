@@ -1,6 +1,6 @@
 ---
 name: "🟢 Implementer"
-mode: OHOTL
+description: Writes minimal code to make failing tests pass (GREEN phase of TDD)
 ---
 
 # Implementer

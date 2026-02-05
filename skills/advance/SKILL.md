@@ -31,9 +31,9 @@ Advances to the next hat in the workflow sequence. For example, in the default w
 
 ### Step 1: Load Current State
 
-```javascript
-// Intent-level state is stored on current branch (intent branch)
-const state = JSON.parse(han_keep_load({ scope: "branch", key: "iteration.json" }));
+```bash
+# Intent-level state is stored on current branch (intent branch)
+STATE=$(han keep load iteration.json --quiet)
 ```
 
 ### Step 2: Determine Next Hat (or Handle Completion)
@@ -79,8 +79,7 @@ READY_COUNT=$(echo "$DAG_SUMMARY" | han parse json readyCount -r)
 if (dagSummary.allComplete) {
   // ALL UNITS COMPLETE - Mark intent as done
   state.status = "complete";
-  han_keep_save({ scope: "branch", key: "iteration.json", content: JSON.stringify(state) });
-
+  // han keep save iteration.json '<updated JSON>'
   // Output completion summary (see Step 5)
   return completionSummary;
 }
@@ -89,8 +88,7 @@ if (dagSummary.readyCount > 0) {
   // MORE UNITS READY - Loop back to builder
   state.hat = workflow[2] || "builder";  // Reset to builder (index 2 in default workflow)
   state.currentUnit = null;  // Will be set by /construct when it picks next unit
-  han_keep_save({ scope: "branch", key: "iteration.json", content: JSON.stringify(state) });
-
+  // han keep save iteration.json '<updated JSON>'
   return `Unit completed. ${dagSummary.readyCount} more unit(s) ready. Continuing construction...`;
 }
 
@@ -105,15 +103,11 @@ Review blockers and unblock units to continue.`;
 
 ### Step 3: Update State
 
-```javascript
-state.hat = nextHat;
-state.needsAdvance = true;  // Signal SessionStart to increment iteration
-// Intent-level state saved to current branch (intent branch)
-han_keep_save({
-  scope: "branch",
-  key: "iteration.json",
-  content: JSON.stringify(state)
-});
+```bash
+# Update hat and signal SessionStart to increment iteration
+# Intent-level state saved to current branch (intent branch)
+# state.hat = nextHat, state.needsAdvance = true
+han keep save iteration.json '<updated JSON with hat and needsAdvance>'
 ```
 
 ### Step 4: Confirm (Normal Advancement)

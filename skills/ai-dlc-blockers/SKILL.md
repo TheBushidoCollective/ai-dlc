@@ -200,12 +200,8 @@ Need user input on priorities.
 
 ### Saving Blockers
 
-```javascript
-han_keep_save({
-  scope: "branch",
-  key: "blockers.md",
-  content: blockerMarkdown
-});
+```bash
+han keep save blockers.md "$BLOCKER_MARKDOWN"
 ```
 
 ## Blocker Resolution
@@ -305,16 +301,14 @@ User decision on API style preference
 
 When a blocker is resolved:
 
-```javascript
-// Option 1: Clear the file
-han_keep_delete({ scope: "branch", key: "blockers.md" });
+```bash
+# Option 1: Clear the file
+han keep delete blockers.md
 
-// Option 2: Update with resolution
-han_keep_save({
-  scope: "branch",
-  key: "blockers.md",
-  content: "## Resolved\n\nOAuth issue fixed by disabling strict mode."
-});
+# Option 2: Update with resolution
+han keep save blockers.md "## Resolved
+
+OAuth issue fixed by disabling strict mode."
 ```
 
 ## Integration with AI-DLC Hats

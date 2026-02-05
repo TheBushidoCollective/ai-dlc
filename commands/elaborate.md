@@ -372,26 +372,12 @@ This ensures:
 
 Intent-level state is saved to the current branch (which is now the intent branch):
 
-```javascript
-// Intent-level state → current branch (intent branch)
-han_keep_save({
-  scope: "branch",
-  key: "intent-slug",
-  content: "{intent-slug}"
-})
+```bash
+# Intent-level state → current branch (intent branch)
+han keep save intent-slug "{intent-slug}"
 
-// Intent-level state → current branch (intent branch)
-han_keep_save({
-  scope: "branch",
-  key: "iteration.json",
-  content: JSON.stringify({
-    iteration: 1,
-    hat: "{first-hat-after-elaborator}",
-    workflowName: "{workflow}",
-    workflow: ["{hat1}", "{hat2}", ...],
-    status: "active"
-  })
-})
+# Intent-level state → current branch (intent branch)
+han keep save iteration.json '{"iteration":1,"hat":"{first-hat-after-elaborator}","workflowName":"{workflow}","workflow":["{hat1}","{hat2}"],"status":"active"}'
 ```
 
 ---

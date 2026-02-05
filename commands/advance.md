@@ -31,9 +31,9 @@ Advances to the next hat in the workflow sequence. For example, in the default w
 
 ### Step 1: Load Current State
 
-```javascript
-// Intent-level state is stored on current branch (intent branch)
-const state = JSON.parse(han_keep_load({ scope: "branch", key: "iteration.json" }));
+```bash
+# Intent-level state is stored on current branch (intent branch)
+state=$(han keep load iteration.json --quiet)
 ```
 
 ### Step 2: Determine Next Hat (or Handle Completion)
@@ -75,45 +75,37 @@ ALL_COMPLETE=$(echo "$DAG_SUMMARY" | han parse json allComplete -r)
 READY_COUNT=$(echo "$DAG_SUMMARY" | han parse json readyCount -r)
 ```
 
-```javascript
-if (dagSummary.allComplete) {
-  // ALL UNITS COMPLETE - Mark intent as done
-  state.status = "complete";
-  han_keep_save({ scope: "branch", key: "iteration.json", content: JSON.stringify(state) });
+```bash
+if [ "$ALL_COMPLETE" = "true" ]; then
+  # ALL UNITS COMPLETE - Mark intent as done
+  updated_state=$(echo "$state" | jq '.status = "complete"')
+  han keep save iteration.json "$updated_state"
 
-  // Output completion summary (see Step 5)
-  return completionSummary;
-}
+  # Output completion summary (see Step 5)
+  # return completionSummary
+fi
 
-if (dagSummary.readyCount > 0) {
-  // MORE UNITS READY - Loop back to builder
-  state.hat = workflow[2] || "builder";  // Reset to builder (index 2 in default workflow)
-  state.currentUnit = null;  // Will be set by /construct when it picks next unit
-  han_keep_save({ scope: "branch", key: "iteration.json", content: JSON.stringify(state) });
+if [ "$READY_COUNT" -gt 0 ]; then
+  # MORE UNITS READY - Loop back to builder
+  # Reset to builder (index 2 in default workflow), clear currentUnit
+  updated_state=$(echo "$state" | jq '.hat = "builder" | .currentUnit = null')
+  han keep save iteration.json "$updated_state"
 
-  return `Unit completed. ${dagSummary.readyCount} more unit(s) ready. Continuing construction...`;
-}
+  echo "Unit completed. ${READY_COUNT} more unit(s) ready. Continuing construction..."
+fi
 
-// BLOCKED - No ready units, human must intervene
-return `All remaining units are blocked. Human intervention required.
-
-Blocked units:
-${dagSummary.blockedUnits.join('\n')}
-
-Review blockers and unblock units to continue.`;
+# BLOCKED - No ready units, human must intervene
+echo "All remaining units are blocked. Human intervention required."
+echo "Review blockers and unblock units to continue."
 ```
 
 ### Step 3: Update State
 
-```javascript
-state.hat = nextHat;
-state.needsAdvance = true;  // Signal SessionStart to increment iteration
-// Intent-level state saved to current branch (intent branch)
-han_keep_save({
-  scope: "branch",
-  key: "iteration.json",
-  content: JSON.stringify(state)
-});
+```bash
+# Update hat and signal SessionStart to increment iteration
+# Intent-level state saved to current branch (intent branch)
+updated_state=$(echo "$state" | jq --arg hat "$nextHat" '.hat = $hat | .needsAdvance = true')
+han keep save iteration.json "$updated_state"
 ```
 
 ### Step 4: Confirm (Normal Advancement)

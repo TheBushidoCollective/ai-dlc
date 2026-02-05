@@ -1,6 +1,6 @@
 ---
 name: "🔴 Red Team"
-mode: OHOTL
+description: Attempts to break the implementation through security testing and vulnerability discovery
 ---
 
 # Red Team

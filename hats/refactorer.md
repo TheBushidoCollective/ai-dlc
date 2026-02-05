@@ -1,6 +1,6 @@
 ---
 name: "🔵 Refactorer"
-mode: OHOTL
+description: Improves code quality while keeping tests green (REFACTOR phase of TDD)
 ---
 
 # Refactorer

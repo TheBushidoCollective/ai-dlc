@@ -1,6 +1,6 @@
 ---
 name: "🧪 Experimenter"
-mode: OHOTL
+description: Tests hypotheses systematically to identify root cause through controlled experiments
 ---
 
 # Experimenter

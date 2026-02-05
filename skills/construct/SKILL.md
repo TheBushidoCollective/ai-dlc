@@ -98,10 +98,10 @@ fi
 
 ### Step 1: Load State
 
-```javascript
-// Intent-level state is stored on the current branch (intent branch)
-const state = JSON.parse(han_keep_load({ scope: "branch", key: "iteration.json" }));
-const intentSlug = han_keep_load({ scope: "branch", key: "intent-slug" }) || null;
+```bash
+# Intent-level state is stored on the current branch (intent branch)
+STATE=$(han keep load iteration.json --quiet)
+INTENT_SLUG=$(han keep load intent-slug --quiet)
 ```
 
 If no state exists:
@@ -154,21 +154,30 @@ update_unit_status "$UNIT_FILE" "in_progress"
 
 **Track current unit in iteration state** so `/advance` knows which unit to mark completed:
 
-```javascript
-state.currentUnit = UNIT_NAME;  // e.g., "unit-01-core-backend"
-// Intent-level state saved to current branch (intent branch)
-han_keep_save({
-  scope: "branch",
-  key: "iteration.json",
-  content: JSON.stringify(state)
-});
+```bash
+# Update currentUnit in state, e.g., "unit-01-core-backend"
+# Intent-level state saved to current branch (intent branch)
+STATE=$(echo "$STATE" | han parse json --set "currentUnit=$UNIT_NAME")
+han keep save iteration.json "$STATE"
 ```
 
-### Step 3: Spawn Subagent for Current Role
+### Step 3: Read Mode and Spawn Subagent
 
 **CRITICAL: Do NOT execute hat work inline. Always spawn a subagent.**
 
-Based on `state.hat`, spawn the appropriate subagent via Task tool:
+#### Read operating mode from intent
+
+```bash
+# Mode is defined on the intent (set during elaboration)
+MODE=$(echo "$STATE" | han parse json mode -r --default OHOTL)
+
+# Also check intent.md frontmatter as source of truth
+if [ -f "${INTENT_DIR}/intent.md" ]; then
+  MODE=$(han parse yaml mode -r --default "$MODE" < "${INTENT_DIR}/intent.md" 2>/dev/null || echo "$MODE")
+fi
+```
+
+#### Spawn based on `state.hat`
 
 | Role | Agent Type | Description |
 |------|------------|-------------|
@@ -182,7 +191,18 @@ Based on `state.hat`, spawn the appropriate subagent via Task tool:
 - `documentation` -> `do-technical-documentation:documentation-engineer`
 - (other) -> `general-purpose`
 
-**Example spawn:**
+#### Mode → Agent Teams mapping
+
+When `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is enabled, map the intent's mode to the Task tool's `mode` parameter:
+
+| Intent Mode | Task `mode` | Behavior |
+|-------------|-------------|----------|
+| HITL | `plan` | Agent proposes, human approves |
+| OHOTL | `acceptEdits` | Agent works, human can intervene |
+| AHOTL | `bypassPermissions` | Full autonomy within criteria |
+
+#### Example spawn (standard subagents)
+
 ```javascript
 Task({
   subagent_type: getAgentForRole(state.hat, unit.discipline),
@@ -206,6 +226,21 @@ Task({
 
     Work according to your role. Return clear status when done.
   `
+})
+```
+
+#### Example spawn (with Agent Teams enabled)
+
+When `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is set, use `name`, `team_name`, and `mode`:
+
+```javascript
+Task({
+  subagent_type: getAgentForRole(state.hat, unit.discipline),
+  description: `${state.hat}: ${unit.name}`,
+  name: `${state.hat}-${unit.slug}`,
+  team_name: `ai-dlc-${intentSlug}`,
+  mode: modeToAgentTeamsMode(intentMode), // HITL→plan, OHOTL→acceptEdits, AHOTL→bypassPermissions
+  prompt: `...same as above...`
 })
 ```
 

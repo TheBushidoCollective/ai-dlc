@@ -45,7 +45,7 @@ curl -fsSL https://han.guru/install.sh | bash
 
 ### Operating Modes
 
-Each hat operates in one of three modes that define the level of human oversight:
+Each intent operates in one of three modes that define the level of human oversight:
 
 | Mode | Name | Description |
 |------|------|-------------|
@@ -74,6 +74,7 @@ Define what you're building with clear completion criteria:
 ---
 status: active
 workflow: default
+mode: OHOTL
 started_at: 2026-01-28T15:30:00Z
 ---
 
@@ -204,6 +205,7 @@ Examples:
 |-------|--------|------|-------------|
 | `status` | Y | Y | `active`, `completed`, `blocked`, `abandoned` |
 | `workflow` | Y | | Workflow name (default, tdd, adversarial, hypothesis) |
+| `mode` | Y | | Operating mode (`HITL`, `OHOTL`, `AHOTL`) |
 | `started_at` | Y | Y | ISO 8601 timestamp |
 | `completed_at` | | Y | ISO 8601 timestamp |
 | `branch` | | Y | Git branch name |
@@ -235,38 +237,38 @@ All hats follow the [Agent SOP format](https://github.com/strands-agents/agent-s
 
 ### Default Workflow
 
-| Hat | Mode | Focus |
-|-----|------|-------|
-| Elaborator | HITL | Define intent and criteria with user |
-| Planner | HITL | Plan what to tackle this iteration |
-| Builder | OHOTL | Implement according to plan and criteria |
-| Reviewer | HITL | Verify implementation meets criteria |
+| Hat | Focus |
+|-----|-------|
+| Elaborator | Define intent and criteria with user |
+| Planner | Plan what to tackle this iteration |
+| Builder | Implement according to plan and criteria |
+| Reviewer | Verify implementation meets criteria |
 
 ### TDD Workflow
 
-| Hat | Mode | Focus |
-|-----|------|-------|
-| Test Writer | OHOTL | Write failing tests first |
-| Implementer | OHOTL | Make tests pass with minimal code |
-| Refactorer | OHOTL | Improve code while keeping tests green |
+| Hat | Focus |
+|-----|-------|
+| Test Writer | Write failing tests first |
+| Implementer | Make tests pass with minimal code |
+| Refactorer | Improve code while keeping tests green |
 
 ### Adversarial Workflow
 
-| Hat | Mode | Focus |
-|-----|------|-------|
-| Builder | OHOTL | Implement to spec |
-| Red Team | OHOTL | Attack - find vulnerabilities |
-| Blue Team | OHOTL | Defend - fix vulnerabilities |
-| Reviewer | HITL | Final security review |
+| Hat | Focus |
+|-----|-------|
+| Builder | Implement to spec |
+| Red Team | Attack - find vulnerabilities |
+| Blue Team | Defend - fix vulnerabilities |
+| Reviewer | Final security review |
 
 ### Hypothesis Workflow
 
-| Hat | Mode | Focus |
-|-----|------|-------|
-| Observer | OHOTL | Gather data about the bug |
-| Hypothesizer | HITL | Form theories about the cause |
-| Experimenter | OHOTL | Test hypotheses systematically |
-| Analyst | HITL | Evaluate results and implement fix |
+| Hat | Focus |
+|-----|-------|
+| Observer | Gather data about the bug |
+| Hypothesizer | Form theories about the cause |
+| Experimenter | Test hypotheses systematically |
+| Analyst | Evaluate results and implement fix |
 
 ## State Management
 
@@ -289,7 +291,7 @@ Session-scoped, cleared on `/reset`:
 | `scratchpad.md` | Learnings and progress notes |
 | `blockers.md` | Documented blockers |
 
-> **Note:** Commands use `han_keep_save()` and `han_keep_load()` syntax which are **MCP tool calls**, not CLI commands. Claude executes these as MCP tool invocations. The hooks use `han keep` CLI commands directly.
+> **Note:** Both commands and hooks use `han keep` CLI commands (`han keep save`, `han keep load`, `han keep delete`, `han keep list`) for state management.
 
 ## Customization
 
@@ -310,7 +312,7 @@ Create `.ai-dlc/hats/` in your project to override or add hats:
 <!-- .ai-dlc/hats/researcher.md -->
 ---
 name: "Researcher"
-mode: HITL
+description: "Investigate before implementing. Research existing solutions and make recommendations."
 ---
 
 # Researcher

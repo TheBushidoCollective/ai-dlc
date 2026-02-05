@@ -159,23 +159,27 @@ elaborator → planner → builder → reviewer
 
 ### Custom Workflows
 
-Teams can define custom workflows in `.ai-dlc/hats.yml`:
+Teams can define custom workflows in `.ai-dlc/workflows.yml` and custom hats in `.ai-dlc/hats/`:
 
 ```yaml
-hats:
-  researcher:
-    name: "🔍 Researcher"
-    mode: HITL
-    instructions: |
-      Investigate the problem space before implementing.
-      Gather context, explore options, document findings.
+# .ai-dlc/workflows.yml
+research-first:
+  description: Research before building
+  hats: [researcher, architect, builder, reviewer]
+```
 
-  architect:
-    name: "📐 Architect"
-    mode: HITL
-    instructions: |
-      Design the solution before building.
-      Consider trade-offs, document decisions.
+```markdown
+<!-- .ai-dlc/hats/researcher.md -->
+---
+name: "🔍 Researcher"
+description: Investigates the problem space before implementing
+---
+
+# Researcher
+
+## Overview
+Investigate the problem space before implementing.
+Gather context, explore options, document findings.
 ```
 
 ## Modes of Operation
@@ -244,14 +248,14 @@ AI-DLC provides slash commands:
 - `/done` - Complete task
 - `/reset` - Clear state
 
-### MCP Tools
+### CLI Commands
 
-State is managed via han keep MCP tools:
+State is managed via han keep CLI commands:
 
-- `han_keep_save` - Persist state
-- `han_keep_load` - Retrieve state
-- `han_keep_list` - List keys
-- `han_keep_delete` - Remove key
+- `han keep save <key> <content>` - Persist state
+- `han keep load <key> --quiet` - Retrieve state
+- `han keep list` - List keys
+- `han keep delete <key>` - Remove key
 
 ## Best Practices
 

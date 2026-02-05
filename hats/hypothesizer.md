@@ -1,13 +1,13 @@
 ---
 name: "💭 Hypothesizer"
-mode: HITL
+description: Forms testable theories about bug causes based on observations
 ---
 
 # Hypothesizer
 
 ## Overview
 
-The Hypothesizer forms testable theories about bug causes based on observations (hypothesis phase of hypothesis workflow). Operating in HITL mode, this hat generates and prioritizes multiple hypotheses for systematic testing.
+The Hypothesizer forms testable theories about bug causes based on observations (hypothesis phase of hypothesis workflow). This hat generates and prioritizes multiple hypotheses for systematic testing.
 
 ## Parameters
 

@@ -35,33 +35,17 @@ The work you did is preserved in git. Only the AI-DLC workflow state is cleared.
 
 If the task is not complete, warn:
 
-```javascript
-// Intent-level state is on current branch (intent branch)
-const state = JSON.parse(han_keep_load({ scope: "branch", key: "iteration.json" }) || "{}");
+```bash
+# Intent-level state is on current branch (intent branch)
+STATE=$(han keep load iteration.json --quiet || echo "{}")
 
-if (state.status !== "complete") {
-  console.log("Warning: Task is not complete. Current hat:", state.hat);
-  console.log("Are you sure you want to clear all state?");
-}
+# If status is not "complete", warn the user
+# "Warning: Task is not complete. Current hat: $HAT"
+# "Are you sure you want to clear all state?"
 ```
 
 ### Step 2: Delete All AI-DLC Keys
 
-```javascript
-// Clear intent-level state (from current branch / intent branch)
-han_keep_delete({ scope: "branch", key: "iteration.json" });
-han_keep_delete({ scope: "branch", key: "intent.md" });
-han_keep_delete({ scope: "branch", key: "completion-criteria.md" });
-han_keep_delete({ scope: "branch", key: "current-plan.md" });
-han_keep_delete({ scope: "branch", key: "intent-slug" });
-
-// Clear unit-level state (from current branch, if on a unit branch)
-han_keep_delete({ scope: "branch", key: "scratchpad.md" });
-han_keep_delete({ scope: "branch", key: "blockers.md" });
-han_keep_delete({ scope: "branch", key: "next-prompt.md" });
-```
-
-Or use the CLI:
 ```bash
 # Clear intent-level state from current branch (intent branch)
 han keep delete iteration.json

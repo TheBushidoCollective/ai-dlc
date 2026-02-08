@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PreToolUse hook to redirect Claude Code's `EnterPlanMode` to AI-DLC's `/elaborate` workflow
   - AI-DLC's elaborate → construct flow replaces the need for Claude Code's generic plan mode
   - Provides clear guidance to users when they try to enter plan mode
+- Google Antigravity CLI support via `.agent/` directory
+  - Rule in `.agent/rules/redirect-plan-mode.md` redirects Antigravity's planning to `/elaborate`
+  - Skills in `.agent/skills/` provide AI-DLC commands and methodology knowledge to Antigravity agents
 
 ## [1.1.0] - 2026-01-31
 

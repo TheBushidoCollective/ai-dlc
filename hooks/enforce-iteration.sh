@@ -37,6 +37,15 @@ if [ -z "$ITERATION_JSON" ] && [[ "$CURRENT_BRANCH" == ai-dlc/*/* ]]; then
   ITERATION_JSON=$(han keep load --branch "$INTENT_BRANCH" iteration.json --quiet 2>/dev/null || echo "")
 fi
 
+# Unit-branch sessions (teammates or subagents) should NOT be told to /construct
+# The orchestrator on the intent branch manages the construction loop
+if [ -n "$INTENT_BRANCH" ]; then
+  echo "## AI-DLC: Unit Session Ending"
+  echo ""
+  echo "Ensure you committed changes and saved progress."
+  exit 0
+fi
+
 if [ -z "$ITERATION_JSON" ]; then
   # No AI-DLC state - not using the methodology, skip
   exit 0

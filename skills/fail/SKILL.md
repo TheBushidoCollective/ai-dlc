@@ -67,6 +67,47 @@ han keep save blockers.md "$REASON"
 han keep save iteration.json '<updated JSON with hat set to previous>'
 ```
 
+### Step 4b: Re-spawn Teammate (Agent Teams)
+
+When `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is enabled and a reviewer rejects work:
+
+```bash
+AGENT_TEAMS_ENABLED="${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}"
+```
+
+If `AGENT_TEAMS_ENABLED` is set:
+
+1. Read `unitStates` from `iteration.json`
+2. Increment `unitStates.{currentUnit}.retries`
+3. Check retry limit:
+   - If `retries >= 3`: Mark unit as blocked, save blocker documentation
+   - If `retries < 3`: Update `unitStates.{currentUnit}.hat = "builder"`
+4. Spawn new builder teammate with reviewer feedback:
+
+```javascript
+Task({
+  subagent_type: getAgentForDiscipline(unit.discipline),
+  description: `builder (retry): ${unitName}`,
+  name: `builder-${unitSlug}-retry${retries}`,
+  team_name: `ai-dlc-${intentSlug}`,
+  mode: modeToAgentTeamsMode(intentMode),
+  prompt: `
+    Re-execute the builder role for unit ${unitName}.
+
+    ## Reviewer Feedback
+    ${reviewerFeedback}
+
+    ## Retry ${retries}/3
+    Address the reviewer's feedback and fix the identified issues.
+    ...same worktree and criteria context...
+  `
+})
+```
+
+5. Save updated `unitStates` to `iteration.json`
+
+**Without Agent Teams:** The existing behavior (update hat to previous, continue in sequential loop) remains unchanged.
+
 ### Step 5: Confirm
 
 Output:

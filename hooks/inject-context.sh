@@ -439,6 +439,19 @@ if [ -n "$INTENT_DIR" ] && [ -d "$INTENT_DIR" ] && ls "$INTENT_DIR"/unit-*.md 1>
     fi
 fi
 
+# Display Agent Teams status if enabled
+if [ -n "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" ]; then
+  TEAM_NAME="ai-dlc-${INTENT_SLUG}"
+  TEAM_CONFIG="$HOME/.claude/teams/${TEAM_NAME}/config.json"
+  if [ -f "$TEAM_CONFIG" ]; then
+    echo "### Agent Teams"
+    echo ""
+    echo "**Team:** \`${TEAM_NAME}\`"
+    echo "**Mode:** Parallel execution enabled"
+    echo ""
+  fi
+fi
+
 # Load hat instructions from markdown files
 # Resolution order: 1) User override (.ai-dlc/hats/), 2) Plugin built-in (hats/)
 HAT_FILE=""

@@ -101,6 +101,28 @@ ${dagSummary.blockedUnits.join('\n')}
 Review blockers and unblock units to continue.`;
 ```
 
+### Step 2c: Spawn Newly Unblocked Units (Agent Teams)
+
+When `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is enabled and completing a unit unblocks new units:
+
+```bash
+AGENT_TEAMS_ENABLED="${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}"
+```
+
+If `AGENT_TEAMS_ENABLED` is set and `readyCount > 0` after completing a unit:
+
+1. Read `teamName` from `iteration.json`
+2. For each newly ready unit:
+   - Initialize `unitStates.{unit}.hat = "planner"` and `unitStates.{unit}.retries = 0`
+   - Create unit worktree
+   - Mark unit as `in_progress`
+   - Spawn planner teammate via Task with `team_name` and `name`
+3. Save updated state to `iteration.json`
+
+This replaces the sequential "loop back to builder" behavior when Agent Teams is active. Instead of the lead picking up the next unit sequentially, newly unblocked units are spawned as parallel teammates immediately.
+
+**Without Agent Teams:** The existing behavior (reset hat to builder, let `/construct` pick next unit) continues unchanged.
+
 ### Step 3: Update State
 
 ```bash

@@ -44,6 +44,39 @@ STATE=$(han keep load iteration.json --quiet || echo "{}")
 # "Are you sure you want to clear all state?"
 ```
 
+### Step 1b: Cleanup Team (Agent Teams)
+
+If `teamName` exists in `iteration.json` and `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is set:
+
+```bash
+TEAM_NAME=$(echo "$STATE" | han parse json teamName -r --default "")
+AGENT_TEAMS_ENABLED="${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}"
+```
+
+If `TEAM_NAME` is not empty and `AGENT_TEAMS_ENABLED` is set:
+
+1. Send shutdown requests to all active teammates:
+
+```javascript
+// Read team config to find active members
+// For each active teammate:
+SendMessage({
+  type: "shutdown_request",
+  recipient: teammateName,
+  content: "AI-DLC reset requested. Shutting down team."
+})
+```
+
+2. Wait for shutdown confirmations
+
+3. Delete the team:
+
+```javascript
+TeamDelete()
+```
+
+**Without Agent Teams:** Skip this step entirely. No team exists to clean up.
+
 ### Step 2: Delete All AI-DLC Keys
 
 ```bash

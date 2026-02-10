@@ -1,3 +1,0 @@
-[install]
-# Use npm-style flat node_modules for Next.js compatibility
-node-linker = "hoisted"

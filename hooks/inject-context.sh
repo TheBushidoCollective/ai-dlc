@@ -286,9 +286,19 @@ if [ "$STATUS" = "complete" ]; then
   exit 0
 fi
 
+# Read mode from intent.md frontmatter (mode lives on the intent, not hats)
+INTENT_SLUG_EARLY="${KEEP_VALUES[intent-slug]:-}"
+MODE=""
+if [ -n "$INTENT_SLUG_EARLY" ] && [ -f ".ai-dlc/${INTENT_SLUG_EARLY}/intent.md" ]; then
+  MODE=$(han parse yaml mode -r --default OHOTL < ".ai-dlc/${INTENT_SLUG_EARLY}/intent.md" 2>/dev/null || echo "OHOTL")
+else
+  # Try parsing mode from iteration.json if intent.md not available yet
+  MODE=$(echo "$ITERATION_JSON" | han parse json mode -r --default OHOTL 2>/dev/null || echo "OHOTL")
+fi
+
 echo "## AI-DLC Context"
 echo ""
-echo "**Iteration:** $ITERATION | **Hat:** $HAT | **Workflow:** $WORKFLOW_NAME ($WORKFLOW_HATS_STR)"
+echo "**Iteration:** $ITERATION | **Hat:** $HAT | **Mode:** $MODE | **Workflow:** $WORKFLOW_NAME ($WORKFLOW_HATS_STR)"
 echo ""
 
 # Batch load all han keep values at once (single subprocess call)
@@ -429,6 +439,19 @@ if [ -n "$INTENT_DIR" ] && [ -d "$INTENT_DIR" ] && ls "$INTENT_DIR"/unit-*.md 1>
     fi
 fi
 
+# Display Agent Teams status if enabled
+if [ -n "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" ]; then
+  TEAM_NAME="ai-dlc-${INTENT_SLUG}"
+  TEAM_CONFIG="$HOME/.claude/teams/${TEAM_NAME}/config.json"
+  if [ -f "$TEAM_CONFIG" ]; then
+    echo "### Agent Teams"
+    echo ""
+    echo "**Team:** \`${TEAM_NAME}\`"
+    echo "**Mode:** Parallel execution enabled"
+    echo ""
+  fi
+fi
+
 # Load hat instructions from markdown files
 # Resolution order: 1) User override (.ai-dlc/hats/), 2) Plugin built-in (hats/)
 HAT_FILE=""
@@ -448,13 +471,17 @@ echo ""
 if [ -n "$HAT_FILE" ] && [ -f "$HAT_FILE" ]; then
   # Parse frontmatter directly (han parse yaml auto-extracts it)
   NAME=$(han parse yaml name -r --default "" < "$HAT_FILE" 2>/dev/null || echo "")
-  MODE=$(han parse yaml mode -r --default "" < "$HAT_FILE" 2>/dev/null || echo "")
+  DESC=$(han parse yaml description -r --default "" < "$HAT_FILE" 2>/dev/null || echo "")
 
   # Get content after frontmatter (skip until second ---)
   HAT_CONTENT=$(cat "$HAT_FILE")
   INSTRUCTIONS=$(echo "$HAT_CONTENT" | sed '1,/^---$/d' | sed '1,/^---$/d')
 
-  echo "**${NAME:-$HAT}** (Mode: ${MODE:-HITL})"
+  if [ -n "$DESC" ]; then
+    echo "**${NAME:-$HAT}** — $DESC"
+  else
+    echo "**${NAME:-$HAT}**"
+  fi
   echo ""
   if [ -n "$INSTRUCTIONS" ]; then
     echo "$INSTRUCTIONS"
@@ -468,7 +495,7 @@ else
   echo "\`\`\`markdown"
   echo "---"
   echo "name: \"Your Hat Name\""
-  echo "mode: HITL  # or OHOTL, AHOTL"
+  echo "description: \"What this hat does\""
   echo "---"
   echo ""
   echo "# Hat Name"

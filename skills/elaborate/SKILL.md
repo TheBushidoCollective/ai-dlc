@@ -122,33 +122,99 @@ Continue asking until you understand:
 
 ---
 
-## Phase 3: Recommend Workflow
+## Phase 3: Discover Hats and Select Workflow
 
-Based on the intent, recommend a workflow:
+### Step 1: Discover Available Hats
 
-| Intent Type | Workflow | When to Use |
-|-------------|----------|-------------|
-| New feature, enhancement | **default** | Standard development work |
-| Bug, investigation | **hypothesis** | When root cause is unknown |
-| Quality-focused | **tdd** | When tests should drive design |
-| Security-sensitive | **adversarial** | When security review is critical |
+Use `han parse yaml` to read all available hat definitions dynamically:
 
-Confirm with `AskUserQuestion`:
+```bash
+# List all hats from plugin directory
+for hat_file in "${CLAUDE_PLUGIN_ROOT}/hats/"*.md; do
+  [ -f "$hat_file" ] || continue
+  slug=$(basename "$hat_file" .md)
+  name=$(han parse yaml name -r < "$hat_file" 2>/dev/null)
+  desc=$(han parse yaml description -r < "$hat_file" 2>/dev/null)
+  echo "- **${name:-$slug}** (\`$slug\`): $desc"
+done
+
+# Also check for project-local hat overrides
+for hat_file in .ai-dlc/hats/*.md; do
+  [ -f "$hat_file" ] || continue
+  slug=$(basename "$hat_file" .md)
+  name=$(han parse yaml name -r < "$hat_file" 2>/dev/null)
+  desc=$(han parse yaml description -r < "$hat_file" 2>/dev/null)
+  echo "- **${name:-$slug}** (\`$slug\`): $desc [project override]"
+done
+```
+
+Display the available hats to the user so they can see what's available for workflow composition.
+
+### Step 2: Discover Available Workflows
+
+Read workflows from plugin defaults and project overrides:
+
+```bash
+# Plugin workflows (defaults)
+cat "${CLAUDE_PLUGIN_ROOT}/workflows.yml"
+
+# Project workflow overrides (if any)
+[ -f ".ai-dlc/workflows.yml" ] && cat ".ai-dlc/workflows.yml"
+```
+
+### Step 3: Select or Compose Workflow
+
+Based on the intent, recommend a workflow from the discovered options. Present available workflows dynamically — do NOT hardcode the options.
+
+Use `AskUserQuestion` with the discovered workflows as options. Include a "Custom" option that lets the user compose their own hat sequence from the available hats:
+
 ```json
 {
   "questions": [{
-    "question": "This looks like a new feature. I recommend the 'default' workflow. Sound right?",
+    "question": "Which workflow fits this task? (or compose a custom one from available hats)",
     "header": "Workflow",
     "options": [
-      {"label": "default (Recommended)", "description": "elaborator → planner → builder → reviewer"},
-      {"label": "tdd", "description": "test-writer → implementer → refactorer"},
-      {"label": "hypothesis", "description": "observer → hypothesizer → experimenter → analyst"},
-      {"label": "adversarial", "description": "builder → red-team → blue-team → reviewer"}
+      {"label": "{recommended} (Recommended)", "description": "{hats as arrows}"},
+      {"label": "{workflow2}", "description": "{hats as arrows}"},
+      {"label": "{workflow3}", "description": "{hats as arrows}"},
+      {"label": "Custom", "description": "Compose a custom hat sequence from available hats"}
     ],
     "multiSelect": false
   }]
 }
 ```
+
+If the user selects "Custom", ask them to specify which hats to include and in what order.
+
+---
+
+## Phase 3.5: Select Operating Mode
+
+The operating mode defines the level of human oversight for this intent. This applies to the **entire intent**, not individual hats.
+
+Use `AskUserQuestion`:
+```json
+{
+  "questions": [{
+    "question": "What level of human oversight for this intent?",
+    "header": "Mode",
+    "options": [
+      {"label": "OHOTL (Recommended)", "description": "Observed - human watches AI work, can intervene. Best for most development work."},
+      {"label": "HITL", "description": "Human-In-The-Loop - human validates each significant step. Best for novel or high-risk work."},
+      {"label": "AHOTL", "description": "Autonomous - AI works independently, human reviews at end. Best for well-defined, low-risk tasks."}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+**Mode mapping for Agent Teams (when `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is enabled):**
+
+| AI-DLC Mode | Agent Teams `mode` | Behavior |
+|-------------|-------------------|----------|
+| HITL | `plan` | Agent proposes, human approves each step |
+| OHOTL | `acceptEdits` | Agent works autonomously, human can intervene |
+| AHOTL | `bypassPermissions` | Agent operates with full autonomy |
 
 ---
 
@@ -278,6 +344,7 @@ Create the `.ai-dlc/{intent-slug}/` directory and write files:
 ```markdown
 ---
 workflow: {workflow-name}
+mode: {HITL|OHOTL|AHOTL}
 created: {ISO date}
 status: active
 ---
@@ -382,26 +449,12 @@ This ensures:
 
 Intent-level state is saved to the current branch (which is now the intent branch):
 
-```javascript
-// Intent-level state → current branch (intent branch)
-han_keep_save({
-  scope: "branch",
-  key: "intent-slug",
-  content: "{intent-slug}"
-})
+```bash
+# Intent-level state -> current branch (intent branch)
+han keep save intent-slug "{intent-slug}"
 
-// Intent-level state → current branch (intent branch)
-han_keep_save({
-  scope: "branch",
-  key: "iteration.json",
-  content: JSON.stringify({
-    iteration: 1,
-    hat: "{first-hat-after-elaborator}",
-    workflowName: "{workflow}",
-    workflow: ["{hat1}", "{hat2}", ...],
-    status: "active"
-  })
-})
+# Intent-level state -> current branch (intent branch)
+han keep save iteration.json '{"iteration":1,"hat":"{first-hat-after-elaborator}","workflowName":"{workflow}","mode":"{HITL|OHOTL|AHOTL}","workflow":["{hat1}","{hat2}"],"status":"active"}'
 ```
 
 ---
@@ -424,6 +477,7 @@ Created: .ai-dlc/{intent-slug}/
 ...
 
 Workflow: {workflowName}
+Mode: {mode}
 Next hat: {next-hat}
 
 To start the autonomous build loop:

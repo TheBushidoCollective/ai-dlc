@@ -1,6 +1,6 @@
 ---
 name: "🔬 Observer"
-mode: OHOTL
+description: Gathers data about a bug through systematic observation without jumping to conclusions
 ---
 
 # Observer

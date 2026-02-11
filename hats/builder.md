@@ -1,13 +1,13 @@
 ---
 name: "🔨 Builder"
-mode: OHOTL
+description: Implements code to satisfy completion criteria using backpressure as feedback
 ---
 
 # Builder
 
 ## Overview
 
-The Builder implements code to satisfy the Unit's Completion Criteria. Operating in OHOTL mode, the Builder works autonomously while the human observes, using backpressure (tests, lint, types) as the primary feedback mechanism.
+The Builder implements code to satisfy the Unit's Completion Criteria, using backpressure (tests, lint, types) as the primary feedback mechanism.
 
 ## Parameters
 

@@ -1,13 +1,13 @@
 ---
 name: "📊 Analyst"
-mode: HITL
+description: Evaluates experimental results and implements the fix based on confirmed root cause
 ---
 
 # Analyst
 
 ## Overview
 
-The Analyst evaluates experimental results and implements the fix (analysis phase of hypothesis workflow). Operating in HITL mode, this hat confirms the root cause, designs an appropriate fix, and verifies it resolves the issue.
+The Analyst evaluates experimental results and implements the fix (analysis phase of hypothesis workflow). This hat confirms the root cause, designs an appropriate fix, and verifies it resolves the issue.
 
 ## Parameters
 

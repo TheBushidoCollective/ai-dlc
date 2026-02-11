@@ -127,26 +127,32 @@ User: "Merged."
 
 ## Mode by Phase
 
-### Default Workflow Modes
+The operating mode is set once on the intent during elaboration. This single mode applies to all work within that intent.
 
-| Phase | Default Mode | Rationale |
-|-------|--------------|-----------|
-| Elaboration | HITL | Requires human input for requirements |
-| Planning | HITL | Human should validate approach |
-| Building | OHOTL | Autonomous with backpressure |
-| Review | HITL | Human verification before completion |
+### Choosing the Right Mode
 
-### Mode Overrides
+The mode you choose during `/elaborate` depends on the nature of the work:
 
-You can override defaults in `.ai-dlc/hats.yml`:
+| Mode | When to Choose | Example Intents |
+|------|----------------|-----------------|
+| HITL | High-risk, unclear requirements, security-sensitive | "Add OAuth login", "Refactor database schema", "Implement payment processing" |
+| OHOTL | Medium-risk, clear criteria, established patterns | "Build user profile page", "Add CSV export feature", "Implement search filters" |
+| AHOTL | Low-risk, well-defined, comprehensive tests | "Add CRUD endpoints for new model", "Write unit tests", "Update dependencies" |
+
+### Setting the Mode
+
+The mode is set in the intent's frontmatter during elaboration:
 
 ```yaml
-hats:
-  builder:
-    mode: AHOTL  # Override to full autonomy
-    instructions: |
-      Work autonomously. Only stop if blocked.
+---
+status: active
+workflow: default
+mode: OHOTL  # Set mode for entire intent
+started_at: 2026-01-28T15:30:00Z
+---
 ```
+
+This mode applies to all hats and units within the intent.
 
 ## Transitioning Between Modes
 

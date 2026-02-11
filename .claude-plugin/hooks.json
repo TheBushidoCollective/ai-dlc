@@ -7,8 +7,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_LOCAL_PLUGIN_DIR}/hooks/redirect-plan-mode.sh\"",
-            "timeout": 5000
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/redirect-plan-mode.sh\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Task|Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "han hook wrap-subagent-context --context-command 'bash \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-context.sh\"'",
+            "timeout": 30
           }
         ]
       }

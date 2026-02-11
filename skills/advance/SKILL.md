@@ -31,9 +31,9 @@ Advances to the next hat in the workflow sequence. For example, in the default w
 
 ### Step 1: Load Current State
 
-```javascript
-// Intent-level state is stored on current branch (intent branch)
-const state = JSON.parse(han_keep_load({ scope: "branch", key: "iteration.json" }));
+```bash
+# Intent-level state is stored on current branch (intent branch)
+STATE=$(han keep load iteration.json --quiet)
 ```
 
 ### Step 2: Determine Next Hat (or Handle Completion)
@@ -79,8 +79,7 @@ READY_COUNT=$(echo "$DAG_SUMMARY" | han parse json readyCount -r)
 if (dagSummary.allComplete) {
   // ALL UNITS COMPLETE - Mark intent as done
   state.status = "complete";
-  han_keep_save({ scope: "branch", key: "iteration.json", content: JSON.stringify(state) });
-
+  // han keep save iteration.json '<updated JSON>'
   // Output completion summary (see Step 5)
   return completionSummary;
 }
@@ -89,8 +88,7 @@ if (dagSummary.readyCount > 0) {
   // MORE UNITS READY - Loop back to builder
   state.hat = workflow[2] || "builder";  // Reset to builder (index 2 in default workflow)
   state.currentUnit = null;  // Will be set by /construct when it picks next unit
-  han_keep_save({ scope: "branch", key: "iteration.json", content: JSON.stringify(state) });
-
+  // han keep save iteration.json '<updated JSON>'
   return `Unit completed. ${dagSummary.readyCount} more unit(s) ready. Continuing construction...`;
 }
 
@@ -103,17 +101,35 @@ ${dagSummary.blockedUnits.join('\n')}
 Review blockers and unblock units to continue.`;
 ```
 
+### Step 2c: Spawn Newly Unblocked Units (Agent Teams)
+
+When `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is enabled and completing a unit unblocks new units:
+
+```bash
+AGENT_TEAMS_ENABLED="${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}"
+```
+
+If `AGENT_TEAMS_ENABLED` is set and `readyCount > 0` after completing a unit:
+
+1. Read `teamName` from `iteration.json`
+2. For each newly ready unit:
+   - Initialize `unitStates.{unit}.hat = "planner"` and `unitStates.{unit}.retries = 0`
+   - Create unit worktree
+   - Mark unit as `in_progress`
+   - Spawn planner teammate via Task with `team_name` and `name`
+3. Save updated state to `iteration.json`
+
+This replaces the sequential "loop back to builder" behavior when Agent Teams is active. Instead of the lead picking up the next unit sequentially, newly unblocked units are spawned as parallel teammates immediately.
+
+**Without Agent Teams:** The existing behavior (reset hat to builder, let `/construct` pick next unit) continues unchanged.
+
 ### Step 3: Update State
 
-```javascript
-state.hat = nextHat;
-state.needsAdvance = true;  // Signal SessionStart to increment iteration
-// Intent-level state saved to current branch (intent branch)
-han_keep_save({
-  scope: "branch",
-  key: "iteration.json",
-  content: JSON.stringify(state)
-});
+```bash
+# Update hat and signal SessionStart to increment iteration
+# Intent-level state saved to current branch (intent branch)
+# state.hat = nextHat, state.needsAdvance = true
+han keep save iteration.json '<updated JSON with hat and needsAdvance>'
 ```
 
 ### Step 4: Confirm (Normal Advancement)

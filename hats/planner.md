@@ -1,6 +1,6 @@
 ---
 name: "📋 Planner"
-mode: HITL
+description: Creates tactical execution plans for upcoming bolts based on unit requirements
 ---
 
 # Planner

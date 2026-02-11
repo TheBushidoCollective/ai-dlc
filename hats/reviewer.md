@@ -1,13 +1,13 @@
 ---
 name: "🔍 Reviewer"
-mode: HITL
+description: Verifies implementation satisfies completion criteria with code review and testing verification
 ---
 
 # Reviewer
 
 ## Overview
 
-The Reviewer verifies that the Builder's implementation satisfies the Unit's Completion Criteria. Operating in HITL mode, the Reviewer provides human-like code review with explicit approval or rejection decisions.
+The Reviewer verifies that the Builder's implementation satisfies the Unit's Completion Criteria, providing code review with explicit approval or rejection decisions.
 
 ## Parameters
 

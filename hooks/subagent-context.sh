@@ -287,3 +287,15 @@ echo ""
 echo "Output status messages directly - users see them in real-time."
 echo "Document blockers in \`han keep save blockers.md\` for persistence (unit-scoped)."
 echo ""
+
+# Team communication instructions (Agent Teams mode)
+if [ -n "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" ]; then
+  echo "### Team Communication"
+  echo ""
+  echo "You are a **teammate** in an Agent Teams session."
+  echo "- Report completion/issues to team lead via SendMessage"
+  echo "- Do NOT call /construct, /advance, or /fail — the lead handles orchestration"
+  echo "- Use TaskUpdate to mark shared tasks as completed when done"
+  echo "- Coordinate with other teammates through the team lead"
+  echo ""
+fi

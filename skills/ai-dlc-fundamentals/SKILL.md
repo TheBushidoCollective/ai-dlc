@@ -60,6 +60,8 @@ bun test || exit 1
 
 The AI can't complete work until tests pass. It learns to write tests and fix failures, not because a process document says to, but because the system won't let it proceed otherwise.
 
+*For detailed backpressure guidance, see the `ai-dlc-backpressure` skill.*
+
 ### 2. Completion Criteria Enable Autonomy
 
 Clear criteria unlock autonomous operation:
@@ -78,6 +80,8 @@ With clear criteria:
 - AI can self-verify progress
 - Human review becomes targeted ("Did you meet criteria X?")
 - Iteration loops have clear exit conditions
+
+*For detailed criteria guidance, see the `ai-dlc-completion-criteria` skill.*
 
 ### 3. Files Are Memory
 
@@ -153,29 +157,32 @@ elaborator → planner → builder → reviewer
 
 ### Hat Transitions
 
-- `/advance` - Move to next hat in workflow
+- `/advance` - Move to next hat in workflow (handles completion at the last hat)
 - `/fail` - Return to previous hat (e.g., reviewer finds issues)
-- `/done` - Complete task (only from last hat)
 
 ### Custom Workflows
 
-Teams can define custom workflows in `.ai-dlc/hats.yml`:
+Teams can define custom workflows in `.ai-dlc/workflows.yml` and custom hats in `.ai-dlc/hats/`:
 
 ```yaml
-hats:
-  researcher:
-    name: "🔍 Researcher"
-    mode: HITL
-    instructions: |
-      Investigate the problem space before implementing.
-      Gather context, explore options, document findings.
+# .ai-dlc/workflows.yml
+research-first:
+  description: Research before building
+  hats: [researcher, architect, builder, reviewer]
+```
 
-  architect:
-    name: "📐 Architect"
-    mode: HITL
-    instructions: |
-      Design the solution before building.
-      Consider trade-offs, document decisions.
+```markdown
+<!-- .ai-dlc/hats/researcher.md -->
+---
+name: "🔍 Researcher"
+description: Investigates the problem space before implementing
+---
+
+# Researcher
+
+## Overview
+Investigate the problem space before implementing.
+Gather context, explore options, document findings.
 ```
 
 ## Modes of Operation
@@ -201,6 +208,8 @@ AI operates with minimal human involvement:
 - Human reviews at end or on exception
 - Requires very clear criteria and robust backpressure
 
+*For detailed mode selection guidance, see the `ai-dlc-mode-selection` skill.*
+
 ## State Management
 
 ### Scoped Storage
@@ -220,7 +229,7 @@ AI-DLC uses `han keep` for state persistence:
 | `iteration.json` | Hat, iteration count, status | Commands |
 | `intent.md` | What we're building | /elaborate |
 | `completion-criteria.md` | How we know it's done | /elaborate |
-| `current-plan.md` | Plan for this iteration | /plan |
+| `current-plan.md` | Plan for this iteration | Planner hat |
 | `scratchpad.md` | Learnings and notes | AI during work |
 | `blockers.md` | What's blocking progress | AI when stuck |
 
@@ -238,20 +247,20 @@ AI-DLC uses Han's hook system:
 AI-DLC provides slash commands:
 
 - `/elaborate` - Start mob elaboration
-- `/plan` - Plan this iteration
-- `/advance` - Next hat
-- `/fail` - Previous hat
-- `/done` - Complete task
+- `/construct` - Run autonomous construction loop
+- `/advance` - Next hat (internal)
+- `/fail` - Previous hat (internal)
+- `/resume` - Resume lost intent
 - `/reset` - Clear state
 
-### MCP Tools
+### CLI Commands
 
-State is managed via han keep MCP tools:
+State is managed via han keep CLI commands:
 
-- `han_keep_save` - Persist state
-- `han_keep_load` - Retrieve state
-- `han_keep_list` - List keys
-- `han_keep_delete` - Remove key
+- `han keep save <key> <content>` - Persist state
+- `han keep load <key> --quiet` - Retrieve state
+- `han keep list` - List keys
+- `han keep delete <key>` - Remove key
 
 ## Best Practices
 

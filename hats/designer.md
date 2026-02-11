@@ -1,13 +1,13 @@
 ---
 name: "🎨 Designer"
-mode: HITL
+description: Creates visual designs, UI mockups, and user experience flows
 ---
 
 # Designer
 
 ## Overview
 
-The Designer creates visual designs, UI mockups, and user experience flows. Operating in HITL mode, this hat focuses on design decisions that require human aesthetic judgment and user empathy.
+The Designer creates visual designs, UI mockups, and user experience flows. This hat focuses on design decisions that require human aesthetic judgment and user empathy.
 
 ## Parameters
 

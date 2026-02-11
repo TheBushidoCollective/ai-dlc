@@ -117,23 +117,36 @@ cd "$INTENT_WORKTREE"
 
 Save to han keep storage (intent-level state goes to current branch, which is now the intent branch):
 
-```javascript
-// Save intent slug (intent-level state -> current branch / intent branch)
-han_keep_save({ scope: "branch", key: "intent-slug", content: slug });
+```bash
+# Save intent slug (intent-level state -> current branch / intent branch)
+han keep save intent-slug "$SLUG"
 
-// Save iteration state (intent-level state -> current branch / intent branch)
-han_keep_save({
-  scope: "branch",
-  key: "iteration.json",
-  content: JSON.stringify({
-    iteration: 1,
-    hat: startingHat,
-    workflowName: workflow,
-    workflow: workflowHats,
-    status: "active"
-  })
-});
+# Save iteration state (intent-level state -> current branch / intent branch)
+han keep save iteration.json "{\"iteration\":1,\"hat\":\"$STARTING_HAT\",\"workflowName\":\"$WORKFLOW\",\"workflow\":$WORKFLOW_HATS_JSON,\"status\":\"active\"}"
 ```
+
+### Step 5b: Restore Team (Agent Teams)
+
+When `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is enabled:
+
+```bash
+AGENT_TEAMS_ENABLED="${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}"
+TEAM_NAME="ai-dlc-${SLUG}"
+TEAM_CONFIG="$HOME/.claude/teams/${TEAM_NAME}/config.json"
+```
+
+If `AGENT_TEAMS_ENABLED` is set:
+
+1. **Team exists** (`TEAM_CONFIG` found):
+   - Read config to discover active teammates
+   - Save `teamName` to `iteration.json`
+   - Note: Active teammates may need to be re-spawned if they were shut down
+
+2. **Team does not exist**:
+   - Save `teamName` to `iteration.json` (for `/construct` to create it)
+   - Note in output: "Team will be created when `/construct` runs"
+
+**Without Agent Teams:** Skip this step. No team management needed.
 
 ### Step 6: Output Confirmation
 
@@ -145,6 +158,7 @@ han_keep_save({
 **Workflow:** {workflow}
 **Starting Hat:** {startingHat}
 **Worktree:** /tmp/ai-dlc-{slug}/
+**Team:** {teamName} (if Agent Teams enabled)
 
 ### Unit Status
 {get_dag_status_table output}

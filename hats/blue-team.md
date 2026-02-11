@@ -1,6 +1,6 @@
 ---
 name: "🔵 Blue Team"
-mode: OHOTL
+description: Fixes vulnerabilities identified by Red Team with proper security controls and tests
 ---
 
 # Blue Team

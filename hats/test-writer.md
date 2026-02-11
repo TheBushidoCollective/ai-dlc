@@ -1,6 +1,6 @@
 ---
 name: "🔴 Test Writer"
-mode: OHOTL
+description: Creates failing tests that define expected behavior before implementation (RED phase of TDD)
 ---
 
 # Test Writer

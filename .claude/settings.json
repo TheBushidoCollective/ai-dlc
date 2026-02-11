@@ -4,10 +4,14 @@
   },
   "teammateMode": "tmux",
   "enabledPlugins": {
-    "core@han": true,
+    "ai-dlc@ai-dlc": true,
     "bushido@han": true,
+    "claude-plugin-development@han": true,
+    "core@han": true,
+    "han-plugins@han": true,
     "markdown@han": true,
-    "ai-dlc@ai-dlc": true
+    "typescript@han": true,
+    "vite@han": true
   },
   "extraKnownMarketplaces": {
     "han": {

@@ -7,17 +7,40 @@ allowed-tools:
   - Glob
   - Grep
   - Bash
+  - Task
+  - WebSearch
+  - WebFetch
   - AskUserQuestion
+  - ToolSearch
+  - ListMcpResourcesTool
+  - ReadMcpResourceTool
+  # MCP read-only tool patterns (no create/update/delete/send/push/execute)
+  - "mcp__*__read*"
+  - "mcp__*__get*"
+  - "mcp__*__list*"
+  - "mcp__*__search*"
+  - "mcp__*__query*"
+  - "mcp__*__ask*"
+  - "mcp__*__resolve*"
+  - "mcp__*__fetch*"
+  - "mcp__*__lookup*"
+  - "mcp__*__analyze*"
+  - "mcp__*__describe*"
+  - "mcp__*__explain*"
+  - "mcp__*__memory"
 ---
 
 # AI-DLC Mob Elaboration
 
 You are the **Elaborator** starting the AI-DLC Mob Elaboration ritual. Your job is to collaboratively define:
 1. The **Intent** - What are we building and why?
-2. **Success Criteria** - How do we know when it's done?
-3. **Units** - Independent pieces of work (for complex intents)
+2. **Domain Model** - What entities, data sources, and systems are involved?
+3. **Success Criteria** - How do we know when it's done?
+4. **Units** - Independent pieces of work (for complex intents), each with enough technical detail that a builder with zero prior context builds the right thing
 
 Then you'll write these as files in `.ai-dlc/{intent-slug}/` for the construction phase.
+
+**CRITICAL PRINCIPLE: Elaboration is not a quick phase.** The purpose of elaboration is to build such deep understanding of the domain that the resulting spec is unambiguous. If a builder could misinterpret a unit and build the wrong thing, the elaboration is not done. Do NOT close this phase until you have a clear, specific, technically-grounded spec validated by the user.
 
 ---
 
@@ -81,44 +104,126 @@ Wait for their answer. Do not explain the process.
 
 ## Phase 2: Clarify Requirements
 
-Use `AskUserQuestion` to explore their intent with 2-4 questions at a time. Each question should have 2-4 options.
+Use `AskUserQuestion` to explore the user's intent. Ask 2-4 questions at a time, each with 2-4 options.
 
 CRITICAL: Do NOT list questions as plain text. Always use the `AskUserQuestion` tool.
 
-Example:
+Focus your questions on understanding:
+- What **specific problem** this solves (not just "build X" but "build X because Y")
+- Who uses it and how (the user journey, not just "it's for developers")
+- What **systems, APIs, data sources, or codebases** are involved
+- Key constraints or non-obvious requirements
+- What the user cares about most (what would make them say "this isn't what I wanted"?)
+
+**Do NOT ask generic checkbox questions** like "What's the scope?" or "What's the complexity?" These produce shallow understanding. Instead, ask questions specific to what the user described. If they said "build a dashboard for X", ask about what X's domain model looks like, what data they expect to see, what the key user workflows are.
+
+Continue asking until you can articulate back to the user, in your own words, exactly what they want built. If you can't explain the domain entities, data flows, and user experience in concrete detail, you don't understand it yet.
+
+---
+
+## Phase 2.5: Domain Discovery & Technical Exploration
+
+**This phase is mandatory.** Before defining success criteria or decomposing into units, you MUST deeply understand the technical landscape. Shallow understanding here causes builders to build the wrong thing.
+
+### What to Explore
+
+Based on what the user described in Phase 2, identify every relevant technical surface and explore it thoroughly. Use ALL available research tools — codebase exploration, API introspection, web searches, and documentation fetching:
+
+1. **APIs and Schemas**: If the intent involves an API, query it. Run introspection queries. Read the actual schema. Map every type, field, query, mutation, and subscription. Don't guess what data is available — verify it.
+
+2. **Existing Codebases**: If the intent builds on or integrates with existing code, read it. Use `Glob` and `Grep` to find relevant files. Read source code, not just file names. Understand existing patterns, conventions, and architecture.
+
+3. **Data Sources**: If the intent involves data, understand where it lives. Query for real sample data. Understand what fields are populated, what's empty, what's missing. Identify gaps between what's available and what's needed.
+
+4. **Domain Model**: From your exploration, build a domain model — the key entities, their relationships, and their lifecycle. This is not a database schema; it's a conceptual map of the problem space.
+
+5. **Existing Implementations**: If there are related features, similar tools, or reference implementations, read them. Understand what already exists so you don't build duplicates or miss integration points.
+
+6. **External Documentation and Libraries**: Use `WebSearch` and `WebFetch` to research relevant libraries, frameworks, APIs, standards, or prior art. If the intent involves a third-party system, find its documentation and understand its capabilities. If the intent involves a design pattern or technique, research best practices and common pitfalls.
+
+### How to Explore
+
+Use every research tool available. Spawn multiple explorations in parallel for independent concerns:
+
+1. **Subagents for deep codebase/API exploration**: Use `Task` with `subagent_type: "Explore"` for multi-step research that requires reading many files, querying APIs, and synthesizing findings:
+
+```
+Task({
+  description: "Explore {specific system}",
+  subagent_type: "Explore",
+  prompt: "I need to deeply understand {system}. Read source code, query APIs, map the data model. Report back with: every entity and its fields, every query/endpoint available, sample data showing what's actually populated, and any gaps or limitations discovered."
+})
+```
+
+2. **MCP tools for domain knowledge**: Use `ToolSearch` to discover available MCP tools, then use read-only MCP tools for domain research. Examples:
+   - Repository documentation (DeepWiki): `mcp__*__read_wiki*`, `mcp__*__ask_question`
+   - Library docs (Context7): `mcp__*__resolve*`, `mcp__*__query*`
+   - Project memory (han): `mcp__*__memory`
+   - Any other MCP servers available in the environment
+
+3. **Web research for external context**: Use `WebSearch` for library docs, design patterns, API references, prior art. Use `WebFetch` to read specific documentation pages.
+
+4. **Direct exploration**: Use `Read`, `Glob`, `Grep`, and `Bash` (for curl, CLI tools, introspection queries) directly when you know what you're looking for.
+
+**Spawn multiple research paths in parallel.** Don't serialize explorations that are independent — launch all of them at once and synthesize when results return.
+
+### Communicate Findings as You Go
+
+**Do not disappear into research and come back with a wall of text.** The user is your collaborator, not a reviewer. As you explore:
+
+- **Share what you're finding** in real-time. When a research subagent returns results, summarize the key findings to the user before launching the next exploration. Let them see your understanding forming.
+- **Surface surprises and ambiguities immediately.** If something doesn't match what the user described, or if you discover a gap or limitation, tell the user right away. Don't wait until the domain model presentation.
+- **Ask clarifying questions when discoveries raise new questions.** If you find that an API has 23 queries but you're not sure which ones are relevant, ask. If you find two possible data sources for the same information, ask which one to use.
+- **Check your mental model incrementally.** Don't wait until the end to validate everything at once. After each major finding, briefly confirm: "I found X — does that match your understanding?" This catches misunderstandings early.
+
+The goal is a **conversation**, not a research report. The user has domain knowledge you don't have. They can correct your understanding in seconds if you surface it, but they can't fix what they can't see.
+
+**CRITICAL**: Do not summarize or skip this phase. The exploration results directly determine whether the spec is accurate. If you explore a GraphQL API, report every type. If you read source code, report the actual architecture, not your guess about it.
+
+### Present Domain Model to User
+
+After exploration, present your findings to the user as a **Domain Model**:
+
+```markdown
+## Domain Model
+
+### Entities
+- **{Entity1}**: {description} — Fields: {field1}, {field2}, ...
+- **{Entity2}**: {description} — Fields: ...
+
+### Relationships
+- {Entity1} has many {Entity2}
+- {Entity2} belongs to {Entity3}
+
+### Data Sources
+- **{Source1}** ({type: GraphQL API / REST API / filesystem / etc.}):
+  - Available: {what data can be queried}
+  - Missing: {what data is NOT available from this source}
+  - Real sample: {abbreviated real data showing what's populated}
+
+### Data Gaps
+- {description of any gap between what's needed and what's available}
+- {proposed solution for each gap}
+```
+
+Use `AskUserQuestion` to validate:
 ```json
 {
-  "questions": [
-    {
-      "question": "What's the scope of this work?",
-      "header": "Scope",
-      "options": [
-        {"label": "New feature", "description": "Adding new functionality"},
-        {"label": "Enhancement", "description": "Improving existing feature"},
-        {"label": "Bug fix", "description": "Fixing broken behavior"},
-        {"label": "Refactor", "description": "Restructuring without behavior change"}
-      ],
-      "multiSelect": false
-    },
-    {
-      "question": "What's the complexity?",
-      "header": "Complexity",
-      "options": [
-        {"label": "Simple", "description": "Single file, few hours"},
-        {"label": "Medium", "description": "Multiple files, can be done in one session"},
-        {"label": "Complex", "description": "Needs decomposition into units"}
-      ],
-      "multiSelect": false
-    }
-  ]
+  "questions": [{
+    "question": "Does this domain model accurately capture the system? Are there entities, relationships, or data sources I'm missing?",
+    "header": "Domain Model",
+    "options": [
+      {"label": "Looks accurate", "description": "The domain model captures the system correctly"},
+      {"label": "Missing entities", "description": "There are important entities or relationships not listed"},
+      {"label": "Wrong relationships", "description": "Some relationships are incorrect"},
+      {"label": "Missing data sources", "description": "There are data sources I haven't discovered"}
+    ],
+    "multiSelect": true
+  }]
 }
 ```
 
-Continue asking until you understand:
-- What problem this solves
-- Who it's for
-- Key constraints or requirements
-- Integration points with existing systems
+**Do NOT proceed past this phase until the user confirms the domain model is accurate.** If they identify gaps, explore more. This is the foundation everything else builds on.
 
 ---
 
@@ -268,7 +373,7 @@ Ask with `AskUserQuestion`:
     "question": "Should we decompose this into parallel units?",
     "header": "Decompose",
     "options": [
-      {"label": "Yes", "description": "Break into 2-5 independent units"},
+      {"label": "Yes (Recommended)", "description": "Break into 2-5 independent units with detailed specs"},
       {"label": "No", "description": "Keep as single unit of work"}
     ],
     "multiSelect": false
@@ -276,10 +381,45 @@ Ask with `AskUserQuestion`:
 }
 ```
 
-If yes, define each unit with:
-- Name and description
-- Specific success criteria for that unit
-- Dependencies on other units (if any)
+If yes, define each unit with **enough detail that a builder with zero prior context builds the right thing**:
+
+- **Name and description**: What this unit accomplishes, stated in terms of the domain model
+- **Domain entities**: Which entities from the domain model this unit deals with
+- **Data sources**: Which APIs, queries, or data files this unit reads from or writes to. Reference specific query names, endpoint paths, or file patterns discovered during Domain Discovery.
+- **Technical specification**: Specific components, views, functions, or modules to create. If it's a UI, describe what the user sees and interacts with. If it's an API, describe the endpoints and their behavior. If it's a data layer, describe the transformations.
+- **Success criteria**: Specific, testable criteria that reference domain entities (not generic criteria like "displays data")
+- **Dependencies on other units**: What must be built first and why
+- **What this unit is NOT**: Explicit boundaries to prevent scope creep. If another unit handles related concerns, say so.
+
+**Bad unit description** (too vague, builder will guess wrong):
+```
+## unit-02: Session Browser
+Build the session browser page showing sessions from GraphQL.
+```
+
+**Good unit description** (builder knows exactly what to build):
+```
+## unit-02: Intent Browser and DAG View
+Display all AI-DLC Intents (read from `.ai-dlc/*/intent.md` files) as cards showing:
+- Intent title, status (from frontmatter), workflow type, operating mode
+- Unit count and completion progress (N of M units completed)
+- Created date and last activity
+
+Clicking an intent navigates to the Intent Detail view which shows:
+- The unit dependency DAG as a visual graph (units as nodes, depends_on as edges)
+- Each unit node shows: name, status, current hat, discipline, retry count
+- Color coding: pending=gray, in_progress=blue, completed=green, blocked=red
+
+Data sources:
+- Intent metadata: Read `.ai-dlc/{slug}/intent.md` frontmatter via filesystem API
+- Unit metadata: Read `.ai-dlc/{slug}/unit-*.md` frontmatter
+- Live state: Query `han keep load iteration.json` for current hat and unitStates
+
+This unit does NOT handle: hat visualization (unit-03), live monitoring (unit-04),
+or timeline replay (unit-05). It only renders the structural hierarchy.
+```
+
+Present the full unit breakdown to the user and confirm before proceeding.
 
 ---
 
@@ -336,6 +476,63 @@ Store the testing configuration for the reviewer hat to enforce.
 
 ---
 
+## Phase 5.75: Spec Validation Gate
+
+**This is the quality gate that prevents shallow specs from reaching construction.**
+
+Before writing any artifacts, present the **complete elaboration summary** to the user:
+
+```markdown
+## Elaboration Summary
+
+### Intent
+{1-2 sentence problem statement}
+
+### Domain Model
+{Key entities and their relationships — abbreviated from Phase 2.5}
+
+### Data Sources
+{List each data source with what it provides}
+
+### Units
+For each unit:
+- **unit-NN-{slug}**: {one-line description}
+  - Entities: {which domain entities}
+  - Data: {which data sources/queries}
+  - Builds: {specific components/modules/endpoints}
+  - Criteria: {count} success criteria
+
+### Testing Requirements
+{Summary of testing config}
+
+### Workflow & Mode
+{workflow name} — {mode}
+```
+
+Then ask with `AskUserQuestion`:
+```json
+{
+  "questions": [{
+    "question": "Is this spec detailed enough that a developer with NO prior context about this domain could build the right thing? (If a builder could misinterpret any unit and build something wrong, answer 'Not detailed enough')",
+    "header": "Spec Quality",
+    "options": [
+      {"label": "Yes, detailed enough", "description": "Every unit is unambiguous — proceed to write artifacts"},
+      {"label": "Not detailed enough", "description": "Some units are vague or could be misinterpreted — need more detail"},
+      {"label": "Wrong direction", "description": "The overall approach needs rethinking"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+- **"Yes, detailed enough"**: Proceed to Phase 6
+- **"Not detailed enough"**: Ask which units need more detail, then return to Phase 5 for those units. Do NOT proceed until every unit is unambiguous.
+- **"Wrong direction"**: Discuss with user, potentially return to Phase 2 or 2.5
+
+**Do NOT skip this gate.** This is the single most important quality check in the entire elaboration process. A vague spec produces wrong implementations. A precise spec produces correct ones.
+
+---
+
 ## Phase 6: Write AI-DLC Artifacts
 
 Create the `.ai-dlc/{intent-slug}/` directory and write files:
@@ -352,18 +549,37 @@ status: active
 # {Intent Title}
 
 ## Problem
-{What problem are we solving?}
+{What problem are we solving? Be specific about the pain point.}
 
 ## Solution
-{High-level approach}
+{High-level approach — enough detail to understand the architecture, not just a one-liner.}
+
+## Domain Model
+{Key entities, their relationships, and lifecycle. This is the conceptual foundation
+that all units build on. Every builder should read this section to understand the
+problem space.}
+
+### Entities
+- **{Entity1}**: {description} — Key fields: {fields}
+- **{Entity2}**: {description} — Key fields: {fields}
+
+### Relationships
+- {How entities relate to each other}
+
+### Data Sources
+- **{Source1}** ({type}): {what it provides, endpoint/path, any auth needed}
+- **{Source2}** ({type}): {what it provides}
+
+### Data Gaps
+- {Any gaps between what's needed and what's available, with proposed solutions}
 
 ## Success Criteria
-- [ ] Criterion 1
+- [ ] Criterion 1 {referencing specific domain entities}
 - [ ] Criterion 2
 - [ ] Criterion 3
 
 ## Context
-{Relevant background, constraints, decisions}
+{Relevant background, constraints, decisions made during elaboration}
 ```
 
 ### 2. Write `intent.yaml` (testing configuration):
@@ -398,17 +614,33 @@ discipline: {discipline}  # frontend, backend, api, documentation, devops, etc.
 # unit-NN-{slug}
 
 ## Description
-{What this unit accomplishes}
+{What this unit accomplishes, in terms of domain entities}
 
 ## Discipline
 {discipline} - This unit will be executed by `do-{discipline}` specialized agents.
 
+## Domain Entities
+{Which entities from the domain model this unit works with, and how}
+
+## Data Sources
+{Specific APIs, queries, endpoints, or files this unit reads/writes. Reference actual
+query names, field paths, or file patterns discovered during Domain Discovery.}
+
+## Technical Specification
+{Specific components, views, modules, or endpoints to create. Describe what the user
+sees/interacts with (for UI), or what the API accepts/returns (for backend), or what
+transformations occur (for data layers). Be concrete enough that a builder cannot
+misinterpret what to build.}
+
 ## Success Criteria
-- [ ] Specific criterion for this unit
-- [ ] Another criterion
+- [ ] {Criterion referencing specific domain entities, not generic}
+- [ ] {Another criterion}
+
+## Boundaries
+{What this unit does NOT handle. Reference which other units own related concerns.}
 
 ## Notes
-{Implementation hints, context}
+{Implementation hints, context, pitfalls to avoid}
 ```
 
 **Discipline determines which specialized agents execute the unit:**

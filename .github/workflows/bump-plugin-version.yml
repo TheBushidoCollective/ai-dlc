@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   bump-version:
@@ -98,7 +99,9 @@ jobs:
           echo "old_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Commit version bump
+      - name: Create version bump PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Check if there are any changes to commit
           if git diff --quiet; then
@@ -106,21 +109,22 @@ jobs:
             exit 0
           fi
 
-          # Add version files and changelog
+          OLD_VERSION="${{ steps.bump-version.outputs.old_version }}"
+          NEW_VERSION="${{ steps.bump-version.outputs.new_version }}"
+          BRANCH="chore/bump-version-${NEW_VERSION}"
+
+          # Create branch, commit, and push
+          git checkout -b "$BRANCH"
           git add .claude-plugin/plugin.json .claude-plugin/marketplace.json CHANGELOG.md
+          git commit -m "chore(plugin): bump version ${OLD_VERSION} -> ${NEW_VERSION} [skip ci]"
+          git push origin "$BRANCH"
 
-          # Create commit message
-          COMMIT_MSG="chore(plugin): bump version ${{ steps.bump-version.outputs.old_version }} -> ${{ steps.bump-version.outputs.new_version }} [skip ci]"
+          # Create PR and admin-merge (bypasses branch protection)
+          PR_URL=$(gh pr create \
+            --title "chore(plugin): bump version ${OLD_VERSION} -> ${NEW_VERSION}" \
+            --body "Automated version bump based on conventional commit analysis." \
+            --base main \
+            --head "$BRANCH")
 
-          git commit -m "$COMMIT_MSG"
-
-          # Pull latest and rebase, handling conflicts gracefully
-          if ! git pull --rebase origin main; then
-            echo "Rebase conflict detected - another workflow likely pushed first"
-            echo "Aborting rebase and exiting cleanly (next push will retry)"
-            git rebase --abort 2>/dev/null || true
-            exit 0
-          fi
-
-          # Push the rebased commit
-          git push origin main
+          echo "Created PR: $PR_URL"
+          gh pr merge "$PR_URL" --merge --admin --delete-branch

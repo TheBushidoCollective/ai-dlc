@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-02-12
+
+### Added
+
+- add domain discovery, spec validation, and deep research to elaboration ([edf7a4b](../../commit/edf7a4b))
+- add automatic version bump and changelog pipeline ([86ad4eb](../../commit/86ad4eb))
+- make Agent Teams the primary execution model for /construct ([6d9b811](../../commit/6d9b811))
+- add Google Antigravity CLI support ([d2d08d3](../../commit/d2d08d3))
+- add Agent Teams support with intent-level modes and dynamic hat discovery ([0f25cd4](../../commit/0f25cd4))
+- use han wrap-subagent-context for PreToolUse injection ([c1e7e9b](../../commit/c1e7e9b))
+- fix scroll spy, theme toggle, and remove trailing slashes ([343b5e2](../../commit/343b5e2))
+- add interactive workflow visualizer ([d3c2f5a](../../commit/d3c2f5a))
+- add responsive layout, dark mode, and core pages ([733b74e](../../commit/733b74e))
+- migrate AI-DLC plugin to repository root ([65613ee](../../commit/65613ee))
+- initial repository setup ([828e515](../../commit/828e515))
+
+### Fixed
+
+- session retrospective — branch ordering, team mode hats, workflow transitions, merge strategy ([e4c7707](../../commit/e4c7707))
+- revert to direct push for version bump (no branch protection) ([5016a6d](../../commit/5016a6d))
+- use PR-based merge for version bump to work with branch protection ([f18225f](../../commit/f18225f))
+
+### Changed
+
+- consolidate commands into skills and clean up stale references ([e7fd50b](../../commit/e7fd50b))
+
+### Other
+
+- update settings ([24a54a1](../../commit/24a54a1))
+- update settings ([c6a0326](../../commit/c6a0326))
+- optimize session start hook performance ([3c89a32](../../commit/3c89a32))
+
 ## [1.2.0] - 2026-02-11
 
 ### Added

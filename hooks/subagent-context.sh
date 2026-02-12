@@ -182,35 +182,39 @@ if [ -d "$INTENT_DIR" ] && ls "$INTENT_DIR"/unit-*.md 1>/dev/null 2>&1; then
   fi
 fi
 
-# Load role/hat instructions (builder/reviewer are orchestration roles)
-HAT_FILE=""
-if [ -f ".ai-dlc/hats/${HAT}.md" ]; then
-  HAT_FILE=".ai-dlc/hats/${HAT}.md"
-elif [ -n "$CLAUDE_PLUGIN_ROOT" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/hats/${HAT}.md" ]; then
-  HAT_FILE="${CLAUDE_PLUGIN_ROOT}/hats/${HAT}.md"
-fi
+# In team mode, hat instructions are embedded in teammate prompts by /construct
+# Skip here to avoid injecting the orchestrator's hat instead of the per-unit hat
+if [ -z "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" ]; then
+  # Load role/hat instructions (builder/reviewer are orchestration roles)
+  HAT_FILE=""
+  if [ -f ".ai-dlc/hats/${HAT}.md" ]; then
+    HAT_FILE=".ai-dlc/hats/${HAT}.md"
+  elif [ -n "$CLAUDE_PLUGIN_ROOT" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/hats/${HAT}.md" ]; then
+    HAT_FILE="${CLAUDE_PLUGIN_ROOT}/hats/${HAT}.md"
+  fi
 
-echo "### Current Role: $HAT"
-echo ""
-
-if [ -n "$HAT_FILE" ] && [ -f "$HAT_FILE" ]; then
-  # Parse frontmatter
-  NAME=$(han parse yaml name -r --default "" < "$HAT_FILE" 2>/dev/null || echo "")
-  MODE=$(han parse yaml mode -r --default "" < "$HAT_FILE" 2>/dev/null || echo "")
-
-  # Get content after frontmatter
-  INSTRUCTIONS=$(cat "$HAT_FILE" | sed '1,/^---$/d' | sed '1,/^---$/d')
-
-  echo "**${NAME:-$HAT}** (Mode: ${MODE:-HITL})"
+  echo "### Current Role: $HAT"
   echo ""
-  if [ -n "$INSTRUCTIONS" ]; then
-    echo "$INSTRUCTIONS"
+
+  if [ -n "$HAT_FILE" ] && [ -f "$HAT_FILE" ]; then
+    # Parse frontmatter
+    NAME=$(han parse yaml name -r --default "" < "$HAT_FILE" 2>/dev/null || echo "")
+    MODE=$(han parse yaml mode -r --default "" < "$HAT_FILE" 2>/dev/null || echo "")
+
+    # Get content after frontmatter
+    INSTRUCTIONS=$(cat "$HAT_FILE" | sed '1,/^---$/d' | sed '1,/^---$/d')
+
+    echo "**${NAME:-$HAT}** (Mode: ${MODE:-HITL})"
+    echo ""
+    if [ -n "$INSTRUCTIONS" ]; then
+      echo "$INSTRUCTIONS"
+      echo ""
+    fi
+  else
+    # No hat file - role is an orchestrator that spawns discipline-specific agents
+    echo "**$HAT** orchestrates work by spawning discipline-specific agents based on unit requirements."
     echo ""
   fi
-else
-  # No hat file - role is an orchestrator that spawns discipline-specific agents
-  echo "**$HAT** orchestrates work by spawning discipline-specific agents based on unit requirements."
-  echo ""
 fi
 
 # AI-DLC Workflow Rules (mandatory for all subagents)

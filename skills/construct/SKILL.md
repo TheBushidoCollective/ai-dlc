@@ -158,6 +158,10 @@ Loop over ALL ready units from the DAG (not just one):
 ```bash
 source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
 READY_UNITS=$(find_ready_units "$INTENT_DIR")
+
+# Determine first construction hat (skip "elaborator" if present)
+WORKFLOW_HATS=$(echo "$STATE" | han parse json workflow)
+FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '[.[] | select(. != "elaborator")][0]')
 ```
 
 For EACH ready unit:
@@ -184,31 +188,59 @@ update_unit_status "$UNIT_FILE" "in_progress"
 3. **Initialize unit state in `unitStates`**:
 
 ```bash
-STATE=$(echo "$STATE" | han parse json --set "unitStates.${UNIT_NAME}.hat=planner" --set "unitStates.${UNIT_NAME}.retries=0")
+STATE=$(echo "$STATE" | han parse json --set "unitStates.${UNIT_NAME}.hat=${FIRST_HAT}" --set "unitStates.${UNIT_NAME}.retries=0")
 han keep save iteration.json "$STATE"
 ```
 
-4. **Create shared task via TaskCreate**:
+4. **Load hat instructions for the first hat**:
+
+```bash
+# Load hat instructions for the teammate's role
+HAT_NAME="${FIRST_HAT}"
+HAT_FILE=""
+if [ -f ".ai-dlc/hats/${HAT_NAME}.md" ]; then
+  HAT_FILE=".ai-dlc/hats/${HAT_NAME}.md"
+elif [ -n "$CLAUDE_PLUGIN_ROOT" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/hats/${HAT_NAME}.md" ]; then
+  HAT_FILE="${CLAUDE_PLUGIN_ROOT}/hats/${HAT_NAME}.md"
+fi
+
+# Extract instructions (content after second --- in frontmatter)
+HAT_INSTRUCTIONS=""
+if [ -n "$HAT_FILE" ]; then
+  HAT_INSTRUCTIONS=$(sed '1,/^---$/d' "$HAT_FILE" | sed '1,/^---$/d')
+fi
+```
+
+5. **Select agent type based on hat**:
+
+- `planner` -> `Plan` agent
+- `builder` -> discipline-specific agent (see builder agent selection table below)
+- All other hats (`reviewer`, `red-team`, `blue-team`, etc.) -> `general-purpose` agent
+
+6. **Create shared task via TaskCreate**:
 
 ```javascript
 TaskCreate({
-  subject: `Plan: ${unitName}`,
-  description: `Execute planner role for unit ${unitName}. Worktree: ${WORKTREE_PATH}`,
-  activeForm: `Planning ${unitName}`
+  subject: `${FIRST_HAT}: ${unitName}`,
+  description: `Execute ${FIRST_HAT} role for unit ${unitName}. Worktree: ${WORKTREE_PATH}`,
+  activeForm: `${FIRST_HAT}: ${unitName}`
 })
 ```
 
-5. **Spawn teammate**:
+7. **Spawn teammate with hat instructions in prompt**:
 
 ```javascript
 Task({
-  subagent_type: "Plan",  // planner hat starts as Plan agent
-  description: `planner: ${unitName}`,
-  name: `planner-${unitSlug}`,
+  subagent_type: getAgentTypeForHat(FIRST_HAT, unit.discipline),
+  description: `${FIRST_HAT}: ${unitName}`,
+  name: `${FIRST_HAT}-${unitSlug}`,
   team_name: `ai-dlc-${intentSlug}`,
   mode: modeToAgentTeamsMode(intentMode),
   prompt: `
-    Execute the planner role for this AI-DLC unit.
+    Execute the ${FIRST_HAT} role for unit ${unitName}.
+
+    ## Your Role: ${FIRST_HAT}
+    ${HAT_INSTRUCTIONS}
 
     ## CRITICAL: Work in Worktree
     **Worktree path:** ${WORKTREE_PATH}
@@ -241,53 +273,125 @@ Mode mapping:
 
 The lead processes auto-delivered teammate messages. Handle each event type:
 
-#### Planner Completes
+#### Teammate Completes (Any Hat)
 
-1. Save the plan: `han keep save current-plan.md "<plan content>"`
-2. Update `unitStates.{unit}.hat = "builder"`
-3. Spawn builder teammate:
+When a teammate reports successful completion:
+
+1. Read current hat for this unit from `unitStates.{unit}.hat`
+2. Find current hat's index in the `workflow` array
+3. Determine next hat: `workflow[currentIndex + 1]`
+
+**If next hat exists** (not at end of workflow):
+
+a. Update `unitStates.{unit}.hat = nextHat`
+b. Save state: `han keep save iteration.json "$STATE"`
+c. Load hat file for nextHat:
+
+```bash
+HAT_NAME="${nextHat}"
+HAT_FILE=""
+if [ -f ".ai-dlc/hats/${HAT_NAME}.md" ]; then
+  HAT_FILE=".ai-dlc/hats/${HAT_NAME}.md"
+elif [ -n "$CLAUDE_PLUGIN_ROOT" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/hats/${HAT_NAME}.md" ]; then
+  HAT_FILE="${CLAUDE_PLUGIN_ROOT}/hats/${HAT_NAME}.md"
+fi
+HAT_INSTRUCTIONS=""
+if [ -n "$HAT_FILE" ]; then
+  HAT_INSTRUCTIONS=$(sed '1,/^---$/d' "$HAT_FILE" | sed '1,/^---$/d')
+fi
+```
+
+d. Select agent type based on hat:
+   - `planner` -> `Plan` agent
+   - `builder` -> discipline-specific agent (see builder agent selection table below)
+   - All other hats (`reviewer`, `red-team`, `blue-team`, etc.) -> `general-purpose` agent
+
+e. Spawn teammate with hat instructions in prompt:
 
 ```javascript
 Task({
-  subagent_type: getAgentForDiscipline(unit.discipline),
-  description: `builder: ${unitName}`,
-  name: `builder-${unitSlug}`,
+  subagent_type: getAgentTypeForHat(nextHat, unit.discipline),
+  description: `${nextHat}: ${unitName}`,
+  name: `${nextHat}-${unitSlug}`,
   team_name: `ai-dlc-${intentSlug}`,
   mode: modeToAgentTeamsMode(intentMode),
-  prompt: `Execute the builder role for unit ${unitName}...`
+  prompt: `
+    Execute the ${nextHat} role for unit ${unitName}.
+
+    ## Your Role: ${nextHat}
+    ${HAT_INSTRUCTIONS}
+
+    ## CRITICAL: Work in Worktree
+    **Worktree path:** ${WORKTREE_PATH}
+    **Branch:** ${UNIT_BRANCH}
+
+    You MUST:
+    1. cd ${WORKTREE_PATH}
+    2. Verify you're on branch ${UNIT_BRANCH}
+    3. Do ALL work in that directory
+    4. Commit changes to that branch
+
+    ## Unit: ${unitName}
+    ## Completion Criteria
+    ${unit.criteria}
+
+    Work according to your role. Report completion via SendMessage to the team lead when done.
+  `
 })
 ```
 
-#### Builder Completes
+**If no next hat** (last hat in workflow -- unit complete):
 
-1. Update `unitStates.{unit}.hat = "reviewer"`
-2. Spawn reviewer teammate:
+a. Mark unit as completed: `update_unit_status "$UNIT_FILE" "completed"`
+b. Remove unit from `unitStates`
+c. Merge unit branch into intent branch:
 
-```javascript
-Task({
-  subagent_type: "general-purpose",
-  description: `reviewer: ${unitName}`,
-  name: `reviewer-${unitSlug}`,
-  team_name: `ai-dlc-${intentSlug}`,
-  mode: modeToAgentTeamsMode(intentMode),
-  prompt: `Execute the reviewer role for unit ${unitName}...`
-})
+```bash
+# Merge unit branch into intent branch
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
+CONFIG=$(get_ai_dlc_config "$INTENT_DIR")
+AUTO_MERGE=$(echo "$CONFIG" | jq -r '.auto_merge // "true"')
+AUTO_SQUASH=$(echo "$CONFIG" | jq -r '.auto_squash // "false"')
+
+if [ "$AUTO_MERGE" = "true" ]; then
+  UNIT_BRANCH="ai-dlc/${INTENT_SLUG}/${UNIT_SLUG}"
+  git checkout "ai-dlc/${INTENT_SLUG}"
+
+  if [ "$AUTO_SQUASH" = "true" ]; then
+    git merge --squash "$UNIT_BRANCH"
+    git commit -m "unit: ${UNIT_NAME} completed"
+  else
+    git merge --no-ff "$UNIT_BRANCH" -m "Merge ${UNIT_NAME} into intent branch"
+  fi
+
+  WORKTREE_PATH="/tmp/ai-dlc-${INTENT_SLUG}-${UNIT_SLUG}"
+  [ -d "$WORKTREE_PATH" ] && git worktree remove "$WORKTREE_PATH"
+fi
 ```
 
-#### Reviewer APPROVES
+d. Check DAG for newly unblocked units
+e. For each newly ready unit, spawn at `workflow[0]` (first hat, skipping "elaborator" if present -- use the first non-elaborator hat):
 
-1. Mark unit completed: `update_unit_status "$UNIT_FILE" "completed"`
-2. Remove unit from `unitStates`
-3. Check DAG for newly unblocked units
-4. For each newly ready unit, go back to Step 3 logic (spawn at planner hat)
+```bash
+FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '[.[] | select(. != "elaborator")][0]')
+```
 
-#### Reviewer REJECTS
+Then follow the same spawn logic from Step 3 (load hat instructions, select agent type, spawn teammate with hat instructions in prompt).
 
-1. Increment `unitStates.{unit}.retries`
-2. Check retry limit (max 3):
-   - If `retries >= 3`: Mark unit as blocked, document in `han keep save blockers.md`
-   - If `retries < 3`: Update `unitStates.{unit}.hat = "builder"`, spawn new builder teammate with reviewer feedback in prompt
-3. Continue monitoring
+#### Teammate Reports Issues (Any Hat)
+
+When a teammate reports issues or rejects the work:
+
+1. Read current hat index from `workflow` array
+2. Determine previous hat: `workflow[currentIndex - 1]`
+3. Increment `unitStates.{unit}.retries`
+4. If `retries >= 3`: Mark unit as blocked, document in `han keep save blockers.md`
+5. Otherwise: Set `unitStates.{unit}.hat = previousHat`
+6. Load hat file for previousHat
+7. Spawn teammate at previous hat with the feedback/issues in the prompt
+
+This means ANY hat can reject -- not just the reviewer. A red-team finding issues sends work back to the previous hat.
 
 #### Blocked
 

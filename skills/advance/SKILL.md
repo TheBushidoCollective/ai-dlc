@@ -45,7 +45,7 @@ const nextIndex = currentIndex + 1;
 
 if (nextIndex >= workflow.length) {
   // At last hat - check DAG status to determine next action
-  // See Step 2b below
+  // See Steps 2b-2d below
 }
 
 const nextHat = workflow[nextIndex];
@@ -68,7 +68,42 @@ CURRENT_UNIT=$(echo "$ITERATION_JSON" | han parse json currentUnit -r --default 
 if [ -n "$CURRENT_UNIT" ] && [ -f "$INTENT_DIR/${CURRENT_UNIT}.md" ]; then
   update_unit_status "$INTENT_DIR/${CURRENT_UNIT}.md" "completed"
 fi
+```
 
+### Step 2c: Merge Unit Branch on Completion
+
+After marking a unit as completed, merge the unit branch into the intent branch:
+
+```bash
+# Load config for merge settings
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
+CONFIG=$(get_ai_dlc_config "$INTENT_DIR")
+AUTO_MERGE=$(echo "$CONFIG" | jq -r '.auto_merge // "true"')
+AUTO_SQUASH=$(echo "$CONFIG" | jq -r '.auto_squash // "false"')
+
+if [ "$AUTO_MERGE" = "true" ]; then
+  UNIT_SLUG="${CURRENT_UNIT#unit-}"
+  UNIT_BRANCH="ai-dlc/${INTENT_SLUG}/${UNIT_SLUG}"
+
+  # Ensure we're on the intent branch
+  git checkout "ai-dlc/${INTENT_SLUG}"
+
+  # Merge unit branch
+  if [ "$AUTO_SQUASH" = "true" ]; then
+    git merge --squash "$UNIT_BRANCH"
+    git commit -m "unit: ${CURRENT_UNIT} completed"
+  else
+    git merge --no-ff "$UNIT_BRANCH" -m "Merge ${CURRENT_UNIT} into intent branch"
+  fi
+
+  # Clean up unit worktree
+  WORKTREE_PATH="/tmp/ai-dlc-${INTENT_SLUG}-${UNIT_SLUG}"
+  [ -d "$WORKTREE_PATH" ] && git worktree remove "$WORKTREE_PATH"
+fi
+```
+
+```bash
 # Get DAG summary
 DAG_SUMMARY=$(get_dag_summary "$INTENT_DIR")
 ALL_COMPLETE=$(echo "$DAG_SUMMARY" | han parse json allComplete -r)
@@ -101,7 +136,7 @@ ${dagSummary.blockedUnits.join('\n')}
 Review blockers and unblock units to continue.`;
 ```
 
-### Step 2c: Spawn Newly Unblocked Units (Agent Teams)
+### Step 2d: Spawn Newly Unblocked Units (Agent Teams)
 
 When `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is enabled and completing a unit unblocks new units:
 
@@ -158,10 +193,28 @@ When `/advance` completes the intent (all units done), output:
 ### Criteria Satisfied
 {List of completion criteria}
 
+### Merge to Default Branch
+
+The intent branch is ready to merge:
+
+```bash
+# Load merge config
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
+CONFIG=$(get_ai_dlc_config "$INTENT_DIR")
+DEFAULT_BRANCH=$(echo "$CONFIG" | jq -r '.default_branch')
+```
+
+```
+Intent branch ready: ai-dlc/{intent-slug} → ${DEFAULT_BRANCH}
+
+Create PR: gh pr create --base ${DEFAULT_BRANCH} --head ai-dlc/{intent-slug}
+```
+
 ### Next Steps
 
 1. **Review changes** - Check the work on branch `ai-dlc/{intent-slug}`
-2. **Create PR** - `gh pr create --base main --head ai-dlc/{intent-slug}`
+2. **Create PR** - `gh pr create --base ${DEFAULT_BRANCH} --head ai-dlc/{intent-slug}`
 3. **Clean up worktrees** - `git worktree remove /tmp/ai-dlc-{intent-slug}`
 4. **Start new task** - Run `/reset` to clear state, then `/elaborate`
 ```

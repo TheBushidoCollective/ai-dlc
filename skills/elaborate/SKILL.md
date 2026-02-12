@@ -304,9 +304,9 @@ Use `AskUserQuestion`:
     "question": "What level of human oversight for this intent?",
     "header": "Mode",
     "options": [
-      {"label": "OHOTL (Recommended)", "description": "Observed - human watches AI work, can intervene. Best for most development work."},
-      {"label": "HITL", "description": "Human-In-The-Loop - human validates each significant step. Best for novel or high-risk work."},
-      {"label": "AHOTL", "description": "Autonomous - AI works independently, human reviews at end. Best for well-defined, low-risk tasks."}
+      {"label": "OHOTL (Recommended)", "description": "AI edits files freely without asking. You see changes in real-time and can interrupt at any point. Best for most development work."},
+      {"label": "HITL", "description": "AI proposes each change as a plan and waits for your approval before editing any file. You approve or reject each step. Best for novel or high-risk work."},
+      {"label": "AHOTL", "description": "AI runs with full autonomy — no permission prompts, no pauses. You review the final result. Best for well-defined, low-risk tasks with clear success criteria."}
     ],
     "multiSelect": false
   }]
@@ -533,15 +533,91 @@ Then ask with `AskUserQuestion`:
 
 ---
 
+## Phase 5.8: Git Strategy
+
+Ask about the branching and merge strategy for this intent. These settings control how unit work is organized and merged.
+
+Use `AskUserQuestion`:
+```json
+{
+  "questions": [
+    {
+      "question": "How should unit work be branched?",
+      "header": "Branching",
+      "options": [
+        {"label": "Unit branches (Recommended)", "description": "One branch per unit, merged to intent branch on completion. Best for parallel work with clear boundaries."},
+        {"label": "Intent branch", "description": "One long-lived intent branch, all work happens there. Best for tightly coupled units."},
+        {"label": "Trunk-based", "description": "All work on main, no feature branches. Best for small, low-risk changes."},
+        {"label": "Bolt", "description": "One branch per intent with squashed commits. Best for clean history."}
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Should unit branches auto-merge to the intent branch when approved?",
+      "header": "Auto-merge",
+      "options": [
+        {"label": "Yes (Recommended)", "description": "Automatically merge unit branches to intent branch when reviewer approves. Keeps intent branch up to date."},
+        {"label": "No", "description": "Manual merge — you decide when to merge unit branches. More control, more manual work."}
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+```
+
+Store the selections. These will be written into the `intent.md` frontmatter in Phase 6 under a `git:` key:
+
+```yaml
+git:
+  change_strategy: unit    # or intent, trunk, bolt
+  auto_merge: true         # or false
+  auto_squash: false       # default false
+```
+
+Map user selections to config values:
+- "Unit branches" → `unit`
+- "Intent branch" → `intent`
+- "Trunk-based" → `trunk`
+- "Bolt" → `bolt`
+- "Yes" auto-merge → `true`
+- "No" auto-merge → `false`
+
+---
+
 ## Phase 6: Write AI-DLC Artifacts
 
-Create the `.ai-dlc/{intent-slug}/` directory and write files:
+Create the intent branch and worktree, then write files in `.ai-dlc/{intent-slug}/`:
 
-### 1. Write `intent.md`:
+### 1. Create intent branch and worktree
+
+**CRITICAL: The intent MUST run in an isolated worktree, not the main working directory. Create this BEFORE writing any artifacts so all files are committed to the intent branch.**
+
+```bash
+INTENT_BRANCH="ai-dlc/${intentSlug}"
+INTENT_WORKTREE="/tmp/ai-dlc-${intentSlug}"
+git worktree add -B "$INTENT_BRANCH" "$INTENT_WORKTREE"
+cd "$INTENT_WORKTREE"
+```
+
+This ensures:
+- Main working directory stays on `main` for other work
+- All artifacts are written directly on the intent branch
+- All subsequent `han keep` operations use the intent branch's storage
+- Multiple intents can run in parallel in separate worktrees
+- Clean separation between main and AI-DLC orchestration state
+- Subagents spawn from the intent worktree, not the original repo
+
+**Tell the user the worktree location** so they know where to find it.
+
+### 2. Write `intent.md`:
 ```markdown
 ---
 workflow: {workflow-name}
 mode: {HITL|OHOTL|AHOTL}
+git:
+  change_strategy: {unit|intent|trunk|bolt}
+  auto_merge: {true|false}
+  auto_squash: false
 created: {ISO date}
 status: active
 ---
@@ -582,7 +658,7 @@ problem space.}
 {Relevant background, constraints, decisions made during elaboration}
 ```
 
-### 2. Write `intent.yaml` (testing configuration):
+### 3. Write `intent.yaml` (testing configuration):
 ```yaml
 # Testing requirements configured during elaboration
 # The reviewer hat enforces these requirements
@@ -602,7 +678,7 @@ testing:
 | `testing.coverage_threshold` | number or null | Minimum coverage percentage, or null if no requirement |
 | `testing.e2e_tests` | boolean | Whether E2E tests must pass |
 
-### 3. Write `unit-NN-{slug}.md` for each unit:
+### 4. Write `unit-NN-{slug}.md` for each unit:
 ```markdown
 ---
 status: pending
@@ -650,33 +726,6 @@ misinterpret what to build.}
 - `documentation` → `do-technical-documentation` agents
 - `devops` → infrastructure/deployment agents
 
-### 4. Create intent worktree:
-
-**CRITICAL: The intent MUST run in an isolated worktree, not the main working directory.**
-
-After creating the intent artifacts, create a worktree for the intent:
-
-```bash
-# Create intent worktree
-INTENT_BRANCH="ai-dlc/${intentSlug}"
-INTENT_WORKTREE="/tmp/ai-dlc-${intentSlug}"
-
-# Create worktree with intent branch
-git worktree add -B "$INTENT_BRANCH" "$INTENT_WORKTREE"
-
-# Move into the intent worktree for all subsequent work
-cd "$INTENT_WORKTREE"
-```
-
-This ensures:
-- Main working directory stays on `main` for other work
-- All subsequent `han keep` operations use the intent branch's storage
-- Multiple intents can run in parallel in separate worktrees
-- Clean separation between main and AI-DLC orchestration state
-- Subagents spawn from the intent worktree, not the original repo
-
-**Tell the user the worktree location** so they know where to find it.
-
 ### 5. Save iteration state to han keep:
 
 Intent-level state is saved to the current branch (which is now the intent branch):
@@ -687,6 +736,13 @@ han keep save intent-slug "{intent-slug}"
 
 # Intent-level state -> current branch (intent branch)
 han keep save iteration.json '{"iteration":1,"hat":"{first-hat-after-elaborator}","workflowName":"{workflow}","mode":"{HITL|OHOTL|AHOTL}","workflow":["{hat1}","{hat2}"],"status":"active"}'
+```
+
+### 6. Commit all artifacts on intent branch:
+
+```bash
+git add .ai-dlc/
+git commit -m "elaborate: define intent and units for ${intentSlug}"
 ```
 
 ---

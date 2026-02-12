@@ -110,9 +110,9 @@ if [ -n "$PLAN" ]; then
   echo ""
 fi
 
-# Display testing requirements if configured
-if [ -f "$INTENT_DIR/intent.yaml" ]; then
-  TESTING_JSON=$(han parse yaml testing --json < "$INTENT_DIR/intent.yaml" 2>/dev/null || echo "")
+# Display testing requirements if configured (stored in intent.md frontmatter)
+if [ -f "$INTENT_FILE" ]; then
+  TESTING_JSON=$(han parse yaml testing --json < "$INTENT_FILE" 2>/dev/null || echo "")
   if [ -n "$TESTING_JSON" ] && [ "$TESTING_JSON" != "null" ] && [ "$TESTING_JSON" != "{}" ]; then
     echo "### Testing Requirements"
     echo ""

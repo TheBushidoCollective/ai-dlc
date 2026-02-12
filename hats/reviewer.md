@@ -32,7 +32,7 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
 ## Steps
 
 1. Check testing requirements
-   - Read testing requirements from `.ai-dlc/{intent-slug}/intent.yaml`
+   - Read testing requirements from `.ai-dlc/{intent-slug}/intent.md` frontmatter
    - If testing requirements are configured, verify each:
      - **Unit tests**: If `unit_tests: true`, verify unit tests exist for new/modified code
      - **Integration tests**: If `integration_tests: true`, verify integration tests exist
@@ -76,7 +76,7 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
 
 ## Success Criteria
 
-- [ ] Testing requirements checked (if configured in intent.yaml)
+- [ ] Testing requirements checked (if configured in intent.md)
 - [ ] All Completion Criteria verified (pass/fail for each)
 - [ ] Code quality issues documented
 - [ ] Edge cases and error handling reviewed
@@ -86,14 +86,14 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
 
 ## Testing Verification Details
 
-When verifying testing requirements from `intent.yaml`:
+When verifying testing requirements from `intent.md`:
 
 ### Reading the Configuration
 
 ```bash
 INTENT_SLUG=$(han keep load --branch main intent-slug --quiet 2>/dev/null || echo "")
 INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
-TESTING_CONFIG=$(han parse yaml testing --json < "$INTENT_DIR/intent.yaml" 2>/dev/null || echo "{}")
+TESTING_CONFIG=$(han parse yaml testing --json < "$INTENT_DIR/intent.md" 2>/dev/null || echo "{}")
 ```
 
 ### Unit Tests (when `unit_tests: true`)

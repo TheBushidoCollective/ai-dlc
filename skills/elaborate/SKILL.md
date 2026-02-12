@@ -618,6 +618,11 @@ git:
   change_strategy: {unit|intent|trunk|bolt}
   auto_merge: {true|false}
   auto_squash: false
+testing:
+  unit_tests: true          # true = required, false = optional
+  integration_tests: false  # true = required, false = optional
+  coverage_threshold: 80    # percentage (0-100), or null for no requirement
+  e2e_tests: false          # true = required, false = optional
 created: {ISO date}
 status: active
 ---
@@ -658,19 +663,8 @@ problem space.}
 {Relevant background, constraints, decisions made during elaboration}
 ```
 
-### 3. Write `intent.yaml` (testing configuration):
-```yaml
-# Testing requirements configured during elaboration
-# The reviewer hat enforces these requirements
+**Testing frontmatter schema:**
 
-testing:
-  unit_tests: true          # true = required, false = optional
-  integration_tests: false  # true = required, false = optional
-  coverage_threshold: 80    # percentage (0-100), or null for no requirement
-  e2e_tests: false          # true = required, false = optional
-```
-
-**Schema:**
 | Field | Type | Description |
 |-------|------|-------------|
 | `testing.unit_tests` | boolean | Whether unit tests are required for new code |
@@ -678,7 +672,7 @@ testing:
 | `testing.coverage_threshold` | number or null | Minimum coverage percentage, or null if no requirement |
 | `testing.e2e_tests` | boolean | Whether E2E tests must pass |
 
-### 4. Write `unit-NN-{slug}.md` for each unit:
+### 3. Write `unit-NN-{slug}.md` for each unit:
 ```markdown
 ---
 status: pending
@@ -726,7 +720,7 @@ misinterpret what to build.}
 - `documentation` → `do-technical-documentation` agents
 - `devops` → infrastructure/deployment agents
 
-### 5. Save iteration state to han keep:
+### 4. Save iteration state to han keep:
 
 Intent-level state is saved to the current branch (which is now the intent branch):
 
@@ -738,7 +732,7 @@ han keep save intent-slug "{intent-slug}"
 han keep save iteration.json '{"iteration":1,"hat":"{first-hat-after-elaborator}","workflowName":"{workflow}","mode":"{HITL|OHOTL|AHOTL}","workflow":["{hat1}","{hat2}"],"status":"active"}'
 ```
 
-### 6. Commit all artifacts on intent branch:
+### 5. Commit all artifacts on intent branch:
 
 ```bash
 git add .ai-dlc/
@@ -758,8 +752,7 @@ Intent Worktree: /tmp/ai-dlc-{intent-slug}/
 Branch: ai-dlc/{intent-slug}
 
 Created: .ai-dlc/{intent-slug}/
-- intent.md
-- intent.yaml (testing requirements)
+- intent.md (intent, config, and testing requirements)
 - unit-01-{name}.md
 - unit-02-{name}.md
 ...

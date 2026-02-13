@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-02-13
+
+### Added
+
+- add provider integration, cowork support, and three-tier instruction merge ([4fd4f48](../../commit/4fd4f48))
+- providers, cowork support, and plugin reorganization ([50aa5a1](../../commit/50aa5a1))
+- add domain discovery, spec validation, and deep research to elaboration ([edf7a4b](../../commit/edf7a4b))
+- add automatic version bump and changelog pipeline ([86ad4eb](../../commit/86ad4eb))
+- make Agent Teams the primary execution model for /construct ([6d9b811](../../commit/6d9b811))
+- add Google Antigravity CLI support ([d2d08d3](../../commit/d2d08d3))
+- add Agent Teams support with intent-level modes and dynamic hat discovery ([0f25cd4](../../commit/0f25cd4))
+- use han wrap-subagent-context for PreToolUse injection ([c1e7e9b](../../commit/c1e7e9b))
+
+### Fixed
+
+- update plugin install commands to use Claude Code native /plugin CLI ([6b7ba91](../../commit/6b7ba91))
+- session retrospective — branch ordering, team mode hats, workflow transitions, merge strategy ([e4c7707](../../commit/e4c7707))
+- revert to direct push for version bump (no branch protection) ([5016a6d](../../commit/5016a6d))
+- use PR-based merge for version bump to work with branch protection ([f18225f](../../commit/f18225f))
+
+### Changed
+
+- consolidate intent.yaml into intent.md frontmatter ([3617cac](../../commit/3617cac))
+- consolidate commands into skills and clean up stale references ([e7fd50b](../../commit/e7fd50b))
+
+### Other
+
+- Merge branch 'main' of github.com:TheBushidoCollective/ai-dlc ([92ad94e](../../commit/92ad94e))
+- remove intent ([0040b8c](../../commit/0040b8c))
+- update settings ([24a54a1](../../commit/24a54a1))
+- update settings ([c6a0326](../../commit/c6a0326))
+- optimize session start hook performance ([3c89a32](../../commit/3c89a32))
+
 ## [1.4.0] - 2026-02-13
 
 ### Added

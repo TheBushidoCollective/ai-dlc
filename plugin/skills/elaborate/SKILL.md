@@ -32,6 +32,9 @@ allowed-tools:
   - "mcp__*__create*issue*"
   - "mcp__*__create*ticket*"
   - "mcp__*__create*epic*"
+  - "mcp__*__update*issue*"
+  - "mcp__*__update*ticket*"
+  - "mcp__*__add*comment*"
 ---
 
 # AI-DLC Mob Elaboration
@@ -48,21 +51,19 @@ Then you'll write these as files in `.ai-dlc/{intent-slug}/` for the constructio
 
 ---
 
-## Phase 0 (Pre-check): Environment Discovery
+## Phase 0 (Pre-check): Environment Check
 
 Before any elaboration, verify the working environment:
 
-1. Check if we're in a git repo: `git rev-parse --git-dir`
-2. If yes → proceed to Phase 0 (Existing Intent Check) below
-3. If no → enter **cowork discovery flow**:
-   a. Use `ListMcpResourcesTool` to scan available MCP servers for VCS providers (GitHub, GitLab, etc.)
-   b. Use `AskUserQuestion` to ask: "What repo should this work target?" (include options from VCS MCP if available)
-   c. Clone the repo: `git clone <repo-url> /tmp/ai-dlc-workspace-{slug}/`
-   d. `cd` to the cloned repo — all subsequent phases work normally
-   e. Discover providers from available MCP tools:
-      - Match MCP server names against known types (jira, notion, figma, slack, etc.)
-      - Ask user to confirm inferred providers and fill gaps
-      - Save confirmed providers: `han keep save providers.json '<json>'`
+1. Check if you are in a git repository: `git rev-parse --git-dir`
+2. If **yes**: proceed to Phase 0 (Existing Intent Check) below.
+3. If **no** (cowork mode):
+   a. **Get the repo URL** — Ask the user: "What repository should this work target?" If VCS MCP tools are available (e.g., GitHub MCP), offer discovered repos as options.
+   b. **Clone immediately**: `git clone <url> /tmp/ai-dlc-workspace-<slug>/`
+   c. **Enter the clone**: `cd /tmp/ai-dlc-workspace-<slug>/`
+   d. **Proceed normally** — The clone has `.ai-dlc/settings.yml`, providers config, and all project context. No special cowork paths needed from this point forward.
+
+**Key principle:** Cloning the repo eliminates the cowork problem surface. Once cloned, all hooks, config loading, and provider discovery work identically to being in a real repo.
 
 ---
 
@@ -203,7 +204,7 @@ Task({
 
 **Spawn multiple research paths in parallel.** Don't serialize explorations that are independent — launch all of them at once and synthesize when results return.
 
-If a VCS MCP is available (e.g., GitHub MCP), use it for code browsing alongside or instead of local `Glob`/`Grep`. This enables research from the orchestrator even before a repo is fully cloned in cowork mode.
+If a VCS MCP is available (e.g., GitHub MCP), use it for code browsing alongside or instead of local `Glob`/`Grep`.
 
 ### Communicate Findings as You Go
 
@@ -795,27 +796,32 @@ This ensures builders can pull the intent branch when working remotely. Note in 
 
 If a ticketing provider is configured and MCP tools are available:
 
-1. **Create epic** for the intent:
-   - Title: Intent title from intent.md
-   - Description: Problem + Solution sections
-   - Use MCP tool matching `mcp__*__create*epic*` or `mcp__*__create*issue*`
-   - Store returned key in intent.md frontmatter as `epic: "PROJ-123"`
+1. **Epic handling**:
+   - If `epic` field in intent.md frontmatter is already populated (provided by product), use that existing epic — do not create a new one
+   - If `epic` is empty, create an epic from the intent (title from intent title, description from Problem + Solution) using the ticketing MCP tools (e.g., `mcp__*jira*__create*`, `gh issue create`), then store the epic key in intent.md frontmatter
 
-2. **Create ticket per unit** linked to the epic:
-   - Title: Unit name and one-line description
-   - Description: Unit's description, success criteria, and technical specification
-   - Link to the epic created above
-   - Use MCP tool matching `mcp__*__create*ticket*` or `mcp__*__create*issue*`
-   - Store returned key in unit frontmatter as `ticket: "PROJ-124"`
+2. **Create tickets** per unit, linked to epic:
+   - Title: unit title (from unit filename slug, humanized)
+   - Description: unit completion criteria as checklist
+   - Link to epic
 
-3. If MCP tools for ticketing are not available, skip and note:
-   "Ticketing provider configured but MCP tools not available. Create tickets manually."
+3. **Map DAG to blocked-by**:
+   - For each unit's `depends_on`, create blocked-by relationships between the corresponding tickets
+   - Example: unit-02 depends on unit-01 → ticket for unit-02 is blocked by ticket for unit-01
 
-4. Commit updated frontmatter:
+4. **Store keys in frontmatter**:
+   - Update intent.md frontmatter: `epic: PROJ-123`
+   - Update each unit frontmatter: `ticket: PROJ-124`
+   - Commit the updated frontmatter:
    ```bash
    git add .ai-dlc/
    git commit -m "elaborate: sync tickets for ${intentSlug}"
    ```
+
+5. **Graceful degradation**:
+   - If ticketing MCP tools are not available, skip this phase entirely
+   - Log: "Ticketing provider configured but MCP tools not available — skipping ticket creation"
+   - Never block elaboration on ticket creation failure
 
 ---
 

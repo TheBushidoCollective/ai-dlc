@@ -211,6 +211,17 @@ if [ -z "$ITERATION_JSON" ]; then
 
     echo "**To resume:** \`/resume <slug>\` or \`/resume\` if only one"
     echo ""
+    # Inject provider context for pre-elaboration awareness
+    CONFIG_LIB="${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+    if [ -f "$CONFIG_LIB" ]; then
+      # shellcheck source=/dev/null
+      source "$CONFIG_LIB"
+      PROVIDERS_MD=$(format_providers_markdown)
+      if [ -n "$PROVIDERS_MD" ]; then
+        echo "$PROVIDERS_MD"
+        echo ""
+      fi
+    fi
   else
     # No AI-DLC state and no resumable intents - show available workflows for /elaborate
     if [ -n "$AVAILABLE_WORKFLOWS" ]; then

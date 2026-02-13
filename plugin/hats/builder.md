@@ -39,6 +39,12 @@ The Builder implements code to satisfy the Unit's Completion Criteria, using bac
    - You SHOULD reference spec provider for API contracts if configured (endpoint definitions, data schemas)
    - **Validation**: Can enumerate what needs to be built
 
+#### Provider Sync — Ticket Status
+- If a `ticket` field exists in the current unit's frontmatter, **SHOULD** update the ticket status to **In Progress** using the ticketing provider's MCP tools
+- If the unit is completed successfully, **SHOULD** update the ticket to **Done**
+- If the unit is blocked, **SHOULD** flag the ticket as **Blocked** and add the blocker description as a comment
+- If MCP tools are unavailable, skip silently — never block building on ticket updates
+
 2. Implement incrementally
    - You MUST work in small, verifiable increments
    - You MUST run backpressure checks after each change

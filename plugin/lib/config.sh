@@ -269,6 +269,49 @@ _provider_mcp_hint() {
   esac
 }
 
+# Load and merge provider instructions from three tiers
+# Usage: load_provider_instructions <category> <type> [inline_instructions]
+# Returns: Merged instruction text
+load_provider_instructions() {
+  local category="$1"  # ticketing, spec, design, comms
+  local type="$2"      # jira, notion, figma, slack, etc.
+  local inline_instructions="$3"  # from settings.yml, may be empty
+  local merged=""
+
+  # Tier 1: Built-in default
+  local builtin="${CLAUDE_PLUGIN_ROOT}/providers/${category}.md"
+  if [[ -f "$builtin" ]]; then
+    local body
+    body=$(awk '/^---$/{n++; next} n>=2' "$builtin")
+    merged="${body}"
+  fi
+
+  # Tier 2: Inline instructions from settings.yml
+  if [[ -n "$inline_instructions" ]]; then
+    merged="${merged}
+
+### Project-Specific Instructions (from settings.yml)
+${inline_instructions}"
+  fi
+
+  # Tier 3: Project override from .ai-dlc/providers/{type}.md
+  local repo_root
+  repo_root=$(find_repo_root 2>/dev/null || echo "")
+  if [[ -n "$repo_root" ]]; then
+    local override="${repo_root}/.ai-dlc/providers/${type}.md"
+    if [[ -f "$override" ]]; then
+      local override_body
+      override_body=$(awk '/^---$/{n++; next} n>=2' "$override")
+      merged="${merged}
+
+### Project Override (from .ai-dlc/providers/${type}.md)
+${override_body}"
+    fi
+  fi
+
+  printf '%s' "$merged"
+}
+
 # Detect VCS hosting platform from git remote
 # Usage: detect_vcs_hosting [directory]
 # Returns: github | gitlab | bitbucket | ''
@@ -310,7 +353,7 @@ detect_ci_cd() {
 # Returns: JSON object with all provider categories
 load_providers() {
   local repo_root="${1:-$(find_repo_root)}"
-  local result='{"specProvider":null,"ticketingProvider":null,"designProvider":null,"commsProvider":null,"vcsHosting":null,"ciCd":null}'
+  local result='{"spec":null,"ticketing":null,"design":null,"comms":null,"vcsHosting":null,"ciCd":null}'
 
   # Source 1: Declared providers from settings.yml
   if [ -n "$repo_root" ]; then
@@ -320,7 +363,7 @@ load_providers() {
       local providers
       providers=$(echo "$settings" | jq -c '.providers // {}')
       if [ "$providers" != "{}" ] && [ "$providers" != "null" ]; then
-        for key in specProvider ticketingProvider designProvider commsProvider; do
+        for key in spec ticketing design comms; do
           local val
           val=$(echo "$providers" | jq -c ".$key // null")
           if [ "$val" != "null" ]; then
@@ -335,7 +378,7 @@ load_providers() {
   local cached
   cached=$(han keep load providers.json --quiet 2>/dev/null || echo "")
   if [ -n "$cached" ] && [ "$cached" != "null" ]; then
-    for key in specProvider ticketingProvider designProvider commsProvider; do
+    for key in spec ticketing design comms; do
       local current
       current=$(echo "$result" | jq -c ".$key")
       if [ "$current" = "null" ]; then
@@ -373,7 +416,7 @@ format_providers_markdown() {
 
   # Check if anything is configured
   local has_any=false
-  for key in specProvider ticketingProvider designProvider commsProvider vcsHosting ciCd; do
+  for key in spec ticketing design comms vcsHosting ciCd; do
     local val
     val=$(echo "$providers" | jq -r ".$key // empty")
     if [ -n "$val" ] && [ "$val" != "null" ]; then
@@ -385,7 +428,7 @@ format_providers_markdown() {
   if [ "$has_any" = "false" ]; then
     echo "### Project Providers"
     echo ""
-    echo "No providers configured. Use \`ToolSearch\` to discover available MCP tools."
+    echo "No providers configured. Use \`ToolSearch\` to discover available MCP tools, or configure providers in \`.ai-dlc/settings.yml\`."
     return
   fi
 
@@ -413,7 +456,7 @@ format_providers_markdown() {
   fi
 
   # Declared providers
-  local categories="specProvider:Spec ticketingProvider:Ticketing designProvider:Design commsProvider:Comms"
+  local categories="spec:Spec ticketing:Ticketing design:Design comms:Comms"
   for entry in $categories; do
     local key="${entry%%:*}"
     local label="${entry##*:}"
@@ -430,4 +473,37 @@ format_providers_markdown() {
 
   echo ""
   echo "> **Tip:** Configure providers in \`.ai-dlc/settings.yml\` under \`providers:\` to enable automatic ticket sync and spec references."
+
+  # Provider Instructions section - merged from three tiers
+  local has_instructions=false
+  local category_map="ticketing:ticketing:Ticketing spec:spec:Spec design:design:Design comms:comms:Comms"
+  local instructions_output=""
+
+  for entry in $category_map; do
+    local key="${entry%%:*}"
+    local rest="${entry#*:}"
+    local category="${rest%%:*}"
+    local label="${rest##*:}"
+    local ptype
+    ptype=$(echo "$providers" | jq -r ".$key.type // empty")
+    if [ -n "$ptype" ]; then
+      local inline
+      inline=$(echo "$providers" | jq -r ".$key.instructions // empty")
+      local merged
+      merged=$(load_provider_instructions "$category" "$ptype" "$inline")
+      if [ -n "$merged" ]; then
+        has_instructions=true
+        instructions_output="${instructions_output}
+#### ${label} (${ptype})
+${merged}
+"
+      fi
+    fi
+  done
+
+  if [ "$has_instructions" = "true" ]; then
+    echo ""
+    echo "### Provider Instructions"
+    printf '%s' "$instructions_output"
+  fi
 }

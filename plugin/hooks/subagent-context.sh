@@ -89,8 +89,9 @@ echo ""
 CONFIG_LIB="${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
 if [ -f "$CONFIG_LIB" ]; then
   # shellcheck source=/dev/null
-  source "$CONFIG_LIB"
-  PROVIDERS_MD=$(format_providers_markdown)
+  source "$CONFIG_LIB" 2>/dev/null
+  export_ai_dlc_config 2>/dev/null
+  PROVIDERS_MD=$(format_providers_markdown 2>/dev/null)
   if [ -n "$PROVIDERS_MD" ]; then
     echo "$PROVIDERS_MD"
     echo ""

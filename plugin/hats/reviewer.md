@@ -75,8 +75,14 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
    - You MUST NOT approve if criteria are not met
    - You MUST NOT approve if configured testing requirements are not satisfied
    - **Validation**: Clear approve/reject with rationale
-   - You MAY update ticket status in ticketing provider if configured (mark as "in review" or "done")
-   - You MAY post completion summary to comms provider if configured (Slack/Teams notification)
+
+#### Provider Sync — Review Outcome
+- If a `ticket` field exists in the reviewed unit's frontmatter:
+  - **SHOULD** add the review outcome as a ticket comment (approved/rejected + summary)
+  - If **approving**: update ticket to **Done**
+  - If **rejecting**: keep ticket as **In Progress**, add rejection feedback as comment
+- **MAY** post a summary of the review outcome to the comms provider (if configured)
+- If MCP tools are unavailable, skip silently — never block review on provider sync
 
 ## Success Criteria
 

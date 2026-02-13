@@ -38,20 +38,25 @@ git:
 # Provider Configuration (optional)
 # Configure external system integrations for ticket sync, spec references, and more.
 # providers:
-#   specProvider:
-#     type: notion              # notion | confluence | google-docs
-#     config:
-#       workspace_id: "abc123"  # Optional provider-specific config
-#
-#   ticketingProvider:
+#   ticketing:
 #     type: jira                # jira | linear | github-issues | gitlab-issues
 #     config:
 #       project_key: "PROJ"
+#     instructions: |
+#       - Use Fibonacci story points (1, 2, 3, 5, 8, 13)
+#       - Always set component to "Backend" or "Frontend"
 #
-#   designProvider:
+#   design:
 #     type: figma               # figma
+#     instructions: |
+#       - Only reference designs marked "Ready for Dev"
 #
-#   commsProvider:
+#   spec:
+#     type: notion              # notion | confluence | google-docs
+#     config:
+#       workspace_id: "your-workspace-id"
+#
+#   comms:
 #     type: slack               # slack | teams | discord
 #     config:
-#       channel: "#engineering"
+#       channel: "#dev-updates"

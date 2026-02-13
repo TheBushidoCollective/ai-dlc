@@ -24,37 +24,108 @@
 			"type": "object",
 			"description": "External system provider configuration",
 			"properties": {
-				"specProvider": {
-					"$ref": "#/definitions/providerEntry",
+				"spec": {
+					"$ref": "#/definitions/specProviderEntry",
 					"description": "Specification/documentation provider (Notion, Confluence, Google Docs)"
 				},
-				"ticketingProvider": {
-					"$ref": "#/definitions/providerEntry",
+				"ticketing": {
+					"$ref": "#/definitions/ticketingProviderEntry",
 					"description": "Ticketing/issue tracking provider (Jira, Linear, GitHub Issues, GitLab Issues)"
 				},
-				"designProvider": {
-					"$ref": "#/definitions/providerEntry",
+				"design": {
+					"$ref": "#/definitions/designProviderEntry",
 					"description": "Design tool provider (Figma)"
 				},
-				"commsProvider": {
-					"$ref": "#/definitions/providerEntry",
+				"comms": {
+					"$ref": "#/definitions/commsProviderEntry",
 					"description": "Communication provider (Slack, Teams, Discord)"
 				}
 			},
 			"additionalProperties": false
 		},
-		"providerEntry": {
+		"specProviderEntry": {
 			"type": "object",
-			"description": "A configured external provider",
+			"description": "A configured specification/documentation provider",
 			"properties": {
 				"type": {
 					"type": "string",
-					"description": "Provider type identifier"
+					"enum": ["notion", "confluence", "google-docs"],
+					"description": "Specification provider type"
 				},
 				"config": {
 					"type": "object",
 					"description": "Provider-specific configuration (project keys, workspace IDs, etc.)",
 					"additionalProperties": true
+				},
+				"instructions": {
+					"type": "string",
+					"description": "Inline provider instructions (merged with built-in defaults and project overrides)"
+				}
+			},
+			"required": ["type"],
+			"additionalProperties": false
+		},
+		"ticketingProviderEntry": {
+			"type": "object",
+			"description": "A configured ticketing/issue tracking provider",
+			"properties": {
+				"type": {
+					"type": "string",
+					"enum": ["jira", "linear", "github-issues", "gitlab-issues"],
+					"description": "Ticketing provider type"
+				},
+				"config": {
+					"type": "object",
+					"description": "Provider-specific configuration (project keys, workspace IDs, etc.)",
+					"additionalProperties": true
+				},
+				"instructions": {
+					"type": "string",
+					"description": "Inline provider instructions (merged with built-in defaults and project overrides)"
+				}
+			},
+			"required": ["type"],
+			"additionalProperties": false
+		},
+		"designProviderEntry": {
+			"type": "object",
+			"description": "A configured design tool provider",
+			"properties": {
+				"type": {
+					"type": "string",
+					"enum": ["figma"],
+					"description": "Design provider type"
+				},
+				"config": {
+					"type": "object",
+					"description": "Provider-specific configuration (project keys, workspace IDs, etc.)",
+					"additionalProperties": true
+				},
+				"instructions": {
+					"type": "string",
+					"description": "Inline provider instructions (merged with built-in defaults and project overrides)"
+				}
+			},
+			"required": ["type"],
+			"additionalProperties": false
+		},
+		"commsProviderEntry": {
+			"type": "object",
+			"description": "A configured communication provider",
+			"properties": {
+				"type": {
+					"type": "string",
+					"enum": ["slack", "teams", "discord"],
+					"description": "Communication provider type"
+				},
+				"config": {
+					"type": "object",
+					"description": "Provider-specific configuration (project keys, workspace IDs, etc.)",
+					"additionalProperties": true
+				},
+				"instructions": {
+					"type": "string",
+					"description": "Inline provider instructions (merged with built-in defaults and project overrides)"
 				}
 			},
 			"required": ["type"],

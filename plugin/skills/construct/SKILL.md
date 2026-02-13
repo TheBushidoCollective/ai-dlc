@@ -96,22 +96,25 @@ fi
 
 **Important:** The orchestrator runs in `/tmp/ai-dlc-{intent-slug}/`, NOT the original repo directory. This keeps main clean and enables parallel intents.
 
-### Step 0b: Cowork Remote Setup
+### Step 0b: Ensure Remote Tracking
 
-If the orchestrator is in a temporary workspace (`/tmp/ai-dlc-workspace-*`), ensure remote tracking is set up so teammates can push their unit branches:
+Ensure the intent branch tracks the remote so teammates can push their unit branches. This applies whether we're in a cloned cowork workspace or a local repo with a remote.
 
 ```bash
-# Verify remote exists and push intent branch
+# Verify remote exists and configure upstream tracking
 if git remote get-url origin &>/dev/null; then
   INTENT_BRANCH="ai-dlc/${INTENT_SLUG}"
+
+  # Ensure the intent branch tracks the remote
+  git branch --set-upstream-to=origin/"$INTENT_BRANCH" 2>/dev/null || true
+
+  # Pull latest before starting to pick up teammate work
+  git pull --rebase 2>/dev/null || true
+
+  # Push intent branch to remote so teammates can access it
   git push -u origin "$INTENT_BRANCH" 2>/dev/null || true
 fi
 ```
-
-This ensures:
-- The intent branch exists on the remote
-- Teammates can push their unit branches
-- Artifact delivery works in cowork mode
 
 ### Step 1: Load State
 
@@ -179,6 +182,13 @@ READY_UNITS=$(find_ready_units "$INTENT_DIR")
 # Determine first construction hat (skip "elaborator" if present)
 WORKFLOW_HATS=$(echo "$STATE" | han parse json workflow)
 FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '[.[] | select(. != "elaborator")][0]')
+```
+
+**Include repo URL for cowork**: If operating in a cloned workspace, include the repo URL in each teammate's prompt: "Repository: `<remote-url>`. Clone and checkout `ai-dlc/<intent-slug>` if you don't have local access." This enables teammates to clone independently in cowork mode.
+
+```bash
+# Capture remote URL for teammate prompts
+REPO_URL=$(git remote get-url origin 2>/dev/null || echo "")
 ```
 
 For EACH ready unit:

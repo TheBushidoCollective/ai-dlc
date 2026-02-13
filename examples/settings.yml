@@ -34,3 +34,24 @@ git:
 #   change_strategy: unit
 #   elaboration_review: true
 #   default_branch: auto
+
+# Provider Configuration (optional)
+# Configure external system integrations for ticket sync, spec references, and more.
+# providers:
+#   specProvider:
+#     type: notion              # notion | confluence | google-docs
+#     config:
+#       workspace_id: "abc123"  # Optional provider-specific config
+#
+#   ticketingProvider:
+#     type: jira                # jira | linear | github-issues | gitlab-issues
+#     config:
+#       project_key: "PROJ"
+#
+#   designProvider:
+#     type: figma               # figma
+#
+#   commsProvider:
+#     type: slack               # slack | teams | discord
+#     config:
+#       channel: "#engineering"

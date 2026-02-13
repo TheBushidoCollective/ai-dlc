@@ -218,6 +218,17 @@ if [ -z "$ITERATION_JSON" ]; then
       echo ""
       echo "No active AI-DLC task. Run \`/elaborate\` to start a new task."
       echo ""
+      # Inject provider context
+      CONFIG_LIB="${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+      if [ -f "$CONFIG_LIB" ]; then
+        # shellcheck source=/dev/null
+        source "$CONFIG_LIB"
+        PROVIDERS_MD=$(format_providers_markdown)
+        if [ -n "$PROVIDERS_MD" ]; then
+          echo "$PROVIDERS_MD"
+          echo ""
+        fi
+      fi
       echo "**Available workflows:**"
       echo "$AVAILABLE_WORKFLOWS"
       echo ""
@@ -300,6 +311,18 @@ echo "## AI-DLC Context"
 echo ""
 echo "**Iteration:** $ITERATION | **Hat:** $HAT | **Mode:** $MODE | **Workflow:** $WORKFLOW_NAME ($WORKFLOW_HATS_STR)"
 echo ""
+
+# Inject provider context
+CONFIG_LIB="${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+if [ -f "$CONFIG_LIB" ]; then
+  # shellcheck source=/dev/null
+  source "$CONFIG_LIB"
+  PROVIDERS_MD=$(format_providers_markdown)
+  if [ -n "$PROVIDERS_MD" ]; then
+    echo "$PROVIDERS_MD"
+    echo ""
+  fi
+fi
 
 # Batch load all han keep values at once (single subprocess call)
 # This is much faster than 5+ separate han keep load calls

@@ -236,3 +236,198 @@ get_config_value() {
 
   echo "$config" | jq -r ".$key // empty"
 }
+
+# ============================================================================
+# Provider Configuration
+# ============================================================================
+
+# Provider type -> MCP tool hint mapping
+# Usage: _provider_mcp_hint <provider_type>
+# Returns: MCP tool glob pattern or CLI command
+_provider_mcp_hint() {
+  local ptype="$1"
+  case "$ptype" in
+    notion)       echo 'mcp__*notion*' ;;
+    confluence)   echo 'mcp__*confluence*' ;;
+    google-docs)  echo 'mcp__*google*docs*' ;;
+    jira)         echo 'mcp__*jira*' ;;
+    linear)       echo 'mcp__*linear*' ;;
+    github-issues) echo 'gh issue' ;;
+    gitlab-issues) echo 'mcp__*gitlab*' ;;
+    figma)        echo 'mcp__*figma*' ;;
+    slack)        echo 'mcp__*slack*' ;;
+    teams)        echo 'mcp__*teams*' ;;
+    discord)      echo 'mcp__*discord*' ;;
+    github)       echo 'gh' ;;
+    gitlab)       echo 'mcp__*gitlab*' ;;
+    bitbucket)    echo 'mcp__*bitbucket*' ;;
+    github-actions) echo 'gh run' ;;
+    gitlab-ci)    echo 'mcp__*gitlab*' ;;
+    jenkins)      echo 'mcp__*jenkins*' ;;
+    circleci)     echo 'mcp__*circleci*' ;;
+    *)            echo '' ;;
+  esac
+}
+
+# Detect VCS hosting platform from git remote
+# Usage: detect_vcs_hosting [directory]
+# Returns: github | gitlab | bitbucket | ''
+detect_vcs_hosting() {
+  local dir="${1:-.}"
+  local remote_url
+  remote_url=$(git -C "$dir" remote get-url origin 2>/dev/null || echo "")
+  [ -z "$remote_url" ] && return
+
+  case "$remote_url" in
+    *github.com*)    echo "github" ;;
+    *gitlab.com*)    echo "gitlab" ;;
+    *bitbucket.org*) echo "bitbucket" ;;
+    *)               echo "" ;;
+  esac
+}
+
+# Detect CI/CD system from repo files
+# Usage: detect_ci_cd [directory]
+# Returns: github-actions | gitlab-ci | jenkins | circleci | ''
+detect_ci_cd() {
+  local dir="${1:-.}"
+
+  if [ -d "$dir/.github/workflows" ]; then
+    echo "github-actions"
+  elif [ -f "$dir/.gitlab-ci.yml" ]; then
+    echo "gitlab-ci"
+  elif [ -f "$dir/Jenkinsfile" ]; then
+    echo "jenkins"
+  elif [ -d "$dir/.circleci" ]; then
+    echo "circleci"
+  else
+    echo ""
+  fi
+}
+
+# Load provider configuration with fallback chain
+# Usage: load_providers [repo_root]
+# Returns: JSON object with all provider categories
+load_providers() {
+  local repo_root="${1:-$(find_repo_root)}"
+  local result='{"specProvider":null,"ticketingProvider":null,"designProvider":null,"commsProvider":null,"vcsHosting":null,"ciCd":null}'
+
+  # Source 1: Declared providers from settings.yml
+  if [ -n "$repo_root" ]; then
+    local settings
+    settings=$(load_repo_settings "$repo_root")
+    if [ "$settings" != "{}" ] && [ -n "$settings" ]; then
+      local providers
+      providers=$(echo "$settings" | jq -c '.providers // {}')
+      if [ "$providers" != "{}" ] && [ "$providers" != "null" ]; then
+        for key in specProvider ticketingProvider designProvider commsProvider; do
+          local val
+          val=$(echo "$providers" | jq -c ".$key // null")
+          if [ "$val" != "null" ]; then
+            result=$(echo "$result" | jq --argjson v "$val" ".$key = \$v")
+          fi
+        done
+      fi
+    fi
+  fi
+
+  # Source 2: Cached providers from MCP discovery
+  local cached
+  cached=$(han keep load providers.json --quiet 2>/dev/null || echo "")
+  if [ -n "$cached" ] && [ "$cached" != "null" ]; then
+    for key in specProvider ticketingProvider designProvider commsProvider; do
+      local current
+      current=$(echo "$result" | jq -c ".$key")
+      if [ "$current" = "null" ]; then
+        local cached_val
+        cached_val=$(echo "$cached" | jq -c ".$key // null")
+        if [ "$cached_val" != "null" ]; then
+          result=$(echo "$result" | jq --argjson v "$cached_val" ".$key = \$v")
+        fi
+      fi
+    done
+  fi
+
+  # Source 3: Auto-detect VCS hosting and CI/CD
+  local vcs_hosting ci_cd
+  vcs_hosting=$(detect_vcs_hosting "$repo_root")
+  ci_cd=$(detect_ci_cd "$repo_root")
+
+  if [ -n "$vcs_hosting" ]; then
+    result=$(echo "$result" | jq --arg v "$vcs_hosting" '.vcsHosting = $v')
+  fi
+  if [ -n "$ci_cd" ]; then
+    result=$(echo "$result" | jq --arg v "$ci_cd" '.ciCd = $v')
+  fi
+
+  echo "$result"
+}
+
+# Format providers as markdown for hook injection
+# Usage: format_providers_markdown [repo_root]
+# Returns: Markdown string with provider table
+format_providers_markdown() {
+  local repo_root="${1:-$(find_repo_root)}"
+  local providers
+  providers=$(load_providers "$repo_root")
+
+  # Check if anything is configured
+  local has_any=false
+  for key in specProvider ticketingProvider designProvider commsProvider vcsHosting ciCd; do
+    local val
+    val=$(echo "$providers" | jq -r ".$key // empty")
+    if [ -n "$val" ] && [ "$val" != "null" ]; then
+      has_any=true
+      break
+    fi
+  done
+
+  if [ "$has_any" = "false" ]; then
+    echo "### Project Providers"
+    echo ""
+    echo "No providers configured. Use \`ToolSearch\` to discover available MCP tools."
+    return
+  fi
+
+  echo "### Project Providers"
+  echo ""
+  echo "| Category | Provider | MCP Hint |"
+  echo "|----------|----------|----------|"
+
+  # VCS Hosting (auto-detected)
+  local vcs_host
+  vcs_host=$(echo "$providers" | jq -r '.vcsHosting // empty')
+  if [ -n "$vcs_host" ]; then
+    local hint
+    hint=$(_provider_mcp_hint "$vcs_host")
+    echo "| VCS Hosting | $vcs_host | \`$hint\` |"
+  fi
+
+  # CI/CD (auto-detected)
+  local ci_cd
+  ci_cd=$(echo "$providers" | jq -r '.ciCd // empty')
+  if [ -n "$ci_cd" ]; then
+    local hint
+    hint=$(_provider_mcp_hint "$ci_cd")
+    echo "| CI/CD | $ci_cd | \`$hint\` |"
+  fi
+
+  # Declared providers
+  local categories="specProvider:Spec ticketingProvider:Ticketing designProvider:Design commsProvider:Comms"
+  for entry in $categories; do
+    local key="${entry%%:*}"
+    local label="${entry##*:}"
+    local ptype
+    ptype=$(echo "$providers" | jq -r ".$key.type // empty")
+    if [ -n "$ptype" ]; then
+      local hint
+      hint=$(_provider_mcp_hint "$ptype")
+      echo "| $label | $ptype | \`$hint\` |"
+    else
+      echo "| $label | — | Not configured |"
+    fi
+  done
+
+  echo ""
+  echo "> **Tip:** Configure providers in \`.ai-dlc/settings.yml\` under \`providers:\` to enable automatic ticket sync and spec references."
+}

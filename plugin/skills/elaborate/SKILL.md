@@ -28,6 +28,10 @@ allowed-tools:
   - "mcp__*__describe*"
   - "mcp__*__explain*"
   - "mcp__*__memory"
+  # Ticketing provider write tools (epic/ticket creation during elaboration)
+  - "mcp__*__create*issue*"
+  - "mcp__*__create*ticket*"
+  - "mcp__*__create*epic*"
 ---
 
 # AI-DLC Mob Elaboration
@@ -41,6 +45,24 @@ You are the **Elaborator** starting the AI-DLC Mob Elaboration ritual. Your job 
 Then you'll write these as files in `.ai-dlc/{intent-slug}/` for the construction phase.
 
 **CRITICAL PRINCIPLE: Elaboration is not a quick phase.** The purpose of elaboration is to build such deep understanding of the domain that the resulting spec is unambiguous. If a builder could misinterpret a unit and build the wrong thing, the elaboration is not done. Do NOT close this phase until you have a clear, specific, technically-grounded spec validated by the user.
+
+---
+
+## Phase 0 (Pre-check): Environment Discovery
+
+Before any elaboration, verify the working environment:
+
+1. Check if we're in a git repo: `git rev-parse --git-dir`
+2. If yes → proceed to Phase 0 (Existing Intent Check) below
+3. If no → enter **cowork discovery flow**:
+   a. Use `ListMcpResourcesTool` to scan available MCP servers for VCS providers (GitHub, GitLab, etc.)
+   b. Use `AskUserQuestion` to ask: "What repo should this work target?" (include options from VCS MCP if available)
+   c. Clone the repo: `git clone <repo-url> /tmp/ai-dlc-workspace-{slug}/`
+   d. `cd` to the cloned repo — all subsequent phases work normally
+   e. Discover providers from available MCP tools:
+      - Match MCP server names against known types (jira, notion, figma, slack, etc.)
+      - Ask user to confirm inferred providers and fill gaps
+      - Save confirmed providers: `han keep save providers.json '<json>'`
 
 ---
 
@@ -100,6 +122,12 @@ Ask the user: "What do you want to build or accomplish?"
 
 Wait for their answer. Do not explain the process.
 
+Before asking clarification questions, check for configured providers:
+- If a spec provider (Notion, Confluence) is configured, search for related specs/documents using read-only MCP tools
+- If a ticketing provider (Jira, Linear) is configured, search for related tickets/epics
+- If a design provider (Figma) is configured, search for related design files
+Use discovered context to inform your clarification questions in Phase 2.
+
 ---
 
 ## Phase 2: Clarify Requirements
@@ -141,6 +169,13 @@ Based on what the user described in Phase 2, identify every relevant technical s
 
 6. **External Documentation and Libraries**: Use `WebSearch` and `WebFetch` to research relevant libraries, frameworks, APIs, standards, or prior art. If the intent involves a third-party system, find its documentation and understand its capabilities. If the intent involves a design pattern or technique, research best practices and common pitfalls.
 
+7. **Configured Providers**: If providers are configured in `.ai-dlc/settings.yml` or discovered via MCP:
+   - **Spec providers** (Notion, Confluence, Google Docs): Search for requirements docs, PRDs, or technical specs related to the intent
+   - **Ticketing providers** (Jira, Linear): Search for existing tickets, epics, or stories that relate to or duplicate this work
+   - **Design providers** (Figma): Search for design files, component libraries, or mockups relevant to UI work
+   - **Comms providers** (Slack, Teams): Search for relevant discussions or decisions in channels
+   Use `ToolSearch` to discover available MCP tools matching provider types, then use read-only MCP tools for research.
+
 ### How to Explore
 
 Use every research tool available. Spawn multiple explorations in parallel for independent concerns:
@@ -160,12 +195,15 @@ Task({
    - Library docs (Context7): `mcp__*__resolve*`, `mcp__*__query*`
    - Project memory (han): `mcp__*__memory`
    - Any other MCP servers available in the environment
+   - Provider MCP tools: If providers are configured, use their MCP tools for research (e.g., `mcp__*jira*__search*` for Jira tickets, `mcp__*notion*__search*` for Notion pages)
 
 3. **Web research for external context**: Use `WebSearch` for library docs, design patterns, API references, prior art. Use `WebFetch` to read specific documentation pages.
 
 4. **Direct exploration**: Use `Read`, `Glob`, `Grep`, and `Bash` (for curl, CLI tools, introspection queries) directly when you know what you're looking for.
 
 **Spawn multiple research paths in parallel.** Don't serialize explorations that are independent — launch all of them at once and synthesize when results return.
+
+If a VCS MCP is available (e.g., GitHub MCP), use it for code browsing alongside or instead of local `Glob`/`Grep`. This enables research from the orchestrator even before a repo is fully cloned in cowork mode.
 
 ### Communicate Findings as You Go
 
@@ -625,6 +663,7 @@ testing:
   e2e_tests: false          # true = required, false = optional
 created: {ISO date}
 status: active
+epic: ""  # Ticketing provider epic key (auto-populated if ticketing provider configured)
 ---
 
 # {Intent Title}
@@ -679,6 +718,7 @@ status: pending
 depends_on: []
 branch: ai-dlc/{intent-slug}/NN-{slug}
 discipline: {discipline}  # frontend, backend, api, documentation, devops, etc.
+ticket: ""  # Ticketing provider ticket key (auto-populated if ticketing provider configured)
 ---
 
 # unit-NN-{slug}
@@ -738,6 +778,44 @@ han keep save iteration.json '{"iteration":1,"hat":"{first-hat-after-elaborator}
 git add .ai-dlc/
 git commit -m "elaborate: define intent and units for ${intentSlug}"
 ```
+
+### 5b. Push artifacts to remote (cowork)
+
+If the orchestrator is in a temporary workspace (`/tmp/ai-dlc-workspace-*`):
+
+```bash
+git push -u origin "$INTENT_BRANCH"
+```
+
+This ensures builders can pull the intent branch when working remotely. Note in the handoff: "Artifacts pushed to `ai-dlc/{intent-slug}` branch on remote."
+
+---
+
+## Phase 6.5: Sync to Ticketing Provider
+
+If a ticketing provider is configured and MCP tools are available:
+
+1. **Create epic** for the intent:
+   - Title: Intent title from intent.md
+   - Description: Problem + Solution sections
+   - Use MCP tool matching `mcp__*__create*epic*` or `mcp__*__create*issue*`
+   - Store returned key in intent.md frontmatter as `epic: "PROJ-123"`
+
+2. **Create ticket per unit** linked to the epic:
+   - Title: Unit name and one-line description
+   - Description: Unit's description, success criteria, and technical specification
+   - Link to the epic created above
+   - Use MCP tool matching `mcp__*__create*ticket*` or `mcp__*__create*issue*`
+   - Store returned key in unit frontmatter as `ticket: "PROJ-124"`
+
+3. If MCP tools for ticketing are not available, skip and note:
+   "Ticketing provider configured but MCP tools not available. Create tickets manually."
+
+4. Commit updated frontmatter:
+   ```bash
+   git add .ai-dlc/
+   git commit -m "elaborate: sync tickets for ${intentSlug}"
+   ```
 
 ---
 

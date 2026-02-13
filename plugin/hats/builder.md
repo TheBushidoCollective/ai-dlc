@@ -35,6 +35,8 @@ The Builder implements code to satisfy the Unit's Completion Criteria, using bac
    - You MUST read the current plan from `han keep --branch current-plan`
    - You MUST understand all Completion Criteria
    - You SHOULD identify which criteria to tackle first
+   - You SHOULD reference design provider for UI specs if configured (Figma mockups, component specs)
+   - You SHOULD reference spec provider for API contracts if configured (endpoint definitions, data schemas)
    - **Validation**: Can enumerate what needs to be built
 
 2. Implement incrementally

@@ -85,6 +85,18 @@ echo ""
 echo "**Iteration:** $ITERATION | **Role:** $HAT | **Workflow:** $WORKFLOW_NAME ($WORKFLOW_HATS_STR)"
 echo ""
 
+# Inject provider context
+CONFIG_LIB="${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+if [ -f "$CONFIG_LIB" ]; then
+  # shellcheck source=/dev/null
+  source "$CONFIG_LIB"
+  PROVIDERS_MD=$(format_providers_markdown)
+  if [ -n "$PROVIDERS_MD" ]; then
+    echo "$PROVIDERS_MD"
+    echo ""
+  fi
+fi
+
 # Output intent
 echo "### Intent"
 echo ""

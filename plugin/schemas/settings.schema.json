@@ -12,10 +12,54 @@
 		"jj": {
 			"$ref": "#/definitions/vcsConfig",
 			"description": "VCS configuration when using Jujutsu (jj)"
+		},
+		"providers": {
+			"$ref": "#/definitions/providersConfig",
+			"description": "External system providers for spec, ticketing, design, and comms"
 		}
 	},
 	"additionalProperties": false,
 	"definitions": {
+		"providersConfig": {
+			"type": "object",
+			"description": "External system provider configuration",
+			"properties": {
+				"specProvider": {
+					"$ref": "#/definitions/providerEntry",
+					"description": "Specification/documentation provider (Notion, Confluence, Google Docs)"
+				},
+				"ticketingProvider": {
+					"$ref": "#/definitions/providerEntry",
+					"description": "Ticketing/issue tracking provider (Jira, Linear, GitHub Issues, GitLab Issues)"
+				},
+				"designProvider": {
+					"$ref": "#/definitions/providerEntry",
+					"description": "Design tool provider (Figma)"
+				},
+				"commsProvider": {
+					"$ref": "#/definitions/providerEntry",
+					"description": "Communication provider (Slack, Teams, Discord)"
+				}
+			},
+			"additionalProperties": false
+		},
+		"providerEntry": {
+			"type": "object",
+			"description": "A configured external provider",
+			"properties": {
+				"type": {
+					"type": "string",
+					"description": "Provider type identifier"
+				},
+				"config": {
+					"type": "object",
+					"description": "Provider-specific configuration (project keys, workspace IDs, etc.)",
+					"additionalProperties": true
+				}
+			},
+			"required": ["type"],
+			"additionalProperties": false
+		},
 		"vcsConfig": {
 			"type": "object",
 			"description": "Version control system configuration",

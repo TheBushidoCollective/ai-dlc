@@ -44,6 +44,8 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
    - You MUST check each Completion Criterion individually
    - You MUST run verification commands, not just read code
    - You MUST NOT assume - verify programmatically
+   - You SHOULD cross-reference spec provider for requirement accuracy if configured
+   - You SHOULD cross-reference design provider for visual/UX compliance if configured
    - **Validation**: Each criterion marked pass/fail with evidence
 
 3. Review code quality
@@ -73,6 +75,8 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
    - You MUST NOT approve if criteria are not met
    - You MUST NOT approve if configured testing requirements are not satisfied
    - **Validation**: Clear approve/reject with rationale
+   - You MAY update ticket status in ticketing provider if configured (mark as "in review" or "done")
+   - You MAY post completion summary to comms provider if configured (Slack/Teams notification)
 
 ## Success Criteria
 

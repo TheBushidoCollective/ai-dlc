@@ -96,6 +96,23 @@ fi
 
 **Important:** The orchestrator runs in `/tmp/ai-dlc-{intent-slug}/`, NOT the original repo directory. This keeps main clean and enables parallel intents.
 
+### Step 0b: Cowork Remote Setup
+
+If the orchestrator is in a temporary workspace (`/tmp/ai-dlc-workspace-*`), ensure remote tracking is set up so teammates can push their unit branches:
+
+```bash
+# Verify remote exists and push intent branch
+if git remote get-url origin &>/dev/null; then
+  INTENT_BRANCH="ai-dlc/${INTENT_SLUG}"
+  git push -u origin "$INTENT_BRANCH" 2>/dev/null || true
+fi
+```
+
+This ensures:
+- The intent branch exists on the remote
+- Teammates can push their unit branches
+- Artifact delivery works in cowork mode
+
 ### Step 1: Load State
 
 ```bash
@@ -252,6 +269,17 @@ Task({
     3. Do ALL work in that directory
     4. Commit changes to that branch
 
+    ## Repository Access (Cowork)
+    If the worktree at ${WORKTREE_PATH} doesn't exist, clone from the remote:
+    ```bash
+    REPO_URL=$(git remote get-url origin 2>/dev/null || echo "")
+    if [ -n "$REPO_URL" ] && [ ! -d "${WORKTREE_PATH}" ]; then
+      git clone "$REPO_URL" "${WORKTREE_PATH}"
+      cd "${WORKTREE_PATH}"
+      git checkout "${UNIT_BRANCH}"
+    fi
+    ```
+
     ## Unit: ${unitName}
     ## Completion Criteria
     ${unit.criteria}
@@ -330,6 +358,17 @@ Task({
     2. Verify you're on branch ${UNIT_BRANCH}
     3. Do ALL work in that directory
     4. Commit changes to that branch
+
+    ## Repository Access (Cowork)
+    If the worktree at ${WORKTREE_PATH} doesn't exist, clone from the remote:
+    ```bash
+    REPO_URL=$(git remote get-url origin 2>/dev/null || echo "")
+    if [ -n "$REPO_URL" ] && [ ! -d "${WORKTREE_PATH}" ]; then
+      git clone "$REPO_URL" "${WORKTREE_PATH}"
+      cd "${WORKTREE_PATH}"
+      git checkout "${UNIT_BRANCH}"
+    fi
+    ```
 
     ## Unit: ${unitName}
     ## Completion Criteria

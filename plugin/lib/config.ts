@@ -32,12 +32,44 @@ export interface VcsConfig {
 	auto_squash?: boolean;
 }
 
-/**
- * AI-DLC settings structure
- */
+// ============================================================================
+// Provider Configuration
+// ============================================================================
+
+export type SpecProviderType = "notion" | "confluence" | "google-docs";
+export type TicketingProviderType =
+	| "jira"
+	| "linear"
+	| "github-issues"
+	| "gitlab-issues";
+export type DesignProviderType = "figma";
+export type CommsProviderType = "slack" | "teams" | "discord";
+export type VcsHostingType = "github" | "gitlab" | "bitbucket";
+export type CiCdType = "github-actions" | "gitlab-ci" | "jenkins" | "circleci";
+
+export interface ProviderEntry<T extends string> {
+	type: T;
+	config?: Record<string, unknown>;
+}
+
+export interface ProvidersConfig {
+	specProvider?: ProviderEntry<SpecProviderType> | null;
+	ticketingProvider?: ProviderEntry<TicketingProviderType> | null;
+	designProvider?: ProviderEntry<DesignProviderType> | null;
+	commsProvider?: ProviderEntry<CommsProviderType> | null;
+	vcsHosting?: VcsHostingType | null;
+	ciCd?: CiCdType | null;
+}
+
 export interface AiDlcSettings {
 	git?: Partial<VcsConfig>;
 	jj?: Partial<VcsConfig>;
+	providers?: {
+		specProvider?: ProviderEntry<SpecProviderType>;
+		ticketingProvider?: ProviderEntry<TicketingProviderType>;
+		designProvider?: ProviderEntry<DesignProviderType>;
+		commsProvider?: ProviderEntry<CommsProviderType>;
+	};
 }
 
 /**
@@ -293,4 +325,154 @@ export function configToEnvVars(config: VcsConfig): Record<string, string> {
 		AI_DLC_AUTO_MERGE: config.auto_merge ? "true" : "false",
 		AI_DLC_AUTO_SQUASH: config.auto_squash ? "true" : "false",
 	};
+}
+
+// ============================================================================
+// Provider Detection & Loading
+// ============================================================================
+
+/** MCP tool hint mapping for provider types */
+const PROVIDER_MCP_HINTS: Record<string, string> = {
+	notion: "mcp__*notion*",
+	confluence: "mcp__*confluence*",
+	"google-docs": "mcp__*google*docs*",
+	jira: "mcp__*jira*",
+	linear: "mcp__*linear*",
+	"github-issues": "gh issue",
+	"gitlab-issues": "mcp__*gitlab*",
+	figma: "mcp__*figma*",
+	slack: "mcp__*slack*",
+	teams: "mcp__*teams*",
+	discord: "mcp__*discord*",
+	github: "gh",
+	gitlab: "mcp__*gitlab*",
+	bitbucket: "mcp__*bitbucket*",
+	"github-actions": "gh run",
+	"gitlab-ci": "mcp__*gitlab*",
+	jenkins: "mcp__*jenkins*",
+	circleci: "mcp__*circleci*",
+};
+
+/**
+ * Get MCP tool hint for a provider type
+ */
+export function getProviderMcpHint(providerType: string): string {
+	return PROVIDER_MCP_HINTS[providerType] || "";
+}
+
+/**
+ * Detect VCS hosting platform from git remote
+ * @param directory - Directory to check (defaults to cwd)
+ * @returns Platform identifier or null
+ */
+export function detectVcsHosting(
+	directory?: string,
+): VcsHostingType | null {
+	const cwd = directory || process.cwd();
+
+	try {
+		const remoteUrl = execSync("git remote get-url origin", {
+			cwd,
+			stdio: "pipe",
+		})
+			.toString()
+			.trim();
+
+		if (remoteUrl.includes("github.com")) return "github";
+		if (remoteUrl.includes("gitlab.com")) return "gitlab";
+		if (remoteUrl.includes("bitbucket.org")) return "bitbucket";
+	} catch {
+		// No remote configured
+	}
+
+	return null;
+}
+
+/**
+ * Detect CI/CD system from repo files
+ * @param directory - Directory to check (defaults to cwd)
+ * @returns CI/CD identifier or null
+ */
+export function detectCiCd(directory?: string): CiCdType | null {
+	const cwd = directory || process.cwd();
+
+	if (existsSync(join(cwd, ".github", "workflows"))) return "github-actions";
+	if (existsSync(join(cwd, ".gitlab-ci.yml"))) return "gitlab-ci";
+	if (existsSync(join(cwd, "Jenkinsfile"))) return "jenkins";
+	if (existsSync(join(cwd, ".circleci"))) return "circleci";
+
+	return null;
+}
+
+/**
+ * Load providers from settings, cache, and auto-detection
+ * @param options - Optional repo root
+ * @returns Complete providers configuration
+ */
+export function loadProviders(options?: {
+	repoRoot?: string;
+}): ProvidersConfig {
+	const repoRoot = options?.repoRoot || findRepoRoot();
+	const result: ProvidersConfig = {
+		specProvider: null,
+		ticketingProvider: null,
+		designProvider: null,
+		commsProvider: null,
+		vcsHosting: null,
+		ciCd: null,
+	};
+
+	// Source 1: Declared providers from settings.yml
+	if (repoRoot) {
+		const settings = loadRepoSettings(repoRoot);
+		if (settings?.providers) {
+			if (settings.providers.specProvider) {
+				result.specProvider = settings.providers
+					.specProvider as ProviderEntry<SpecProviderType>;
+			}
+			if (settings.providers.ticketingProvider) {
+				result.ticketingProvider = settings.providers
+					.ticketingProvider as ProviderEntry<TicketingProviderType>;
+			}
+			if (settings.providers.designProvider) {
+				result.designProvider = settings.providers
+					.designProvider as ProviderEntry<DesignProviderType>;
+			}
+			if (settings.providers.commsProvider) {
+				result.commsProvider = settings.providers
+					.commsProvider as ProviderEntry<CommsProviderType>;
+			}
+		}
+	}
+
+	// Source 2: Cached providers from MCP discovery
+	try {
+		const cached = execSync("han keep load providers.json --quiet", {
+			stdio: "pipe",
+		})
+			.toString()
+			.trim();
+		if (cached) {
+			const cachedProviders = JSON.parse(cached) as ProvidersConfig;
+			for (const key of [
+				"specProvider",
+				"ticketingProvider",
+				"designProvider",
+				"commsProvider",
+			] as const) {
+				if (!result[key] && cachedProviders[key]) {
+					(result as Record<string, unknown>)[key] = cachedProviders[key];
+				}
+			}
+		}
+	} catch {
+		// No cached providers
+	}
+
+	// Source 3: Auto-detect VCS hosting and CI/CD
+	const dir = repoRoot || undefined;
+	result.vcsHosting = detectVcsHosting(dir);
+	result.ciCd = detectCiCd(dir);
+
+	return result;
 }

@@ -36,6 +36,8 @@ The Planner reviews the current Unit and creates a tactical execution plan for t
    - You MUST review any previous blockers
    - You MUST check what criteria are already satisfied
    - You SHOULD review scratchpad for context from previous bolts
+   - You SHOULD check ticketing provider for related tickets if configured (search for tickets linked to this unit or similar work)
+   - You SHOULD check spec provider for updated requirements if configured (requirements may have changed since elaboration)
    - **Validation**: Can enumerate remaining work
 
 2. Assess progress

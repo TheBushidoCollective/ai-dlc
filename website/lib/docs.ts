@@ -81,6 +81,10 @@ const sectionDefinitions: { title: string; slugs: string[] }[] = [
 		slugs: ["hats", "concepts", "workflows"],
 	},
 	{
+		title: "Integration",
+		slugs: ["providers", "cowork"],
+	},
+	{
 		title: "Adoption",
 		slugs: [
 			"adoption-roadmap",

@@ -111,7 +111,8 @@ export default function AboutPage() {
 					</p>
 
 					<div className="not-prose my-8 rounded-lg bg-gray-100 p-4 font-mono text-sm dark:bg-gray-800">
-						<code>/install-plugin thebushidocollective/ai-dlc</code>
+						<div><code>/plugin marketplace add thebushidocollective/ai-dlc</code></div>
+						<div><code>/plugin install ai-dlc@thebushidocollective-ai-dlc --scope project</code></div>
 					</div>
 
 					<h2>Part of Han</h2>

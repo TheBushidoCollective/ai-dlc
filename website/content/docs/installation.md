@@ -36,22 +36,21 @@ han --version
 
 ## Installation Methods
 
-### Method 1: Via Han (Recommended)
-
-If you have Han installed, use the plugin manager:
-
-```bash
-han plugin install thebushidocollective/ai-dlc
-```
-
-This installs the plugin and configures it in your Claude Code settings.
-
-### Method 2: Direct in Claude Code
+### Method 1: Via Claude Code (Recommended)
 
 Install directly from within a Claude Code session:
 
 ```
-/install-github-plugin thebushidocollective/ai-dlc
+/plugin marketplace add thebushidocollective/ai-dlc
+/plugin install ai-dlc@thebushidocollective-ai-dlc --scope project
+```
+
+### Method 2: Via Han
+
+If you have Han installed, use the plugin manager (must be npx, project-scoped):
+
+```bash
+npx han plugin install thebushidocollective/ai-dlc --scope project
 ```
 
 ### Method 3: Manual Configuration
@@ -95,22 +94,24 @@ AI-DLC works best with backpressure plugins that provide quality gates:
 ### TypeScript Projects
 
 ```bash
-han plugin install jutsu-typescript
-han plugin install jutsu-biome
+npx han plugin install jutsu-typescript --scope project
+npx han plugin install jutsu-biome --scope project
 ```
 
 ### Python Projects
 
 ```bash
-han plugin install jutsu-python
-han plugin install jutsu-ruff
+npx han plugin install jutsu-python --scope project
+npx han plugin install jutsu-ruff --scope project
 ```
 
 ### Go Projects
 
 ```bash
-han plugin install jutsu-go
+npx han plugin install jutsu-go --scope project
 ```
+
+> **Note:** Jutsu plugins follow the same installation pattern via Han. To install via Claude Code directly, use `/plugin marketplace add` and `/plugin install` with the appropriate marketplace identifier for each plugin.
 
 These plugins provide:
 - **Type checking** that blocks on errors

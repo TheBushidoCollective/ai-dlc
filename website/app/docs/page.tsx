@@ -22,7 +22,8 @@ export default function DocsPage() {
 				<h2>Quick Start</h2>
 				<p>Install the AI-DLC plugin in your Claude Code project:</p>
 				<div className="not-prose my-4 rounded-lg bg-gray-100 p-4 font-mono text-sm dark:bg-gray-800">
-					<code>/install-plugin thebushidocollective/ai-dlc</code>
+					<div><code>/plugin marketplace add thebushidocollective/ai-dlc</code></div>
+					<div><code>/plugin install ai-dlc@thebushidocollective-ai-dlc --scope project</code></div>
 				</div>
 
 				<p>Then use the hat commands to structure your workflow:</p>

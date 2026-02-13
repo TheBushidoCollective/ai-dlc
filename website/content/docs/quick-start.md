@@ -8,14 +8,15 @@ Get AI-DLC running in your project and complete your first feature.
 
 ## Installation
 
-**Option 1: Via Han (recommended)**
-```bash
-han plugin install thebushidocollective/ai-dlc
+**Option 1: Via Claude Code (recommended)**
+```
+/plugin marketplace add thebushidocollective/ai-dlc
+/plugin install ai-dlc@thebushidocollective-ai-dlc --scope project
 ```
 
-**Option 2: Direct in Claude Code**
-```
-/install-github-plugin thebushidocollective/ai-dlc
+**Option 2: Via Han**
+```bash
+npx han plugin install thebushidocollective/ai-dlc --scope project
 ```
 
 ## The Two Commands You Need

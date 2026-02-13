@@ -17,12 +17,15 @@ AI-DLC (AI-Driven Development Lifecycle) is a methodology for collaborative huma
 
 ## Installation
 
-```bash
-# Via Han (recommended)
-han plugin install thebushidocollective/ai-dlc
+```
+# Install via Claude Code
+/plugin marketplace add thebushidocollective/ai-dlc
+/plugin install ai-dlc@thebushidocollective-ai-dlc --scope project
+```
 
-# Or directly in Claude Code
-/install-github-plugin thebushidocollective/ai-dlc
+```bash
+# Or via Han (must be npx, project-scoped)
+npx han plugin install thebushidocollective/ai-dlc --scope project
 ```
 
 ### Prerequisites

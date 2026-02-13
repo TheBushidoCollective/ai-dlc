@@ -12,7 +12,7 @@ Complete these steps before beginning your first intent:
 
 ### Environment Setup
 - [ ] Claude Code installed and working
-- [ ] AI-DLC plugin installed (`/install-plugin thebushidocollective/ai-dlc`)
+- [ ] AI-DLC plugin installed (`/plugin marketplace add thebushidocollective/ai-dlc` then `/plugin install ai-dlc@thebushidocollective-ai-dlc --scope project`)
 - [ ] Verified plugin is active (commands like `/elaborate` are recognized)
 
 ### Project Selection

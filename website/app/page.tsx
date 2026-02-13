@@ -552,7 +552,8 @@ export default function Home() {
 						projects today.
 					</p>
 					<div className="inline-block rounded-lg bg-gray-900 p-4 text-left font-mono text-sm text-white dark:bg-gray-800">
-						<code>/install-plugin thebushidocollective/ai-dlc</code>
+						<div><code>/plugin marketplace add thebushidocollective/ai-dlc</code></div>
+						<div><code>/plugin install ai-dlc@thebushidocollective-ai-dlc --scope project</code></div>
 					</div>
 					<div className="mt-6">
 						<Link

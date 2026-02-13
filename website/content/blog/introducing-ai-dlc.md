@@ -46,7 +46,8 @@ Units are focused pieces of work with clear success criteria. Breaking work into
 AI-DLC is distributed as a Claude Code plugin. Install it with:
 
 ```
-/install-plugin thebushidocollective/ai-dlc
+/plugin marketplace add thebushidocollective/ai-dlc
+/plugin install ai-dlc@thebushidocollective-ai-dlc --scope project
 ```
 
 Then start using the hat commands to structure your workflow.

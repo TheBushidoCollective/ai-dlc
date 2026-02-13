@@ -131,7 +131,8 @@ Enable Agent Teams in your Claude Code settings:
 Install or update the AI-DLC plugin:
 
 ```
-/install-plugin thebushidocollective/ai-dlc
+/plugin marketplace add thebushidocollective/ai-dlc
+/plugin install ai-dlc@thebushidocollective-ai-dlc --scope project
 ```
 
 Then run `/elaborate` to define an intent with a mode, and `/construct` to start the team.

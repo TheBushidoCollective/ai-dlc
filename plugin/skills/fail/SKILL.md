@@ -20,9 +20,8 @@ user-invocable: false
 Goes back to the previous hat in the workflow. Typically used when:
 - Reviewer finds issues -> return to builder
 - Builder hits fundamental blocker -> return to planner
-- Planner realizes requirements unclear -> return to elaborator
 
-If already at the first hat (elaborator by default), this command is blocked.
+If already at the first hat (planner by default), this command is blocked.
 
 ## Implementation
 
@@ -36,13 +35,13 @@ STATE=$(han keep load iteration.json --quiet)
 ### Step 2: Determine Previous Hat
 
 ```javascript
-const workflow = state.workflow || ["elaborator", "planner", "builder", "reviewer"];
+const workflow = state.workflow || ["planner", "builder", "reviewer"];
 const currentIndex = workflow.indexOf(state.hat);
 const prevIndex = currentIndex - 1;
 
 if (prevIndex < 0) {
   // Already at first hat - cannot go back
-  return "Cannot fail before the first hat (elaborator).";
+  return "Cannot fail before the first hat (planner).";
 }
 
 const prevHat = workflow[prevIndex];
@@ -121,9 +120,9 @@ Continuing construction with the previous hat...
 
 ## Guard
 
-If already at the first hat (elaborator by default), output:
+If already at the first hat (planner by default), output:
 ```
-You are at the first hat (elaborator).
+You are at the first hat (planner).
 
-Cannot go back further. Continue elaboration or use `/reset` to start over.
+Cannot go back further. Use `/reset` to start over, or re-elaborate with `/elaborate <slug>`.
 ```

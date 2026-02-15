@@ -65,33 +65,64 @@ If truly blocked (cannot proceed without user input):
 
 **CRITICAL: The orchestrator MUST run in the intent worktree, not the main working directory.**
 
-Before loading state, find and switch to the intent worktree:
+Before loading state, discover all active intents from both the filesystem and `ai-dlc/*` branches:
 
 ```bash
-# First, check if we have an intent slug saved (try to find it)
-# Look for .ai-dlc/*/intent.md files to detect intent
-INTENT_SLUG=""
+# Source DAG library for branch discovery
+source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
+
+declare -A ACTIVE_INTENTS  # slug -> "source" (filesystem|worktree|local)
+
+# 1. Check filesystem (current directory)
 for intent_file in .ai-dlc/*/intent.md; do
   [ -f "$intent_file" ] || continue
   dir=$(dirname "$intent_file")
   slug=$(basename "$dir")
-  status=$(han parse yaml status -r --default active < "$intent_file" 2>/dev/null || echo "active")
-  [ "$status" = "active" ] && INTENT_SLUG="$slug" && break
+  status=$(_yaml_get_simple "status" "active" < "$intent_file")
+  [ "$status" = "active" ] && ACTIVE_INTENTS[$slug]="filesystem"
 done
 
-# If we found an intent, ensure we're in its worktree
-if [ -n "$INTENT_SLUG" ]; then
-  INTENT_BRANCH="ai-dlc/${INTENT_SLUG}"
-  INTENT_WORKTREE="/tmp/ai-dlc-${INTENT_SLUG}"
+# 2. Check ai-dlc/* branches (worktrees and local branches)
+while IFS='|' read -r slug workflow source branch; do
+  [ -z "$slug" ] && continue
+  # Don't overwrite filesystem entries (they take display priority)
+  [ -z "${ACTIVE_INTENTS[$slug]}" ] && ACTIVE_INTENTS[$slug]="$source"
+done < <(discover_branch_intents false)
 
-  # Create worktree if it doesn't exist
-  if [ ! -d "$INTENT_WORKTREE" ]; then
-    git worktree add -B "$INTENT_BRANCH" "$INTENT_WORKTREE"
-  fi
-
-  # Switch to the intent worktree
-  cd "$INTENT_WORKTREE"
+# 3. Handle results
+if [ ${#ACTIVE_INTENTS[@]} -eq 0 ]; then
+  echo "No active AI-DLC intent found."
+  echo ""
+  echo "Run /elaborate to start a new task, or /resume <slug> if you know the intent slug."
+  exit 0
 fi
+
+if [ ${#ACTIVE_INTENTS[@]} -eq 1 ]; then
+  # Single intent — use it
+  INTENT_SLUG="${!ACTIVE_INTENTS[@]}"
+elif [ ${#ACTIVE_INTENTS[@]} -gt 1 ]; then
+  # Multiple intents — ask the user which one to construct
+  echo "Multiple active intents found:"
+  echo ""
+  for slug in "${!ACTIVE_INTENTS[@]}"; do
+    echo "- **$slug** (${ACTIVE_INTENTS[$slug]})"
+  done
+  echo ""
+  # Use AskUserQuestion with the discovered intents as options
+  # (construct will present these dynamically)
+  echo "Use /construct <slug> to specify which intent to build."
+  exit 0
+fi
+
+# Ensure we're in the intent worktree
+INTENT_BRANCH="ai-dlc/${INTENT_SLUG}"
+INTENT_WORKTREE="/tmp/ai-dlc-${INTENT_SLUG}"
+
+if [ ! -d "$INTENT_WORKTREE" ]; then
+  git worktree add -B "$INTENT_BRANCH" "$INTENT_WORKTREE"
+fi
+
+cd "$INTENT_WORKTREE"
 ```
 
 **Important:** The orchestrator runs in `/tmp/ai-dlc-{intent-slug}/`, NOT the original repo directory. This keeps main clean and enables parallel intents.
@@ -179,9 +210,9 @@ Loop over ALL ready units from the DAG (not just one):
 source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
 READY_UNITS=$(find_ready_units "$INTENT_DIR")
 
-# Determine first construction hat (skip "elaborator" if present)
+# Determine first construction hat
 WORKFLOW_HATS=$(echo "$STATE" | han parse json workflow)
-FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '[.[] | select(. != "elaborator")][0]')
+FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '.[0]')
 ```
 
 **Include repo URL for cowork**: If operating in a cloned workspace, include the repo URL in each teammate's prompt: "Repository: `<remote-url>`. Clone and checkout `ai-dlc/<intent-slug>` if you don't have local access." This enables teammates to clone independently in cowork mode.
@@ -420,10 +451,10 @@ fi
 ```
 
 d. Check DAG for newly unblocked units
-e. For each newly ready unit, spawn at `workflow[0]` (first hat, skipping "elaborator" if present -- use the first non-elaborator hat):
+e. For each newly ready unit, spawn at `workflow[0]` (first hat):
 
 ```bash
-FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '[.[] | select(. != "elaborator")][0]')
+FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '.[0]')
 ```
 
 Then follow the same spawn logic from Step 3 (load hat instructions, select agent type, spawn teammate with hat instructions in prompt).
@@ -488,7 +519,7 @@ The `iteration.json` is extended with `unitStates` for parallel hat tracking:
   "hat": "builder",
   "status": "active",
   "workflowName": "default",
-  "workflow": ["elaborator", "planner", "builder", "reviewer"],
+  "workflow": ["planner", "builder", "reviewer"],
   "teamName": "ai-dlc-my-intent",
   "unitStates": {
     "unit-01-foundation": { "hat": "reviewer", "retries": 0 },

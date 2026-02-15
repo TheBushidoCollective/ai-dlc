@@ -433,7 +433,7 @@ is_dag_complete() {
 
 # Determine recommended starting hat based on unit states
 # Usage: get_recommended_hat <intent_dir> [workflow_name]
-# Returns: hat name (elaborator, planner, builder, reviewer, etc.)
+# Returns: hat name (planner, builder, reviewer, etc.)
 get_recommended_hat() {
   local intent_dir="$1"
   local workflow_name="${2:-default}"
@@ -444,7 +444,7 @@ get_recommended_hat() {
   hats=$(han parse yaml "${workflow_name}.hats" < "$hats_file" 2>/dev/null | sed 's/^- //' | tr '\n' ' ')
 
   # Default hats if parse fails
-  [ -z "$hats" ] && hats="elaborator planner builder reviewer"
+  [ -z "$hats" ] && hats="planner builder reviewer"
 
   # Convert to array
   read -ra hat_array <<< "$hats"

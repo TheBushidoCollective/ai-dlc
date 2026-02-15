@@ -284,7 +284,7 @@ fi
 
 # Parse iteration state using han parse (no jq needed)
 ITERATION=$(echo "$ITERATION_JSON" | han parse json iteration -r --default 1)
-HAT=$(echo "$ITERATION_JSON" | han parse json hat -r --default elaborator)
+HAT=$(echo "$ITERATION_JSON" | han parse json hat -r --default planner)
 STATUS=$(echo "$ITERATION_JSON" | han parse json status -r --default active)
 WORKFLOW_NAME=$(echo "$ITERATION_JSON" | han parse json workflowName -r --default default)
 
@@ -295,10 +295,10 @@ if ! echo "$KNOWN_WORKFLOWS" | grep -qw "$WORKFLOW_NAME"; then
 fi
 
 # Get workflow hats array as string
-WORKFLOW_HATS=$(echo "$ITERATION_JSON" | han parse json workflow 2>/dev/null || echo '["elaborator","planner","builder","reviewer"]')
+WORKFLOW_HATS=$(echo "$ITERATION_JSON" | han parse json workflow 2>/dev/null || echo '["planner","builder","reviewer"]')
 # Format as arrow-separated list
 WORKFLOW_HATS_STR=$(echo "$WORKFLOW_HATS" | tr -d '[]"' | sed 's/,/ → /g')
-[ -z "$WORKFLOW_HATS_STR" ] && WORKFLOW_HATS_STR="elaborator → planner → builder → reviewer"
+[ -z "$WORKFLOW_HATS_STR" ] && WORKFLOW_HATS_STR="planner → builder → reviewer"
 
 # If task is complete, just show completion message
 if [ "$STATUS" = "complete" ]; then

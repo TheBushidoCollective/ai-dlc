@@ -144,13 +144,14 @@ Different phases of work require different mindsets. AI-DLC uses "hats" to forma
 
 ### Default Workflow
 
+Elaboration (`/elaborate`) is a separate pre-construction phase. The construction workflow starts after elaboration is complete:
+
 ```
-elaborator → planner → builder → reviewer
+planner → builder → reviewer
 ```
 
 | Hat | Focus | Mode |
 |-----|-------|------|
-| Elaborator | Define intent and criteria | HITL |
 | Planner | Plan this iteration | HITL |
 | Builder | Implement to spec | OHOTL |
 | Reviewer | Verify quality | HITL |

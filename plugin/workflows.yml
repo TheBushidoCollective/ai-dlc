@@ -10,7 +10,7 @@
 
 default:
   description: Standard development workflow
-  hats: [elaborator, planner, builder, reviewer]
+  hats: [planner, builder, reviewer]
 
 tdd:
   description: Test-Driven Development (Red-Green-Refactor)

@@ -48,9 +48,9 @@ if [ "$STATUS" = "complete" ] || [ -z "$HAT" ]; then
 fi
 
 # Get workflow hats array as string
-WORKFLOW_HATS=$(echo "$ITERATION_JSON" | han parse json workflow 2>/dev/null || echo '["elaborator","planner","builder","reviewer"]')
+WORKFLOW_HATS=$(echo "$ITERATION_JSON" | han parse json workflow 2>/dev/null || echo '["planner","builder","reviewer"]')
 WORKFLOW_HATS_STR=$(echo "$WORKFLOW_HATS" | tr -d '[]"' | sed 's/,/ → /g')
-[ -z "$WORKFLOW_HATS_STR" ] && WORKFLOW_HATS_STR="elaborator → planner → builder → reviewer"
+[ -z "$WORKFLOW_HATS_STR" ] && WORKFLOW_HATS_STR="planner → builder → reviewer"
 
 # Get intent-slug from han keep (pointer only, not content)
 load_keep_value() {

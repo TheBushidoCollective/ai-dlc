@@ -72,8 +72,11 @@ Before any elaboration, verify the working environment:
 If the user invoked this with a slug argument:
 
 1. Check if `.ai-dlc/{slug}/intent.md` exists
-2. If it exists and no units are completed (all units have `status: pending`):
-   - **Assume the user wants to modify the existing intent**
+2. If it exists, check the intent and unit statuses:
+   - **Skip if intent status is `complete`**: Tell the user "Intent `{slug}` is already completed. Run `/elaborate` without a slug to start a new intent." Then stop.
+   - **Skip if ANY unit has status `in_progress` or `completed`**: Construction has already started — elaboration would conflict with in-flight work. Tell the user "Intent `{slug}` already has units in progress or completed. Use `/resume {slug}` to continue construction or `/construct` to resume the build loop." Then stop.
+   - **Only proceed if ALL units have `status: pending`** (no work has begun yet):
+3. If all units are pending — **assume the user wants to modify the existing intent**:
    - Read ALL files in `.ai-dlc/{slug}/` directory
    - **Display FULL file contents** to the user in markdown code blocks (never summarize or truncate):
      ```
@@ -107,7 +110,7 @@ If the user invoked this with a slug argument:
      }]
    }
    ```
-3. Based on their choice:
+4. Based on their choice:
    - **Modify intent**: Jump to Phase 4 (Success Criteria) with current values pre-filled
    - **Modify units**: Jump to Phase 5 (Decompose) with current units shown
    - **Start fresh**: Delete `.ai-dlc/{slug}/` and proceed to Phase 1
@@ -308,25 +311,62 @@ cat "${CLAUDE_PLUGIN_ROOT}/workflows.yml"
 
 ### Step 3: Select or Compose Workflow
 
-Based on the intent, recommend a workflow from the discovered options. Present available workflows dynamically — do NOT hardcode the options.
+This step has three parts: show what's available, make a recommendation, then let the user decide.
 
-Use `AskUserQuestion` with the discovered workflows as options. Include a "Custom" option that lets the user compose their own hat sequence from the available hats:
+#### 3a. Preflight — Display Available Options
+
+First, show the user all predefined workflows (from Step 2) and available hats (from Step 1) so they have full visibility before any recommendation:
+
+```markdown
+## Available Workflows
+
+{List each predefined workflow with its hat sequence, from Step 2}
+
+## Available Hats
+
+{List each hat with its slug and one-line description, from Step 1}
+```
+
+#### 3b. Recommendation — Suggest the Best Fit
+
+Analyze the intent against the available options. Consider:
+- What phases does this intent actually need? (Not every intent needs planning — a pure refactor might skip straight to builder.)
+- Does the domain suggest specialized hats? (Security-sensitive work benefits from red-team/blue-team. Bug investigations benefit from observer/hypothesizer.)
+- Keep it minimal — every hat adds an iteration cycle. Don't add hats "just in case."
+
+Present your recommendation with reasoning:
+
+```markdown
+## Recommendation
+
+**{workflow name or "Custom"}**: {hats as arrows}
+
+{1-2 sentences explaining why this fits the intent. Reference specific aspects of what the user described.}
+```
+
+The recommendation can be a predefined workflow or a custom composition — whichever best fits. If suggesting a custom sequence, explain what each hat contributes to this specific intent.
+
+#### 3c. User Decides
+
+Use `AskUserQuestion` with the predefined workflows as options. Do NOT hardcode options — use the workflows discovered in Step 2:
 
 ```json
 {
   "questions": [{
-    "question": "Which workflow fits this task? (or compose a custom one from available hats)",
+    "question": "Which workflow would you like to use?",
     "header": "Workflow",
     "options": [
       {"label": "{recommended} (Recommended)", "description": "{hats as arrows}"},
       {"label": "{workflow2}", "description": "{hats as arrows}"},
       {"label": "{workflow3}", "description": "{hats as arrows}"},
-      {"label": "Custom", "description": "Compose a custom hat sequence from available hats"}
+      {"label": "Custom", "description": "Tell me which hats to use and in what order"}
     ],
     "multiSelect": false
   }]
 }
 ```
+
+If your recommendation is a custom composition, include it as the first option with "(Recommended)". The predefined workflows still appear as alternatives.
 
 If the user selects "Custom", ask them to specify which hats to include and in what order.
 
@@ -770,7 +810,7 @@ Intent-level state is saved to the current branch (which is now the intent branc
 han keep save intent-slug "{intent-slug}"
 
 # Intent-level state -> current branch (intent branch)
-han keep save iteration.json '{"iteration":1,"hat":"{first-hat-after-elaborator}","workflowName":"{workflow}","mode":"{HITL|OHOTL|AHOTL}","workflow":["{hat1}","{hat2}"],"status":"active"}'
+han keep save iteration.json '{"iteration":1,"hat":"{first-hat}","workflowName":"{workflow}","mode":"{HITL|OHOTL|AHOTL}","workflow":["{hat1}","{hat2}"],"status":"active"}'
 ```
 
 ### 5. Commit all artifacts on intent branch:

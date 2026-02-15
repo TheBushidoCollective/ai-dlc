@@ -18,7 +18,6 @@ user-invocable: false
 **Internal command** - Called by the AI during `/construct`, not directly by users.
 
 Advances to the next hat in the workflow sequence. For example, in the default workflow:
-- elaborator -> planner (intent defined, now plan the work)
 - planner -> builder (plan ready, now implement)
 - builder -> reviewer (bolt complete, now review)
 
@@ -39,7 +38,7 @@ STATE=$(han keep load iteration.json --quiet)
 ### Step 2: Determine Next Hat (or Handle Completion)
 
 ```javascript
-const workflow = state.workflow || ["elaborator", "planner", "builder", "reviewer"];
+const workflow = state.workflow || ["planner", "builder", "reviewer"];
 const currentIndex = workflow.indexOf(state.hat);
 const nextIndex = currentIndex + 1;
 

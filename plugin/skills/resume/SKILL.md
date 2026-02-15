@@ -104,7 +104,7 @@ starting_hat=$(get_recommended_hat ".ai-dlc/${slug}" "${workflow}")
 **CRITICAL: The orchestrator MUST run in the intent worktree, not the main working directory.**
 
 ```bash
-INTENT_BRANCH="ai-dlc/${slug}"
+INTENT_BRANCH="ai-dlc/${slug}/main"
 INTENT_WORKTREE="/tmp/ai-dlc-${slug}"
 
 if [ ! -d "$INTENT_WORKTREE" ]; then

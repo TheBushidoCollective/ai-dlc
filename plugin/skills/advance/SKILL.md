@@ -86,7 +86,7 @@ if [ "$AUTO_MERGE" = "true" ]; then
   UNIT_BRANCH="ai-dlc/${INTENT_SLUG}/${UNIT_SLUG}"
 
   # Ensure we're on the intent branch
-  git checkout "ai-dlc/${INTENT_SLUG}"
+  git checkout "ai-dlc/${INTENT_SLUG}/main"
 
   # Merge unit branch
   if [ "$AUTO_SQUASH" = "true" ]; then
@@ -205,15 +205,15 @@ DEFAULT_BRANCH=$(echo "$CONFIG" | jq -r '.default_branch')
 ```
 
 ```
-Intent branch ready: ai-dlc/{intent-slug} → ${DEFAULT_BRANCH}
+Intent branch ready: ai-dlc/{intent-slug}/main → ${DEFAULT_BRANCH}
 
-Create PR: gh pr create --base ${DEFAULT_BRANCH} --head ai-dlc/{intent-slug}
+Create PR: gh pr create --base ${DEFAULT_BRANCH} --head ai-dlc/{intent-slug}/main
 ```
 
 ### Next Steps
 
-1. **Review changes** - Check the work on branch `ai-dlc/{intent-slug}`
-2. **Create PR** - `gh pr create --base ${DEFAULT_BRANCH} --head ai-dlc/{intent-slug}`
+1. **Review changes** - Check the work on branch `ai-dlc/{intent-slug}/main`
+2. **Create PR** - `gh pr create --base ${DEFAULT_BRANCH} --head ai-dlc/{intent-slug}/main`
 3. **Clean up worktrees** - `git worktree remove /tmp/ai-dlc-{intent-slug}`
 4. **Start new task** - Run `/reset` to clear state, then `/elaborate`
 ```

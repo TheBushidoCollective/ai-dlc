@@ -672,7 +672,7 @@ Create the intent branch and worktree, then write files in `.ai-dlc/{intent-slug
 **CRITICAL: The intent MUST run in an isolated worktree, not the main working directory. Create this BEFORE writing any artifacts so all files are committed to the intent branch.**
 
 ```bash
-INTENT_BRANCH="ai-dlc/${intentSlug}"
+INTENT_BRANCH="ai-dlc/${intentSlug}/main"
 INTENT_WORKTREE="/tmp/ai-dlc-${intentSlug}"
 git worktree add -B "$INTENT_BRANCH" "$INTENT_WORKTREE"
 cd "$INTENT_WORKTREE"
@@ -757,7 +757,7 @@ problem space.}
 ---
 status: pending
 depends_on: []
-branch: ai-dlc/{intent-slug}/NN-{slug}
+branch: ai-dlc/{intent-slug}/NN-{unit-slug}
 discipline: {discipline}  # frontend, backend, api, documentation, devops, etc.
 ticket: ""  # Ticketing provider ticket key (auto-populated if ticketing provider configured)
 ---
@@ -828,7 +828,7 @@ If the orchestrator is in a temporary workspace (`/tmp/ai-dlc-workspace-*`):
 git push -u origin "$INTENT_BRANCH"
 ```
 
-This ensures builders can pull the intent branch when working remotely. Note in the handoff: "Artifacts pushed to `ai-dlc/{intent-slug}` branch on remote."
+This ensures builders can pull the intent branch when working remotely. Note in the handoff: "Artifacts pushed to `ai-dlc/{intent-slug}/main` branch on remote."
 
 ---
 
@@ -873,7 +873,7 @@ Tell the user:
 Elaboration complete!
 
 Intent Worktree: /tmp/ai-dlc-{intent-slug}/
-Branch: ai-dlc/{intent-slug}
+Branch: ai-dlc/{intent-slug}/main
 
 Created: .ai-dlc/{intent-slug}/
 - intent.md (intent, config, and testing requirements)

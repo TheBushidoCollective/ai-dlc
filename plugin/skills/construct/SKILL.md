@@ -115,7 +115,7 @@ elif [ ${#ACTIVE_INTENTS[@]} -gt 1 ]; then
 fi
 
 # Ensure we're in the intent worktree
-INTENT_BRANCH="ai-dlc/${INTENT_SLUG}"
+INTENT_BRANCH="ai-dlc/${INTENT_SLUG}/main"
 INTENT_WORKTREE="/tmp/ai-dlc-${INTENT_SLUG}"
 
 if [ ! -d "$INTENT_WORKTREE" ]; then
@@ -134,7 +134,7 @@ Ensure the intent branch tracks the remote so teammates can push their unit bran
 ```bash
 # Verify remote exists and configure upstream tracking
 if git remote get-url origin &>/dev/null; then
-  INTENT_BRANCH="ai-dlc/${INTENT_SLUG}"
+  INTENT_BRANCH="ai-dlc/${INTENT_SLUG}/main"
 
   # Ensure the intent branch tracks the remote
   git branch --set-upstream-to=origin/"$INTENT_BRANCH" 2>/dev/null || true
@@ -436,7 +436,7 @@ AUTO_SQUASH=$(echo "$CONFIG" | jq -r '.auto_squash // "false"')
 
 if [ "$AUTO_MERGE" = "true" ]; then
   UNIT_BRANCH="ai-dlc/${INTENT_SLUG}/${UNIT_SLUG}"
-  git checkout "ai-dlc/${INTENT_SLUG}"
+  git checkout "ai-dlc/${INTENT_SLUG}/main"
 
   if [ "$AUTO_SQUASH" = "true" ]; then
     git merge --squash "$UNIT_BRANCH"

@@ -564,13 +564,13 @@ discover_branch_intents() {
   local seen_slugs=""
 
   # 1. Check existing worktrees (highest priority)
-  # Parse git worktree list --porcelain to find ai-dlc/* branches
+  # Parse git worktree list --porcelain to find ai-dlc/*/main branches
   while IFS= read -r line; do
     if [[ "$line" == "branch refs/heads/ai-dlc/"* ]]; then
       local branch="${line#branch refs/heads/}"
-      # Only intent-level branches (ai-dlc/slug, not ai-dlc/slug/unit)
-      if [[ "$branch" =~ ^ai-dlc/[^/]+$ ]]; then
-        local slug="${branch#ai-dlc/}"
+      # Only intent-level branches (ai-dlc/slug/main)
+      if [[ "$branch" =~ ^ai-dlc/([^/]+)/main$ ]]; then
+        local slug="${BASH_REMATCH[1]}"
         # Read intent.md from the branch
         local intent_content
         intent_content=$(git show "$branch:.ai-dlc/$slug/intent.md" 2>/dev/null) || continue
@@ -585,12 +585,12 @@ discover_branch_intents() {
     fi
   done < <(git worktree list --porcelain 2>/dev/null)
 
-  # 2. Check local ai-dlc/* branches (no worktree)
+  # 2. Check local ai-dlc/*/main branches (no worktree)
   while IFS= read -r branch; do
     [ -z "$branch" ] && continue
-    # Only intent-level branches (ai-dlc/slug, not ai-dlc/slug/unit)
-    [[ "$branch" =~ ^ai-dlc/[^/]+$ ]] || continue
-    local slug="${branch#ai-dlc/}"
+    # Only intent-level branches (ai-dlc/slug/main)
+    [[ "$branch" =~ ^ai-dlc/([^/]+)/main$ ]] || continue
+    local slug="${BASH_REMATCH[1]}"
     # Skip if already seen in worktree
     [[ "$seen_slugs" == *" $slug"* ]] && continue
     # Read intent.md from the branch
@@ -603,15 +603,15 @@ discover_branch_intents() {
     workflow=$(echo "$intent_content" | han parse yaml workflow -r --default default 2>/dev/null || echo "default")
     echo "$slug|$workflow|local|$branch"
     seen_slugs="$seen_slugs $slug"
-  done < <(git for-each-ref --format='%(refname:short)' 'refs/heads/ai-dlc/*' 2>/dev/null)
+  done < <(git for-each-ref --format='%(refname:short)' 'refs/heads/ai-dlc/*/main' 2>/dev/null)
 
   # 3. Check remote branches (only if include_remote=true)
   if [ "$include_remote" = "true" ]; then
     while IFS= read -r branch; do
       [ -z "$branch" ] && continue
-      # Only intent-level branches
-      [[ "$branch" =~ ^origin/ai-dlc/[^/]+$ ]] || continue
-      local slug="${branch#origin/ai-dlc/}"
+      # Only intent-level branches (origin/ai-dlc/slug/main)
+      [[ "$branch" =~ ^origin/ai-dlc/([^/]+)/main$ ]] || continue
+      local slug="${BASH_REMATCH[1]}"
       # Skip if already seen
       [[ "$seen_slugs" == *" $slug"* ]] && continue
       # Read intent.md from the remote branch
@@ -624,6 +624,6 @@ discover_branch_intents() {
       workflow=$(echo "$intent_content" | han parse yaml workflow -r --default default 2>/dev/null || echo "default")
       echo "$slug|$workflow|remote|$branch"
       seen_slugs="$seen_slugs $slug"
-    done < <(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/ai-dlc/*' 2>/dev/null)
+    done < <(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/ai-dlc/*/main' 2>/dev/null)
   fi
 }

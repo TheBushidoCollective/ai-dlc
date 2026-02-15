@@ -31,9 +31,9 @@ ITERATION_JSON=""
 ITERATION_JSON=$(han keep load iteration.json --quiet 2>/dev/null || echo "")
 
 # If not found and we're on a unit branch, try the parent intent branch
-if [ -z "$ITERATION_JSON" ] && [[ "$CURRENT_BRANCH" == ai-dlc/*/* ]]; then
-  # Extract intent branch: ai-dlc/intent-slug/unit-slug -> ai-dlc/intent-slug
-  INTENT_BRANCH=$(echo "$CURRENT_BRANCH" | sed 's|^\(ai-dlc/[^/]*\)/.*|\1|')
+if [ -z "$ITERATION_JSON" ] && [[ "$CURRENT_BRANCH" == ai-dlc/*/* ]] && [[ "$CURRENT_BRANCH" != ai-dlc/*/main ]]; then
+  # Extract intent branch: ai-dlc/intent-slug/unit-slug -> ai-dlc/intent-slug/main
+  INTENT_BRANCH=$(echo "$CURRENT_BRANCH" | sed 's|^\(ai-dlc/[^/]*\)/.*|\1/main|')
   ITERATION_JSON=$(han keep load --branch "$INTENT_BRANCH" iteration.json --quiet 2>/dev/null || echo "")
 fi
 

@@ -554,9 +554,20 @@ INTEGRATOR_COMPLETE=$(echo "$STATE" | han parse json integratorComplete -r --def
 UNIT_COUNT=$(ls -1 "$INTENT_DIR"/unit-*.md 2>/dev/null | wc -l)
 ```
 
-Skip the integrator entirely if there is only one unit (the reviewer already validated it).
+Skip the integrator if:
+- Only one unit (the reviewer already validated it)
+- `change_strategy` is `bolt` (single squashed branch, no multi-unit merge)
 
-If `UNIT_COUNT > 1` and `integratorComplete` is not `true`:
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+CONFIG=$(get_ai_dlc_config "$INTENT_DIR")
+CHANGE_STRATEGY=$(echo "$CONFIG" | jq -r '.change_strategy // "unit"')
+SKIP_INTEGRATOR=false
+[ "$UNIT_COUNT" -le 1 ] && SKIP_INTEGRATOR=true
+[ "$CHANGE_STRATEGY" = "bolt" ] && SKIP_INTEGRATOR=true
+```
+
+If `SKIP_INTEGRATOR` is false and `integratorComplete` is not `true`:
 
 1. Load integrator hat instructions:
 

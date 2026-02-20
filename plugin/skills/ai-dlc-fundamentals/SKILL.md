@@ -138,9 +138,11 @@ Each iteration:
 3. Makes progress (guided by criteria and backpressure)
 4. Saves state (for next iteration)
 
-## Hat-Based Workflows
+## Hat-Based Workflows (Bolts)
 
-Different phases of work require different mindsets. AI-DLC uses "hats" to formalize this:
+Different phases of work require different mindsets. AI-DLC uses "hats" to formalize this.
+
+**Terminology mapping:** In the AI-DLC paper, a **Bolt** is the smallest iteration cycle — one pass through the hat workflow for a unit. The plugin implements Bolts as hat sequences: each unit progresses through its workflow hats (e.g., planner → builder → reviewer), with reviewer rejection cycling back to the previous hat. One complete pass = one Bolt. Multiple rejections = multiple Bolts for that unit.
 
 ### Default Workflow
 
@@ -152,9 +154,9 @@ planner → builder → reviewer
 
 | Hat | Focus |
 |-----|-------|
-| Planner | Plan this iteration |
+| Planner | Plan this iteration (Bolt) |
 | Builder | Implement to spec |
-| Reviewer | Verify quality |
+| Reviewer | Verify quality — approve completes the Bolt, reject starts a new one |
 
 ### Hat Transitions
 

@@ -112,9 +112,13 @@ READY_COUNT=$(echo "$DAG_SUMMARY" | han parse json readyCount -r)
 ```javascript
 if (dagSummary.allComplete) {
   // ALL UNITS COMPLETE - Check if integrator should run
-  // Skip integrator for single-unit intents (reviewer already validated it)
+  // Skip integrator for:
+  //   - Single-unit intents (reviewer already validated it)
+  //   - change_strategy "bolt" (single squashed branch, no multi-unit merge)
   const unitCount = dagSummary.totalCount;
-  if (unitCount > 1 && !state.integratorComplete) {
+  const changeStrategy = config.change_strategy || "unit";
+  const skipIntegrator = unitCount <= 1 || changeStrategy === "bolt";
+  if (!skipIntegrator && !state.integratorComplete) {
     // Spawn integrator on the intent branch
     // See Step 2e below
     return spawnIntegrator();
@@ -266,10 +270,28 @@ The re-queued units will be picked up on the next `/construct` cycle through the
 ### Step 3: Update State
 
 ```bash
+# Increment iteration counter
+ITERATION=$(echo "$STATE" | han parse json iteration -r --default 1)
+ITERATION=$((ITERATION + 1))
+
+# Safety cap: prevent infinite loops
+MAX_ITERATIONS=50
+if [ "$ITERATION" -ge "$MAX_ITERATIONS" ]; then
+  echo "## Safety Limit Reached"
+  echo ""
+  echo "Construction has reached ${MAX_ITERATIONS} iterations without completing."
+  echo "This likely indicates poorly specified criteria or a systematic issue."
+  echo ""
+  echo "**Action required:** Review the intent and unit specs, then run \`/construct\` to resume."
+  STATE=$(echo "$STATE" | han parse json --set "status=blocked" --set "iteration=$ITERATION")
+  han keep save iteration.json "$STATE"
+  exit 0
+fi
+
 # Update hat and signal SessionStart to increment iteration
 # Intent-level state saved to current branch (intent branch)
-# state.hat = nextHat, state.needsAdvance = true
-han keep save iteration.json '<updated JSON with hat and needsAdvance>'
+# state.hat = nextHat, state.iteration = ITERATION
+han keep save iteration.json '<updated JSON with hat and iteration>'
 ```
 
 ### Step 4: Confirm (Normal Advancement)
@@ -315,6 +337,32 @@ Intent branch ready: ai-dlc/{intent-slug}/main → ${DEFAULT_BRANCH}
 
 Create PR: gh pr create --base ${DEFAULT_BRANCH} --head ai-dlc/{intent-slug}/main
 ```
+
+### Completion Announcements
+
+If the intent has configured `announcements` in its frontmatter, generate each format:
+
+```bash
+ANNOUNCEMENTS=$(han parse yaml announcements < "$INTENT_DIR/intent.md" 2>/dev/null || echo "[]")
+```
+
+For each configured format, generate the announcement artifact in `.ai-dlc/{intent-slug}/`:
+
+| Format | File | Content |
+|--------|------|---------|
+| `changelog` | `CHANGELOG-entry.md` | Conventional changelog entry (Added/Changed/Fixed sections) |
+| `release-notes` | `release-notes.md` | User-facing feature summary in plain language |
+| `social-posts` | `social-posts.md` | Platform-optimized snippets (Twitter/LinkedIn ready) |
+| `blog-draft` | `blog-draft.md` | Long-form announcement with context, examples, and impact |
+
+Generate each from the intent's Problem/Solution, completed units, and success criteria. Commit the announcement artifacts:
+
+```bash
+git add .ai-dlc/${INTENT_SLUG}/
+git commit -m "announce: generate completion announcements for ${INTENT_SLUG}"
+```
+
+Skip this step if `announcements` is empty or `[]`.
 
 Then ask the user how to deliver using `AskUserQuestion`:
 

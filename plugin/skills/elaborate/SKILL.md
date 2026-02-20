@@ -452,6 +452,7 @@ If yes, define each unit with **enough detail that a builder with zero prior con
 - **Technical specification**: Specific components, views, functions, or modules to create. If it's a UI, describe what the user sees and interacts with. If it's an API, describe the endpoints and their behavior. If it's a data layer, describe the transformations.
 - **Success criteria**: Specific, testable criteria that reference domain entities (not generic criteria like "displays data")
 - **Dependencies on other units**: What must be built first and why
+- **Risks**: What could go wrong? Security concerns, performance risks, integration fragility, data integrity issues. Each risk should note its impact and mitigation.
 - **What this unit is NOT**: Explicit boundaries to prevent scope creep. If another unit handles related concerns, say so.
 
 **Bad unit description** (too vague, builder will guess wrong):
@@ -620,6 +621,35 @@ Map user selections to config values:
 
 ---
 
+## Phase 5.9: Completion Announcements
+
+Ask the user if they want announcement artifacts generated when the intent completes.
+
+Use `AskUserQuestion`:
+```json
+{
+  "questions": [{
+    "question": "What announcement formats should be generated when this intent completes?",
+    "header": "Announcements",
+    "options": [
+      {"label": "None", "description": "No announcements — just deliver the code"},
+      {"label": "Changelog", "description": "Conventional changelog entry for developers"},
+      {"label": "Release notes", "description": "User-facing feature summary"},
+      {"label": "All formats", "description": "Changelog, release notes, social posts, and blog draft"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+Map selections to the `announcements` array in intent.md frontmatter:
+- "None" → `[]`
+- "Changelog" → `[changelog]`
+- "Release notes" → `[changelog, release-notes]`
+- "All formats" → `[changelog, release-notes, social-posts, blog-draft]`
+
+---
+
 ## Phase 6: Write AI-DLC Artifacts
 
 Create the intent branch and worktree, then write files in `.ai-dlc/{intent-slug}/`:
@@ -653,6 +683,7 @@ git:
   change_strategy: {unit|intent|trunk|bolt}
   auto_merge: {true|false}
   auto_squash: false
+announcements: []  # e.g., [changelog, release-notes, social-posts, blog-draft]
 created: {ISO date}
 status: active
 epic: ""  # Ticketing provider epic key (auto-populated if ticketing provider configured)
@@ -728,6 +759,9 @@ misinterpret what to build.}
 ## Success Criteria
 - [ ] {Criterion referencing specific domain entities, not generic}
 - [ ] {Another criterion}
+
+## Risks
+- **{Risk}**: {impact}. Mitigation: {how to address it}.
 
 ## Boundaries
 {What this unit does NOT handle. Reference which other units own related concerns.}

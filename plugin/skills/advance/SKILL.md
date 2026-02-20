@@ -111,7 +111,13 @@ READY_COUNT=$(echo "$DAG_SUMMARY" | han parse json readyCount -r)
 
 ```javascript
 if (dagSummary.allComplete) {
-  // ALL UNITS COMPLETE - Mark intent as done
+  // ALL UNITS COMPLETE - Check if integrator has run
+  if (!state.integratorComplete) {
+    // Spawn integrator on the intent branch
+    // See Step 2e below
+    return spawnIntegrator();
+  }
+  // Integrator passed - Mark intent as done
   state.status = "complete";
   // han keep save iteration.json '<updated JSON>'
   // Output completion summary (see Step 5)
@@ -156,6 +162,104 @@ If `AGENT_TEAMS_ENABLED` is set and `readyCount > 0` after completing a unit:
 This replaces the sequential "loop back to builder" behavior when Agent Teams is active. Instead of the lead picking up the next unit sequentially, newly unblocked units are spawned as parallel teammates immediately.
 
 **Without Agent Teams:** The existing behavior (reset hat to builder, let `/construct` pick next unit) continues unchanged.
+
+### Step 2e: Integrator Spawning (When All Units Complete)
+
+When `dagSummary.allComplete` is true and `state.integratorComplete` is not true, spawn the Integrator instead of marking the intent complete.
+
+**The Integrator is NOT a per-unit hat** — it does not appear in the workflow sequence. It runs once on the merged intent branch after all units pass their per-unit workflows.
+
+1. Set state to indicate integrator is running:
+
+```bash
+STATE=$(echo "$STATE" | han parse json --set "hat=integrator")
+han keep save iteration.json "$STATE"
+```
+
+2. Load integrator hat instructions:
+
+```bash
+HAT_FILE=""
+if [ -f ".ai-dlc/hats/integrator.md" ]; then
+  HAT_FILE=".ai-dlc/hats/integrator.md"
+elif [ -n "$CLAUDE_PLUGIN_ROOT" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/hats/integrator.md" ]; then
+  HAT_FILE="${CLAUDE_PLUGIN_ROOT}/hats/integrator.md"
+fi
+
+HAT_INSTRUCTIONS=""
+if [ -n "$HAT_FILE" ]; then
+  HAT_INSTRUCTIONS=$(sed '1,/^---$/d' "$HAT_FILE" | sed '1,/^---$/d')
+fi
+```
+
+3. Spawn integrator subagent on the **intent worktree** (not a unit worktree):
+
+```javascript
+Task({
+  subagent_type: "general-purpose",
+  description: `integrator: ${intentSlug}`,
+  prompt: `
+    Execute the Integrator role for intent ${intentSlug}.
+
+    ## Your Role: Integrator
+    ${HAT_INSTRUCTIONS}
+
+    ## CRITICAL: Work on Intent Branch
+    **Worktree path:** /tmp/ai-dlc-${intentSlug}/
+    **Branch:** ai-dlc/${intentSlug}/main
+
+    You MUST:
+    1. cd /tmp/ai-dlc-${intentSlug}/
+    2. Verify you're on the intent branch (not a unit branch)
+    3. This branch contains ALL merged unit work
+
+    ## Intent-Level Success Criteria
+    ${intentCriteria}
+
+    ## Completed Units
+    ${completedUnitsList}
+
+    Verify that all units work together and intent-level criteria are met.
+    Report ACCEPT or REJECT with specific details.
+  `
+})
+```
+
+4. Handle integrator result:
+
+**If ACCEPT:**
+```bash
+STATE=$(echo "$STATE" | han parse json --set "integratorComplete=true" --set "status=complete")
+han keep save iteration.json "$STATE"
+# Proceed to Step 5 (completion summary)
+```
+
+**If REJECT:**
+
+The integrator specifies which units need rework. For each rejected unit:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
+WORKFLOW_HATS=$(echo "$STATE" | han parse json workflow)
+FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '.[0]')
+
+# Re-queue each rejected unit
+for UNIT_FILE in $REJECTED_UNITS; do
+  update_unit_status "$UNIT_FILE" "pending"
+
+  # Reset hat to first workflow hat in unitStates (teams mode)
+  UNIT_NAME=$(basename "$UNIT_FILE" .md)
+  STATE=$(echo "$STATE" | han parse json --set "unitStates.${UNIT_NAME}.hat=${FIRST_HAT}" --set "unitStates.${UNIT_NAME}.retries=0")
+done
+
+# Reset integrator state
+STATE=$(echo "$STATE" | han parse json --set "hat=${FIRST_HAT}" --set "integratorComplete=false")
+han keep save iteration.json "$STATE"
+
+# Output: "Integrator rejected. Re-queued units: {list}. Run /construct to continue."
+```
+
+The re-queued units will be picked up on the next `/construct` cycle through the normal DAG-based unit selection.
 
 ### Step 3: Update State
 
@@ -210,10 +314,71 @@ Intent branch ready: ai-dlc/{intent-slug}/main → ${DEFAULT_BRANCH}
 Create PR: gh pr create --base ${DEFAULT_BRANCH} --head ai-dlc/{intent-slug}/main
 ```
 
-### Next Steps
+Then ask the user how to deliver using `AskUserQuestion`:
 
-1. **Review changes** - Check the work on branch `ai-dlc/{intent-slug}/main`
-2. **Create PR** - `gh pr create --base ${DEFAULT_BRANCH} --head ai-dlc/{intent-slug}/main`
-3. **Clean up worktrees** - `git worktree remove /tmp/ai-dlc-{intent-slug}`
-4. **Start new task** - Run `/reset` to clear state, then `/elaborate`
+```json
+{
+  "questions": [{
+    "question": "How would you like to deliver this intent?",
+    "header": "Delivery",
+    "options": [
+      {"label": "Open PR/MR for delivery", "description": "Create a pull/merge request to merge into the default branch"},
+      {"label": "I'll handle it", "description": "Just show me the branch details"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+### If PR/MR:
+
+1. Push intent branch to remote (if not already):
+
+```bash
+INTENT_BRANCH="ai-dlc/${INTENT_SLUG}/main"
+git push -u origin "$INTENT_BRANCH" 2>/dev/null || true
+```
+
+2. Create PR/MR:
+
+```bash
+gh pr create \
+  --title "${INTENT_TITLE}" \
+  --base "$DEFAULT_BRANCH" \
+  --head "$INTENT_BRANCH" \
+  --body "$(cat <<EOF
+## Summary
+${PROBLEM_SECTION}
+
+${SOLUTION_SECTION}
+
+## Test Plan
+${SUCCESS_CRITERIA_AS_CHECKLIST}
+
+## Changes
+${COMPLETED_UNITS_AS_CHANGE_LIST}
+
+---
+*Built with [AI-DLC](https://ai-dlc.dev)*
+EOF
+)"
+```
+
+3. Output the PR URL.
+
+### If manual:
+
+```
+Intent branch ready: ai-dlc/{intent-slug}/main → ${DEFAULT_BRANCH}
+
+To merge:
+  git checkout ${DEFAULT_BRANCH}
+  git merge --no-ff ai-dlc/{intent-slug}/main
+
+To create PR manually:
+  gh pr create --base ${DEFAULT_BRANCH} --head ai-dlc/{intent-slug}/main
+
+To clean up:
+  git worktree remove /tmp/ai-dlc-{intent-slug}
+  /reset
 ```

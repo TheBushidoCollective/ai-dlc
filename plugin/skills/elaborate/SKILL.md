@@ -423,6 +423,20 @@ Bad:
 - [ ] API works well
 ```
 
+### Non-Functional Requirements
+
+Before confirming criteria, explicitly ask the user about non-functional dimensions using `AskUserQuestion`. Select the dimensions relevant to this intent:
+
+- **Performance** — Response times, throughput, latency budgets (e.g., "p95 < 200ms")
+- **Security** — Auth requirements, data protection, OWASP concerns
+- **Accessibility** — WCAG level, screen reader support, keyboard navigation
+- **Observability** — Logging, metrics, tracing, alerting requirements
+- **Scalability** — Load expectations, concurrency limits, growth projections
+
+Each non-functional requirement MUST be expressed as a verifiable success criterion. Do NOT accept vague NFRs — "performant" is not a criterion, "p95 response < 200ms under 1000 req/s" is.
+
+Add confirmed NFRs to the success criteria list before presenting for final confirmation.
+
 Use `AskUserQuestion` to confirm criteria:
 ```json
 {
@@ -499,6 +513,35 @@ or timeline replay (unit-05). It only renders the structural hierarchy.
 ```
 
 Present the full unit breakdown to the user and confirm before proceeding.
+
+---
+
+## Phase 5.5: Cross-Cutting Concern Analysis
+
+After units are defined, identify concerns that span multiple units. Ask:
+
+> "Do any concerns span multiple units? Examples: authentication, error handling patterns, logging conventions, shared state, caching strategy."
+
+For each cross-cutting concern identified, decide how to handle it using `AskUserQuestion`:
+
+```json
+{
+  "questions": [{
+    "question": "How should we handle the cross-cutting concern: '{concern}'?",
+    "header": "Strategy",
+    "options": [
+      {"label": "Foundation unit", "description": "Create a new unit that others depend_on. Use when the concern requires shared code/infrastructure (e.g., auth middleware, shared component library)."},
+      {"label": "Intent-level convention", "description": "Document as an intent-level success criterion that every unit's reviewer checks. Use when the concern is a pattern to follow, not code to build (e.g., 'all API errors return RFC 7807 format')."}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+- **If foundation unit**: Add it to the unit list with appropriate `depends_on` edges from consuming units. Follow the same unit specification format from Phase 5.
+- **If convention**: Add it to the intent-level success criteria. The Integrator (and each unit's Reviewer) will verify compliance.
+
+**Skip this phase if there is only one unit.**
 
 ---
 
@@ -849,9 +892,9 @@ Log: `"Ticket sync validation passed — all epic and ticket fields populated."`
 
 ---
 
-## Phase 7: Handoff to Construction
+## Phase 7: Handoff
 
-Tell the user:
+Present the elaboration summary:
 
 ```
 Elaboration complete!
@@ -868,12 +911,93 @@ Created: .ai-dlc/{intent-slug}/
 Workflow: {workflowName}
 Mode: {mode}
 Next hat: {next-hat}
+```
 
+Then ask the user how to proceed using `AskUserQuestion`:
+
+```json
+{
+  "questions": [{
+    "question": "How would you like to proceed?",
+    "header": "Handoff",
+    "options": [
+      {"label": "Construct", "description": "Start the autonomous build loop now"},
+      {"label": "Open PR/MR for review", "description": "Create a pull/merge request for spec review before building"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+### If Construct:
+
+Tell the user:
+
+```
 To start the autonomous build loop:
   /construct
 
 The construction phase will iterate through each unit, using quality gates
 (tests, types, lint) as backpressure until all success criteria are met.
+
+Note: All AI-DLC work happens in the worktree at /tmp/ai-dlc-{intent-slug}/
+Your main working directory stays clean on the main branch.
+```
+
+### If PR/MR for review:
+
+1. Push the intent branch to remote:
+
+```bash
+INTENT_BRANCH="ai-dlc/${INTENT_SLUG}/main"
+git push -u origin "$INTENT_BRANCH"
+```
+
+2. Create PR/MR:
+
+```bash
+# Determine default branch
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
+CONFIG=$(get_ai_dlc_config "$INTENT_DIR")
+DEFAULT_BRANCH=$(echo "$CONFIG" | jq -r '.default_branch')
+
+# Read intent.md for PR body content
+INTENT_FILE="$INTENT_DIR/intent.md"
+
+gh pr create \
+  --title "[AI-DLC Spec] ${INTENT_TITLE}" \
+  --base "$DEFAULT_BRANCH" \
+  --head "$INTENT_BRANCH" \
+  --body "$(cat <<EOF
+## Problem
+${PROBLEM_SECTION}
+
+## Solution
+${SOLUTION_SECTION}
+
+## Domain Model
+${DOMAIN_MODEL_SECTION}
+
+## Success Criteria
+${SUCCESS_CRITERIA_SECTION}
+
+## Unit Breakdown
+${UNIT_BREAKDOWN}
+
+---
+*This is an AI-DLC spec review PR. Approve and run \`/construct\` to begin the autonomous build loop.*
+EOF
+)"
+```
+
+3. Tell the user:
+
+```
+Spec PR created: {PR_URL}
+
+Review the spec with your team. When approved, run:
+  /construct
 
 Note: All AI-DLC work happens in the worktree at /tmp/ai-dlc-{intent-slug}/
 Your main working directory stays clean on the main branch.

@@ -520,9 +520,82 @@ This means ANY hat can reject -- not just the reviewer. A red-team finding issue
 2. Check if ALL units are blocked
 3. If all blocked, alert user: "All units blocked. Human intervention required."
 
-### Step 5 (Teams): Team Shutdown
+### Step 5 (Teams): Integrator and Team Shutdown
 
 When all units complete:
+
+#### 5a. Spawn Integrator
+
+Before shutting down the team, spawn the Integrator as a teammate on the **intent worktree** (not a unit worktree):
+
+```bash
+# Check if integrator has already passed
+INTEGRATOR_COMPLETE=$(echo "$STATE" | han parse json integratorComplete -r --default "false")
+```
+
+If `integratorComplete` is not `true`:
+
+1. Load integrator hat instructions:
+
+```bash
+HAT_FILE=""
+if [ -f ".ai-dlc/hats/integrator.md" ]; then
+  HAT_FILE=".ai-dlc/hats/integrator.md"
+elif [ -n "$CLAUDE_PLUGIN_ROOT" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/hats/integrator.md" ]; then
+  HAT_FILE="${CLAUDE_PLUGIN_ROOT}/hats/integrator.md"
+fi
+
+HAT_INSTRUCTIONS=""
+if [ -n "$HAT_FILE" ]; then
+  HAT_INSTRUCTIONS=$(sed '1,/^---$/d' "$HAT_FILE" | sed '1,/^---$/d')
+fi
+```
+
+2. Spawn integrator as a teammate:
+
+```javascript
+Task({
+  subagent_type: "general-purpose",
+  description: `integrator: ${intentSlug}`,
+  name: `integrator-${intentSlug}`,
+  team_name: `ai-dlc-${intentSlug}`,
+  mode: modeToAgentTeamsMode(intentMode),
+  prompt: `
+    Execute the Integrator role for intent ${intentSlug}.
+
+    ## Your Role: Integrator
+    ${HAT_INSTRUCTIONS}
+
+    ## CRITICAL: Work on Intent Branch
+    **Worktree path:** /tmp/ai-dlc-${intentSlug}/
+    **Branch:** ai-dlc/${intentSlug}/main
+
+    You MUST:
+    1. cd /tmp/ai-dlc-${intentSlug}/
+    2. Verify you're on the intent branch (not a unit branch)
+    3. This branch contains ALL merged unit work
+
+    ## Intent-Level Success Criteria
+    ${intentCriteria}
+
+    ## Completed Units
+    ${completedUnitsList}
+
+    Verify that all units work together and intent-level criteria are met.
+    Report ACCEPT or REJECT via SendMessage to the team lead.
+  `
+})
+```
+
+3. Handle integrator result:
+
+**If ACCEPT:** Set `integratorComplete = true`, proceed to shutdown below.
+
+**If REJECT:** Re-queue rejected units (same logic as advance/SKILL.md Step 2e — set status to `pending`, reset hat to first workflow hat). Spawn new teammates for re-queued units. Do NOT shut down the team.
+
+#### 5b. Team Shutdown
+
+After integrator accepts (or if `integratorComplete` was already true):
 
 1. Send shutdown requests to all active teammates:
 
@@ -549,6 +622,82 @@ han keep save iteration.json "$STATE"
 ```
 
 4. Output completion summary (same as current Step 5 format from `/advance`)
+
+#### 5c. Delivery Prompt
+
+After the completion summary, ask the user how to deliver using `AskUserQuestion`:
+
+```json
+{
+  "questions": [{
+    "question": "How would you like to deliver this intent?",
+    "header": "Delivery",
+    "options": [
+      {"label": "Open PR/MR for delivery", "description": "Create a pull/merge request to merge into the default branch"},
+      {"label": "I'll handle it", "description": "Just show me the branch details"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+**If PR/MR:**
+
+1. Push intent branch to remote (if not already):
+
+```bash
+INTENT_BRANCH="ai-dlc/${INTENT_SLUG}/main"
+git push -u origin "$INTENT_BRANCH" 2>/dev/null || true
+```
+
+2. Create PR/MR:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
+CONFIG=$(get_ai_dlc_config "$INTENT_DIR")
+DEFAULT_BRANCH=$(echo "$CONFIG" | jq -r '.default_branch')
+
+gh pr create \
+  --title "${INTENT_TITLE}" \
+  --base "$DEFAULT_BRANCH" \
+  --head "$INTENT_BRANCH" \
+  --body "$(cat <<EOF
+## Summary
+${PROBLEM_SECTION}
+
+${SOLUTION_SECTION}
+
+## Test Plan
+${SUCCESS_CRITERIA_AS_CHECKLIST}
+
+## Changes
+${COMPLETED_UNITS_AS_CHANGE_LIST}
+
+---
+*Built with [AI-DLC](https://ai-dlc.dev)*
+EOF
+)"
+```
+
+3. Output the PR URL.
+
+**If manual:**
+
+```
+Intent branch ready: ai-dlc/{intent-slug}/main → ${DEFAULT_BRANCH}
+
+To merge:
+  git checkout ${DEFAULT_BRANCH}
+  git merge --no-ff ai-dlc/{intent-slug}/main
+
+To create PR manually:
+  gh pr create --base ${DEFAULT_BRANCH} --head ai-dlc/{intent-slug}/main
+
+To clean up:
+  git worktree remove /tmp/ai-dlc-{intent-slug}
+  /reset
+```
 
 ### Per-Unit Hat Tracking
 
@@ -692,11 +841,17 @@ Based on the subagent's response:
 - **Issues found** (reviewer): Call `/fail` to return to builder
 - **Blocked**: Document and stop loop for user intervention
 
-#### Step 5: Loop Behavior
+When `/advance` marks the intent complete (all units done + integrator passed), proceed to Step 5.
+
+**Note:** The integrator is handled by `/advance` (Step 2e). When all units complete, `/advance` automatically spawns the integrator before marking the intent complete. If the integrator rejects, `/advance` re-queues units and the construction loop continues.
+
+#### Step 5: Loop Behavior and Delivery
 
 The construction loop is **fully autonomous**. It continues until:
-1. **Complete** - All units done, `/advance` marks intent complete
+1. **Complete** - All units done, `/advance` marks intent complete (after integrator passes)
 2. **All units blocked** - No forward progress possible, human must intervene
 3. **Session exhausted** - Stop hook fires, instructs agent to call `/construct`
 
 **CRITICAL:** The agent MUST auto-continue between units. Do NOT stop after each unit.
+
+When the intent is marked complete, present the completion summary and delivery prompt (same as advance/SKILL.md Step 5 — ask user to open PR/MR or handle manually).

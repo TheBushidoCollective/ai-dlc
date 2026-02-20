@@ -176,12 +176,11 @@ if [ -z "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" ]; then
   if [ -n "$HAT_FILE" ] && [ -f "$HAT_FILE" ]; then
     # Parse frontmatter
     NAME=$(han parse yaml name -r --default "" < "$HAT_FILE" 2>/dev/null || echo "")
-    MODE=$(han parse yaml mode -r --default "" < "$HAT_FILE" 2>/dev/null || echo "")
 
     # Get content after frontmatter
     INSTRUCTIONS=$(cat "$HAT_FILE" | sed '1,/^---$/d' | sed '1,/^---$/d')
 
-    echo "**${NAME:-$HAT}** (Mode: ${MODE:-HITL})"
+    echo "**${NAME:-$HAT}**"
     echo ""
     if [ -n "$INSTRUCTIONS" ]; then
       echo "$INSTRUCTIONS"
@@ -258,7 +257,7 @@ echo "3. **If on wrong branch** - Switch to correct branch and continue"
 echo "4. **If tests fail** - Fix and retry, don't give up"
 echo "5. **Only declare blocked** after 3+ genuine rescue attempts"
 echo ""
-echo "### Communication (HITL)"
+echo "### Communication"
 echo ""
 echo "**Notify users of important events:**"
 echo ""

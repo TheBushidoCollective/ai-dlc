@@ -111,8 +111,10 @@ READY_COUNT=$(echo "$DAG_SUMMARY" | han parse json readyCount -r)
 
 ```javascript
 if (dagSummary.allComplete) {
-  // ALL UNITS COMPLETE - Check if integrator has run
-  if (!state.integratorComplete) {
+  // ALL UNITS COMPLETE - Check if integrator should run
+  // Skip integrator for single-unit intents (reviewer already validated it)
+  const unitCount = dagSummary.totalCount;
+  if (unitCount > 1 && !state.integratorComplete) {
     // Spawn integrator on the intent branch
     // See Step 2e below
     return spawnIntegrator();

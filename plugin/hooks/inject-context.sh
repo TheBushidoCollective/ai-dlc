@@ -318,19 +318,9 @@ if [ "$STATUS" = "complete" ]; then
   exit 0
 fi
 
-# Read mode from intent.md frontmatter (mode lives on the intent, not hats)
-INTENT_SLUG_EARLY="${KEEP_VALUES[intent-slug]:-}"
-MODE=""
-if [ -n "$INTENT_SLUG_EARLY" ] && [ -f ".ai-dlc/${INTENT_SLUG_EARLY}/intent.md" ]; then
-  MODE=$(han parse yaml mode -r --default OHOTL < ".ai-dlc/${INTENT_SLUG_EARLY}/intent.md" 2>/dev/null || echo "OHOTL")
-else
-  # Try parsing mode from iteration.json if intent.md not available yet
-  MODE=$(echo "$ITERATION_JSON" | han parse json mode -r --default OHOTL 2>/dev/null || echo "OHOTL")
-fi
-
 echo "## AI-DLC Context"
 echo ""
-echo "**Iteration:** $ITERATION | **Hat:** $HAT | **Mode:** $MODE | **Workflow:** $WORKFLOW_NAME ($WORKFLOW_HATS_STR)"
+echo "**Iteration:** $ITERATION | **Hat:** $HAT | **Workflow:** $WORKFLOW_NAME ($WORKFLOW_HATS_STR)"
 echo ""
 
 # Inject provider context

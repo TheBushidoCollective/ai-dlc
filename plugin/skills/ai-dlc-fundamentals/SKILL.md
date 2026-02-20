@@ -150,11 +150,11 @@ Elaboration (`/elaborate`) is a separate pre-construction phase. The constructio
 planner → builder → reviewer
 ```
 
-| Hat | Focus | Mode |
-|-----|-------|------|
-| Planner | Plan this iteration | HITL |
-| Builder | Implement to spec | OHOTL |
-| Reviewer | Verify quality | HITL |
+| Hat | Focus |
+|-----|-------|
+| Planner | Plan this iteration |
+| Builder | Implement to spec |
+| Reviewer | Verify quality |
 
 ### Hat Transitions
 
@@ -185,31 +185,6 @@ description: Investigates the problem space before implementing
 Investigate the problem space before implementing.
 Gather context, explore options, document findings.
 ```
-
-## Modes of Operation
-
-### HITL - Human In The Loop
-
-Human actively participates in every decision:
-- Elaboration phase (defining what to build)
-- Review phase (approving implementation)
-- Course corrections (when AI goes off track)
-
-### OHOTL - Occasional Human Over The Loop
-
-Human sets direction, AI operates autonomously:
-- Builder phase with clear criteria
-- Human intervenes only when stuck or for review
-- Backpressure enforces quality automatically
-
-### AHOTL - Autonomous Human Over The Loop
-
-AI operates with minimal human involvement:
-- Multiple iterations without human input
-- Human reviews at end or on exception
-- Requires very clear criteria and robust backpressure
-
-*For detailed mode selection guidance, see the `ai-dlc-mode-selection` skill.*
 
 ## State Management
 

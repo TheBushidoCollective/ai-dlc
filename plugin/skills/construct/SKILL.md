@@ -549,9 +549,14 @@ Before shutting down the team, spawn the Integrator as a teammate on the **inten
 ```bash
 # Check if integrator has already passed
 INTEGRATOR_COMPLETE=$(echo "$STATE" | han parse json integratorComplete -r --default "false")
+
+# Count total units
+UNIT_COUNT=$(ls -1 "$INTENT_DIR"/unit-*.md 2>/dev/null | wc -l)
 ```
 
-If `integratorComplete` is not `true`:
+Skip the integrator entirely if there is only one unit (the reviewer already validated it).
+
+If `UNIT_COUNT > 1` and `integratorComplete` is not `true`:
 
 1. Load integrator hat instructions:
 

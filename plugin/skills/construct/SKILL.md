@@ -147,6 +147,47 @@ if git remote get-url origin &>/dev/null; then
 fi
 ```
 
+### Step 0c: Provider Sync Check
+
+Check if a ticketing provider is configured and warn if ticket fields are unpopulated. This is a **warning only** — construction proceeds regardless. The elaboration gate (Phase 6.75) is the hard enforcement point; this catches cases where elaboration predated provider configuration.
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+PROVIDERS=$(load_providers)
+TICKETING_TYPE=$(echo "$PROVIDERS" | jq -r '.ticketing.type // empty')
+
+if [ -n "$TICKETING_TYPE" ]; then
+  INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
+  MISSING=""
+
+  # Check epic field in intent.md
+  if [ -f "$INTENT_DIR/intent.md" ]; then
+    EPIC=$(han parse yaml epic -r --default "" < "$INTENT_DIR/intent.md" 2>/dev/null || echo "")
+    if [ -z "$EPIC" ]; then
+      MISSING="${MISSING}\n- intent.md: epic field is empty"
+    fi
+  fi
+
+  # Check ticket field in each unit file
+  for unit_file in "$INTENT_DIR"/unit-*.md; do
+    [ -f "$unit_file" ] || continue
+    TICKET=$(han parse yaml ticket -r --default "" < "$unit_file" 2>/dev/null || echo "")
+    if [ -z "$TICKET" ]; then
+      MISSING="${MISSING}\n- $(basename "$unit_file"): ticket field is empty"
+    fi
+  done
+
+  if [ -n "$MISSING" ]; then
+    echo ""
+    echo "> **WARNING: Ticketing provider '${TICKETING_TYPE}' is configured but some ticket fields are empty:**"
+    echo -e "$MISSING"
+    echo ">"
+    echo "> Consider running \`/elaborate\` to sync tickets, or populate fields manually."
+    echo ""
+  fi
+fi
+```
+
 ### Step 1: Load State
 
 ```bash

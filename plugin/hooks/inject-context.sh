@@ -213,6 +213,10 @@ if [ -z "$ITERATION_JSON" ]; then
 
     echo "**To resume:** \`/resume <slug>\` or \`/resume\` if only one"
     echo ""
+    if [ ! -f ".ai-dlc/settings.yml" ]; then
+      echo "> **Tip:** Run \`/setup\` to configure providers and VCS settings. This enables automatic ticket sync during elaboration."
+      echo ""
+    fi
     # Inject provider context for pre-elaboration awareness
     CONFIG_LIB="${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
     if [ -f "$CONFIG_LIB" ]; then
@@ -231,6 +235,10 @@ if [ -z "$ITERATION_JSON" ]; then
       echo ""
       echo "No active AI-DLC task. Run \`/elaborate\` to start a new task."
       echo ""
+      if [ ! -f ".ai-dlc/settings.yml" ]; then
+        echo "> **First time?** Run \`/setup\` to configure AI-DLC for this project (auto-detects providers, VCS settings, etc.)"
+        echo ""
+      fi
       # Inject provider context
       CONFIG_LIB="${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
       if [ -f "$CONFIG_LIB" ]; then

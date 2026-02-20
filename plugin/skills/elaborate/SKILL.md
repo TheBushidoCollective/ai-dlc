@@ -764,7 +764,7 @@ This ensures builders can pull the intent branch when working remotely. Note in 
 
 ## Phase 6.5: Sync to Ticketing Provider
 
-If a ticketing provider is configured and MCP tools are available:
+If a ticketing provider is configured and MCP tools are available, you **MUST** complete all steps below. Phase 6.75 will validate that all tickets were created — you cannot proceed to handoff with missing tickets.
 
 1. **Epic handling**:
    - If `epic` field in intent.md frontmatter is already populated (provided by product), use that existing epic — do not create a new one
@@ -792,6 +792,60 @@ If a ticketing provider is configured and MCP tools are available:
    - If ticketing MCP tools are not available, skip this phase entirely
    - Log: "Ticketing provider configured but MCP tools not available — skipping ticket creation"
    - Never block elaboration on ticket creation failure
+
+---
+
+## Phase 6.75: Ticket Sync Validation
+
+This phase validates that Phase 6.5 was completed correctly. It runs automatically after Phase 6.5.
+
+### Step 1: Check if ticketing is configured
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+PROVIDERS=$(load_providers)
+TICKETING_TYPE=$(echo "$PROVIDERS" | jq -r '.ticketing.type // empty')
+```
+
+- If `TICKETING_TYPE` is empty → **skip this phase**, proceed to Phase 7.
+
+### Step 2: Verify MCP tools are available
+
+Use `ToolSearch` to check for ticketing MCP tools (search for the provider type, e.g., `"jira"`, `"linear"`, `"github issues"`).
+
+- If no MCP tools found → log warning: `"Ticketing provider '${TICKETING_TYPE}' configured but MCP tools not available — skipping ticket validation"` → proceed to Phase 7.
+
+### Step 3: Hard validation (provider + MCP tools available)
+
+Read the intent and unit files and check for populated ticket fields:
+
+1. **Epic check**: Read `intent.md` frontmatter. Check the `epic:` field.
+   - If `epic:` is empty or missing → **FAIL**
+
+2. **Ticket check**: Scan all `unit-*.md` files in the intent directory. Check each file's `ticket:` frontmatter field.
+   - If ANY unit has an empty or missing `ticket:` field → **FAIL**
+
+### On FAIL:
+
+**DO NOT proceed to Phase 7.** Instead:
+
+1. Report exactly what is missing:
+   ```
+   Ticket sync validation failed:
+   - intent.md: epic field is empty
+   - unit-02-auth-middleware.md: ticket field is empty
+   - unit-04-api-routes.md: ticket field is empty
+   ```
+
+2. Loop back to **Phase 6.5** to create the missing tickets/epic.
+
+3. After Phase 6.5 completes, re-run this validation (Phase 6.75).
+
+4. Only proceed to Phase 7 when all `epic:` and `ticket:` fields are populated.
+
+### On PASS:
+
+Log: `"Ticket sync validation passed — all epic and ticket fields populated."` → proceed to Phase 7.
 
 ---
 

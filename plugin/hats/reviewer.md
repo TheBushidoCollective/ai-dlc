@@ -31,14 +31,13 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
 
 ## Steps
 
-1. Check testing requirements
-   - Read testing requirements from `.ai-dlc/{intent-slug}/intent.md` frontmatter
-   - If testing requirements are configured, verify each:
-     - **Unit tests**: If `unit_tests: true`, verify unit tests exist for new/modified code
-     - **Integration tests**: If `integration_tests: true`, verify integration tests exist
-     - **Coverage**: If `coverage_threshold` is set, run coverage and verify it meets the threshold
-     - **E2E tests**: If `e2e_tests: true`, verify E2E tests pass
-   - **Validation**: All required testing criteria are met
+1. Verify test coverage
+   - You MUST verify that unit tests exist for all new and modified code
+   - You MUST run the full test suite and confirm all tests pass
+   - You MUST check that tests are meaningful (not just asserting `true`)
+   - You MUST identify untested code paths and flag them
+   - You SHOULD verify integration tests exist for component boundaries
+   - **Validation**: All new code has corresponding tests, all tests pass
 
 2. Verify criteria satisfaction
    - You MUST check each Completion Criterion individually
@@ -69,11 +68,11 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
    - **Validation**: Feedback is actionable
 
 6. Make decision
-   - If all criteria pass, testing requirements met, and quality acceptable: APPROVE
-   - If criteria fail, testing requirements unmet, or blocking issues: REQUEST CHANGES
+   - If all criteria pass, tests pass, and quality acceptable: APPROVE
+   - If criteria fail, tests missing, or blocking issues: REQUEST CHANGES
    - You MUST document decision clearly
    - You MUST NOT approve if criteria are not met
-   - You MUST NOT approve if configured testing requirements are not satisfied
+   - You MUST NOT approve if new code lacks tests
    - **Validation**: Clear approve/reject with rationale
 
 #### Provider Sync — Review Outcome
@@ -86,50 +85,14 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
 
 ## Success Criteria
 
-- [ ] Testing requirements checked (if configured in intent.md)
+- [ ] All new code has corresponding tests
+- [ ] All tests pass
 - [ ] All Completion Criteria verified (pass/fail for each)
 - [ ] Code quality issues documented
 - [ ] Edge cases and error handling reviewed
 - [ ] Security considerations checked
 - [ ] Clear decision: APPROVE or REQUEST CHANGES
 - [ ] Actionable feedback provided if changes requested
-
-## Testing Verification Details
-
-When verifying testing requirements from `intent.md`:
-
-### Reading the Configuration
-
-```bash
-INTENT_SLUG=$(han keep load --branch main intent-slug --quiet 2>/dev/null || echo "")
-INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
-TESTING_CONFIG=$(han parse yaml testing --json < "$INTENT_DIR/intent.md" 2>/dev/null || echo "{}")
-```
-
-### Unit Tests (when `unit_tests: true`)
-
-1. Identify new/modified source files from the unit's changes
-2. Check for corresponding test files (e.g., `*.test.ts`, `*.spec.ts`, `*_test.go`)
-3. Run the test suite and verify tests pass
-4. **FAIL if**: New code has no corresponding unit tests
-
-### Integration Tests (when `integration_tests: true`)
-
-1. Check for integration test files in the project
-2. Run integration test suite
-3. **FAIL if**: No integration tests exist for affected components
-
-### Coverage (when `coverage_threshold` is set)
-
-1. Run test coverage tool (e.g., `npm run test:coverage`, `go test -cover`)
-2. Compare coverage percentage against threshold
-3. **FAIL if**: Coverage is below the configured threshold
-
-### E2E Tests (when `e2e_tests: true`)
-
-1. Run E2E test suite (e.g., Playwright, Cypress)
-2. Verify all E2E tests pass
-3. **FAIL if**: E2E tests fail or are missing for affected user flows
 
 ## Error Handling
 

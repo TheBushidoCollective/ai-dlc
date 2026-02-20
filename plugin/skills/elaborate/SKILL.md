@@ -502,59 +502,6 @@ Present the full unit breakdown to the user and confirm before proceeding.
 
 ---
 
-## Phase 5.5: Define Testing Requirements
-
-Ask the user about testing expectations for this intent:
-
-```json
-{
-  "questions": [
-    {
-      "question": "What testing requirements should we enforce for this intent?",
-      "header": "Unit Tests",
-      "options": [
-        {"label": "Required", "description": "New code must have unit tests"},
-        {"label": "Not required", "description": "Unit tests are optional"}
-      ],
-      "multiSelect": false
-    },
-    {
-      "question": "Integration tests?",
-      "header": "Integration Tests",
-      "options": [
-        {"label": "Required", "description": "Integration tests must verify component interactions"},
-        {"label": "Not required", "description": "Integration tests are optional"}
-      ],
-      "multiSelect": false
-    },
-    {
-      "question": "Coverage threshold?",
-      "header": "Coverage",
-      "options": [
-        {"label": "80%", "description": "Minimum 80% code coverage"},
-        {"label": "70%", "description": "Minimum 70% code coverage"},
-        {"label": "60%", "description": "Minimum 60% code coverage"},
-        {"label": "None", "description": "No coverage requirement"}
-      ],
-      "multiSelect": false
-    },
-    {
-      "question": "End-to-end tests?",
-      "header": "E2E Tests",
-      "options": [
-        {"label": "Required", "description": "E2E tests must pass"},
-        {"label": "Not required", "description": "E2E tests are optional"}
-      ],
-      "multiSelect": false
-    }
-  ]
-}
-```
-
-Store the testing configuration for the reviewer hat to enforce.
-
----
-
 ## Phase 5.75: Spec Validation Gate
 
 **This is the quality gate that prevents shallow specs from reaching construction.**
@@ -580,9 +527,6 @@ For each unit:
   - Data: {which data sources/queries}
   - Builds: {specific components/modules/endpoints}
   - Criteria: {count} success criteria
-
-### Testing Requirements
-{Summary of testing config}
 
 ### Workflow & Mode
 {workflow name} — {mode}
@@ -697,11 +641,6 @@ git:
   change_strategy: {unit|intent|trunk|bolt}
   auto_merge: {true|false}
   auto_squash: false
-testing:
-  unit_tests: true          # true = required, false = optional
-  integration_tests: false  # true = required, false = optional
-  coverage_threshold: 80    # percentage (0-100), or null for no requirement
-  e2e_tests: false          # true = required, false = optional
 created: {ISO date}
 status: active
 epic: ""  # Ticketing provider epic key (auto-populated if ticketing provider configured)
@@ -742,15 +681,6 @@ problem space.}
 ## Context
 {Relevant background, constraints, decisions made during elaboration}
 ```
-
-**Testing frontmatter schema:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `testing.unit_tests` | boolean | Whether unit tests are required for new code |
-| `testing.integration_tests` | boolean | Whether integration tests are required |
-| `testing.coverage_threshold` | number or null | Minimum coverage percentage, or null if no requirement |
-| `testing.e2e_tests` | boolean | Whether E2E tests must pass |
 
 ### 3. Write `unit-NN-{slug}.md` for each unit:
 ```markdown
@@ -876,7 +806,7 @@ Intent Worktree: /tmp/ai-dlc-{intent-slug}/
 Branch: ai-dlc/{intent-slug}/main
 
 Created: .ai-dlc/{intent-slug}/
-- intent.md (intent, config, and testing requirements)
+- intent.md (intent and config)
 - unit-01-{name}.md
 - unit-02-{name}.md
 ...

@@ -116,35 +116,6 @@ if [ -f "${INTENT_DIR}/completion-criteria.md" ]; then
   echo ""
 fi
 
-# Display testing requirements if configured (stored in intent.md frontmatter)
-if [ -f "$INTENT_FILE" ]; then
-  TESTING_JSON=$(han parse yaml testing --json < "$INTENT_FILE" 2>/dev/null || echo "")
-  if [ -n "$TESTING_JSON" ] && [ "$TESTING_JSON" != "null" ] && [ "$TESTING_JSON" != "{}" ]; then
-    echo "### Testing Requirements"
-    echo ""
-
-    # Parse individual fields
-    UNIT_TESTS=$(echo "$TESTING_JSON" | han parse json unit_tests -r --default "" 2>/dev/null || echo "")
-    INTEGRATION_TESTS=$(echo "$TESTING_JSON" | han parse json integration_tests -r --default "" 2>/dev/null || echo "")
-    COVERAGE=$(echo "$TESTING_JSON" | han parse json coverage_threshold -r --default "" 2>/dev/null || echo "")
-    E2E_TESTS=$(echo "$TESTING_JSON" | han parse json e2e_tests -r --default "" 2>/dev/null || echo "")
-
-    echo "| Requirement | Status |"
-    echo "|-------------|--------|"
-    [ "$UNIT_TESTS" = "true" ] && echo "| Unit Tests | Required |"
-    [ "$UNIT_TESTS" = "false" ] && echo "| Unit Tests | Optional |"
-    [ "$INTEGRATION_TESTS" = "true" ] && echo "| Integration Tests | Required |"
-    [ "$INTEGRATION_TESTS" = "false" ] && echo "| Integration Tests | Optional |"
-    if [ -n "$COVERAGE" ] && [ "$COVERAGE" != "null" ]; then
-      echo "| Coverage Threshold | ${COVERAGE}% |"
-    else
-      echo "| Coverage Threshold | None |"
-    fi
-    [ "$E2E_TESTS" = "true" ] && echo "| E2E Tests | Required |"
-    [ "$E2E_TESTS" = "false" ] && echo "| E2E Tests | Optional |"
-    echo ""
-  fi
-fi
 
 # Source DAG library if available
 DAG_LIB="${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"

@@ -39,10 +39,6 @@ quality_gates:
   test: "npm test"                    # or "bun test", "pytest", etc.
   typecheck: "tsc --noEmit"           # TypeScript check
   lint: "biome check"                 # or "eslint .", "ruff check", etc.
-  # coverage: "npm run coverage"      # Optional: coverage check
-
-# Minimum test coverage percentage (if coverage gate enabled)
-# min_coverage: 80
 
 # =============================================================================
 # Unit Configuration

@@ -196,12 +196,38 @@ STATE=$(han keep load iteration.json --quiet)
 INTENT_SLUG=$(han keep load intent-slug --quiet)
 ```
 
-If no state exists:
+If `INTENT_SLUG` is empty (no intent exists at all):
 ```
 No AI-DLC state found.
 
 If you have existing intent artifacts in .ai-dlc/, run /resume to continue.
 Otherwise, run /elaborate to start a new task.
+```
+
+If `INTENT_SLUG` exists but `STATE` is empty (first construction run — elaboration wrote artifacts but no iteration state):
+
+Initialize `iteration.json` from the intent artifacts:
+
+```bash
+INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
+INTENT_FILE="$INTENT_DIR/intent.md"
+
+# Read workflow and mode from intent.md frontmatter
+WORKFLOW_NAME=$(han parse yaml workflow -r --default "default" < "$INTENT_FILE" 2>/dev/null || echo "default")
+MODE=$(han parse yaml mode -r --default "OHOTL" < "$INTENT_FILE" 2>/dev/null || echo "OHOTL")
+
+# Resolve workflow to hat sequence
+if [ -f ".ai-dlc/workflows.yml" ]; then
+  WORKFLOW_HATS=$(han parse yaml "${WORKFLOW_NAME}" < ".ai-dlc/workflows.yml" 2>/dev/null || echo "")
+fi
+if [ -z "$WORKFLOW_HATS" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/workflows.yml" ]; then
+  WORKFLOW_HATS=$(han parse yaml "${WORKFLOW_NAME}" < "${CLAUDE_PLUGIN_ROOT}/workflows.yml" 2>/dev/null || echo "")
+fi
+FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '.[0]')
+
+# Initialize iteration state
+STATE='{"iteration":1,"hat":"'"${FIRST_HAT}"'","workflowName":"'"${WORKFLOW_NAME}"'","mode":"'"${MODE}"'","workflow":'"${WORKFLOW_HATS}"',"status":"active"}'
+han keep save iteration.json "$STATE"
 ```
 
 If status is "complete":

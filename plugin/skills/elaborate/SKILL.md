@@ -774,17 +774,14 @@ misinterpret what to build.}
 - `documentation` → `do-technical-documentation` agents
 - `devops` → infrastructure/deployment agents
 
-### 4. Save iteration state to han keep:
-
-Intent-level state is saved to the current branch (which is now the intent branch):
+### 4. Save intent slug to han keep:
 
 ```bash
-# Intent-level state -> current branch (intent branch)
+# Intent-level identifier -> current branch (intent branch)
 han keep save intent-slug "{intent-slug}"
-
-# Intent-level state -> current branch (intent branch)
-han keep save iteration.json '{"iteration":1,"hat":"{first-hat}","workflowName":"{workflow}","mode":"{HITL|OHOTL|AHOTL}","workflow":["{hat1}","{hat2}"],"status":"active"}'
 ```
+
+**Note:** Do NOT save `iteration.json` here. Construction state (hat, iteration count, workflow, status) is initialized by `/construct` when the build loop starts. Elaboration only writes the spec artifacts and the intent slug.
 
 ### 5. Commit all artifacts on intent branch:
 

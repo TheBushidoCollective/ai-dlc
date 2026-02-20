@@ -116,15 +116,6 @@ if [ -f "${INTENT_DIR}/completion-criteria.md" ]; then
   echo ""
 fi
 
-# Current plan is ephemeral state - keep in han keep
-PLAN=$(load_keep_value current-plan.md)
-if [ -n "$PLAN" ]; then
-  echo "### Current Plan"
-  echo ""
-  echo "$PLAN"
-  echo ""
-fi
-
 # Display testing requirements if configured (stored in intent.md frontmatter)
 if [ -f "$INTENT_FILE" ]; then
   TESTING_JSON=$(han parse yaml testing --json < "$INTENT_FILE" 2>/dev/null || echo "")
@@ -238,42 +229,45 @@ echo ""
 echo "## AI-DLC Workflow Rules"
 echo ""
 
-# Get current branch and working directory
-CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
-CURRENT_DIR=$(pwd)
-IS_WORKTREE=$(git rev-parse --is-inside-work-tree 2>/dev/null && [ -f "$(git rev-parse --git-dir)/commondir" ] && echo "yes" || echo "no")
-
-echo "### Current Working Context"
+# Branch references for cross-branch state access
+echo "### Branch References"
 echo ""
-echo "- **Branch:** \`${CURRENT_BRANCH}\`"
-echo "- **Directory:** \`${CURRENT_DIR}\`"
-if [ "$IS_WORKTREE" = "yes" ]; then
-  echo "- **Worktree:** ✅ Yes (isolated workspace)"
-else
-  echo "- **Worktree:** ⚠️ NO - You should be in a worktree!"
-fi
+echo "- **Intent branch:** \`ai-dlc/${INTENT_SLUG}/main\`"
+echo "- **Intent worktree:** \`/tmp/ai-dlc-${INTENT_SLUG}/\`"
+echo ""
+echo "To access intent-level state from a unit branch:"
+echo "\`\`\`bash"
+echo "han keep load --branch \"ai-dlc/${INTENT_SLUG}/main\" <key>"
+echo "\`\`\`"
 echo ""
 
-echo "### Worktree Isolation (MANDATORY)"
+echo "### Bootstrap (MANDATORY)"
 echo ""
-echo "All bolt work MUST happen in an isolated worktree at:"
-echo "\`/tmp/ai-dlc-{intent-slug}-{unit-slug}/\`"
+echo "Your spawn prompt tells you which worktree and branch to use."
+echo "After entering your unit worktree, load unit-scoped state:"
 echo ""
-if [ "$IS_WORKTREE" = "yes" ] && [[ "$CURRENT_BRANCH" == ai-dlc/* ]]; then
-  echo "✅ You are in the correct worktree on an AI-DLC branch. Continue working here."
-elif [[ "$CURRENT_DIR" == /tmp/ai-dlc-* ]]; then
-  echo "✅ You are in an AI-DLC worktree directory. Continue working here."
-else
-  echo "🛑 **STOP!** You are NOT in a worktree!"
-  echo ""
-  echo "Before doing ANY work, you must:"
-  echo "1. Have the parent create the worktree"
-  echo "2. cd to the worktree directory"
-  echo "3. Verify you're on the unit branch"
-  echo ""
-  echo "Working outside a worktree will cause conflicts with the parent session."
-fi
+echo "\`\`\`bash"
+echo "# Load previous context from your unit branch"
+echo "han keep load current-plan.md --quiet 2>/dev/null || true"
+echo "han keep load scratchpad.md --quiet 2>/dev/null || true"
+echo "han keep load blockers.md --quiet 2>/dev/null || true"
+echo "han keep load next-prompt.md --quiet 2>/dev/null || true"
+echo "\`\`\`"
 echo ""
+echo "These are scoped to YOUR branch. Read them to understand prior work on this unit."
+echo ""
+
+echo "### Worktree Isolation"
+echo ""
+echo "All bolt work MUST happen in an isolated worktree."
+echo "Working outside a worktree will cause conflicts with the parent session."
+echo ""
+echo "After entering your worktree, verify:"
+echo "1. You are in \`/tmp/ai-dlc-${INTENT_SLUG}-{unit-slug}/\`"
+echo "2. You are on the correct unit branch (\`git branch --show-current\`)"
+echo "3. You loaded unit-scoped state (see Bootstrap above)"
+echo ""
+
 echo "### Before Stopping"
 echo ""
 echo "1. **Commit changes**: \`git add -A && git commit\`"

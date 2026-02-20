@@ -89,7 +89,7 @@ Task({
   description: `builder (retry): ${unitName}`,
   name: `builder-${unitSlug}-retry${retries}`,
   team_name: `ai-dlc-${intentSlug}`,
-  mode: modeToAgentTeamsMode(intentMode),
+
   prompt: `
     Re-execute the builder role for unit ${unitName}.
 

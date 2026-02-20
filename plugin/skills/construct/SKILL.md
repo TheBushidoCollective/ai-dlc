@@ -212,9 +212,8 @@ Initialize `iteration.json` from the intent artifacts:
 INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
 INTENT_FILE="$INTENT_DIR/intent.md"
 
-# Read workflow and mode from intent.md frontmatter
+# Read workflow from intent.md frontmatter
 WORKFLOW_NAME=$(han parse yaml workflow -r --default "default" < "$INTENT_FILE" 2>/dev/null || echo "default")
-MODE=$(han parse yaml mode -r --default "OHOTL" < "$INTENT_FILE" 2>/dev/null || echo "OHOTL")
 
 # Resolve workflow to hat sequence
 if [ -f ".ai-dlc/workflows.yml" ]; then
@@ -226,7 +225,7 @@ fi
 FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '.[0]')
 
 # Initialize iteration state
-STATE='{"iteration":1,"hat":"'"${FIRST_HAT}"'","workflowName":"'"${WORKFLOW_NAME}"'","mode":"'"${MODE}"'","workflow":'"${WORKFLOW_HATS}"',"status":"active"}'
+STATE='{"iteration":1,"hat":"'"${FIRST_HAT}"'","workflowName":"'"${WORKFLOW_NAME}"'","workflow":'"${WORKFLOW_HATS}"',"status":"active"}'
 han keep save iteration.json "$STATE"
 ```
 
@@ -360,7 +359,7 @@ Task({
   description: `${FIRST_HAT}: ${unitName}`,
   name: `${FIRST_HAT}-${unitSlug}`,
   team_name: `ai-dlc-${intentSlug}`,
-  mode: modeToAgentTeamsMode(intentMode),
+
   prompt: `
     Execute the ${FIRST_HAT} role for unit ${unitName}.
 
@@ -397,13 +396,6 @@ Task({
 })
 ```
 
-Mode mapping:
-
-| Intent Mode | Task `mode` | Behavior |
-|-------------|-------------|----------|
-| HITL | `plan` | Agent proposes, human approves |
-| OHOTL | `acceptEdits` | Agent works, human can intervene |
-| AHOTL | `bypassPermissions` | Full autonomy within criteria |
 
 ### Step 4 (Teams): Monitor and React Loop
 
@@ -450,7 +442,7 @@ Task({
   description: `${nextHat}: ${unitName}`,
   name: `${nextHat}-${unitSlug}`,
   team_name: `ai-dlc-${intentSlug}`,
-  mode: modeToAgentTeamsMode(intentMode),
+
   prompt: `
     Execute the ${nextHat} role for unit ${unitName}.
 
@@ -585,7 +577,7 @@ Task({
   description: `integrator: ${intentSlug}`,
   name: `integrator-${intentSlug}`,
   team_name: `ai-dlc-${intentSlug}`,
-  mode: modeToAgentTeamsMode(intentMode),
+
   prompt: `
     Execute the Integrator role for intent ${intentSlug}.
 
@@ -800,21 +792,9 @@ STATE=$(echo "$STATE" | han parse json --set "currentUnit=$UNIT_NAME")
 han keep save iteration.json "$STATE"
 ```
 
-#### Step 3: Read Mode and Spawn Subagent
+#### Step 3: Spawn Subagent
 
 **CRITICAL: Do NOT execute hat work inline. Always spawn a subagent.**
-
-##### Read operating mode from intent
-
-```bash
-# Mode is defined on the intent (set during elaboration)
-MODE=$(echo "$STATE" | han parse json mode -r --default OHOTL)
-
-# Also check intent.md frontmatter as source of truth
-if [ -f "${INTENT_DIR}/intent.md" ]; then
-  MODE=$(han parse yaml mode -r --default "$MODE" < "${INTENT_DIR}/intent.md" 2>/dev/null || echo "$MODE")
-fi
-```
 
 ##### Spawn based on `state.hat`
 

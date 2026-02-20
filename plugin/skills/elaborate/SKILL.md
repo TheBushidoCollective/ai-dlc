@@ -372,36 +372,6 @@ If the user selects "Custom", ask them to specify which hats to include and in w
 
 ---
 
-## Phase 3.5: Select Operating Mode
-
-The operating mode defines the level of human oversight for this intent. This applies to the **entire intent**, not individual hats.
-
-Use `AskUserQuestion`:
-```json
-{
-  "questions": [{
-    "question": "What level of human oversight for this intent?",
-    "header": "Mode",
-    "options": [
-      {"label": "OHOTL (Recommended)", "description": "AI edits files freely without asking. You see changes in real-time and can interrupt at any point. Best for most development work."},
-      {"label": "HITL", "description": "AI proposes each change as a plan and waits for your approval before editing any file. You approve or reject each step. Best for novel or high-risk work."},
-      {"label": "AHOTL", "description": "AI runs with full autonomy — no permission prompts, no pauses. You review the final result. Best for well-defined, low-risk tasks with clear success criteria."}
-    ],
-    "multiSelect": false
-  }]
-}
-```
-
-**Mode mapping for Agent Teams (when `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is enabled):**
-
-| AI-DLC Mode | Agent Teams `mode` | Behavior |
-|-------------|-------------------|----------|
-| HITL | `plan` | Agent proposes, human approves each step |
-| OHOTL | `acceptEdits` | Agent works autonomously, human can intervene |
-| AHOTL | `bypassPermissions` | Agent operates with full autonomy |
-
----
-
 ## Phase 4: Define Success Criteria
 
 Work with the user to define 3-7 **verifiable** success criteria. Each MUST be:
@@ -571,8 +541,8 @@ For each unit:
   - Builds: {specific components/modules/endpoints}
   - Criteria: {count} success criteria
 
-### Workflow & Mode
-{workflow name} — {mode}
+### Workflow
+{workflow name}
 ```
 
 Then ask with `AskUserQuestion`:
@@ -679,7 +649,6 @@ This ensures:
 ```markdown
 ---
 workflow: {workflow-name}
-mode: {HITL|OHOTL|AHOTL}
 git:
   change_strategy: {unit|intent|trunk|bolt}
   auto_merge: {true|false}
@@ -906,7 +875,6 @@ Created: .ai-dlc/{intent-slug}/
 ...
 
 Workflow: {workflowName}
-Mode: {mode}
 Next hat: {next-hat}
 ```
 

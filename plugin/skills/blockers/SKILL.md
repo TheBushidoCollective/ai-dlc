@@ -1,6 +1,7 @@
 ---
-name: ai-dlc-blockers
+name: blockers
 description: Use when documenting blockers in AI-DLC workflows. Covers proper blocker documentation, categorization, and how blockers enable productive iteration when stuck.
+user-invocable: false
 allowed-tools:
   - Read
   - Grep

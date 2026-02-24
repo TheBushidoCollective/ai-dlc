@@ -358,11 +358,10 @@ workflows:
 
 This plugin provides skills for understanding AI-DLC:
 
-- `ai-dlc-fundamentals` - Core principles and philosophy
-- `ai-dlc-completion-criteria` - Writing effective criteria
-- `ai-dlc-mode-selection` - HITL vs OHOTL vs AHOTL
-- `ai-dlc-backpressure` - Using quality gates effectively
-- `ai-dlc-blockers` - Documenting blockers properly
+- `fundamentals` - Core principles and philosophy
+- `completion-criteria` - Writing effective criteria
+- `backpressure` - Using quality gates effectively
+- `blockers` - Documenting blockers properly
 
 ## Error Recovery
 

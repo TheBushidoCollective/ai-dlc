@@ -1,6 +1,7 @@
 ---
-name: ai-dlc-fundamentals
+name: fundamentals
 description: Use when understanding AI-DLC methodology fundamentals. Covers core principles, iteration patterns, hat-based workflows, and the philosophy of human-AI collaboration in software development.
+user-invocable: false
 allowed-tools:
   - Read
   - Grep
@@ -60,7 +61,7 @@ bun test || exit 1
 
 The AI can't complete work until tests pass. It learns to write tests and fix failures, not because a process document says to, but because the system won't let it proceed otherwise.
 
-*For detailed backpressure guidance, see the `ai-dlc-backpressure` skill.*
+*For detailed backpressure guidance, see the `backpressure` skill.*
 
 ### 2. Completion Criteria Enable Autonomy
 
@@ -81,7 +82,7 @@ With clear criteria:
 - Human review becomes targeted ("Did you meet criteria X?")
 - Iteration loops have clear exit conditions
 
-*For detailed criteria guidance, see the `ai-dlc-completion-criteria` skill.*
+*For detailed criteria guidance, see the `completion-criteria` skill.*
 
 ### 3. Files Are Memory
 

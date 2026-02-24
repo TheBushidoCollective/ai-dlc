@@ -1,0 +1,22 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://han.guru/schemas/providers/figma.schema.json",
+	"title": "Figma Provider Config",
+	"description": "Provider-specific configuration for Figma design provider",
+	"type": "object",
+	"properties": {
+		"project_id": {
+			"type": "string",
+			"description": "Figma project ID"
+		},
+		"team_id": {
+			"type": "string",
+			"description": "Figma team ID"
+		},
+		"file_key": {
+			"type": "string",
+			"description": "Figma file key for the primary design file"
+		}
+	},
+	"additionalProperties": false
+}

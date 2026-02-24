@@ -1,0 +1,62 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://han.guru/schemas/providers/linear.schema.json",
+	"title": "Linear Provider Config",
+	"description": "Provider-specific configuration for Linear ticketing",
+	"type": "object",
+	"properties": {
+		"project_key": {
+			"type": "string",
+			"description": "Linear project identifier"
+		},
+		"team_id": {
+			"type": "string",
+			"description": "Linear team ID"
+		},
+		"issue_type": {
+			"type": "string",
+			"default": "Issue",
+			"description": "Default Linear issue type for unit tickets"
+		},
+		"labels": {
+			"type": "object",
+			"description": "Map of unit discipline to Linear label arrays",
+			"additionalProperties": {
+				"type": "array",
+				"items": { "type": "string" }
+			}
+		},
+		"story_points": {
+			"type": "string",
+			"enum": ["required", "optional", "none"],
+			"default": "none",
+			"description": "Whether to set estimate points on unit tickets"
+		},
+		"epic_link": {
+			"type": "string",
+			"enum": ["required", "optional", "none"],
+			"default": "required",
+			"description": "Whether to link unit tickets to the intent project/parent issue"
+		},
+		"issue_links": {
+			"type": "string",
+			"enum": ["required", "optional", "none"],
+			"default": "required",
+			"description": "Whether to create blocks/blocked-by relations from unit depends_on DAG"
+		},
+		"cycle_id": {
+			"type": "string",
+			"description": "Linear cycle ID to assign tickets to"
+		},
+		"details": {
+			"type": "object",
+			"description": "Additional ticket content requirements (field name to requirement level)",
+			"additionalProperties": {
+				"type": "string",
+				"enum": ["required", "optional", "none"]
+			}
+		}
+	},
+	"required": ["project_key"],
+	"additionalProperties": false
+}

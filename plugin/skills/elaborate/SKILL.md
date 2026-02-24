@@ -817,17 +817,35 @@ This ensures builders can pull the intent branch when working remotely. Note in 
 
 If a ticketing provider is configured and MCP tools are available, you **MUST** complete all steps below. Phase 6.75 will validate that all tickets were created — you cannot proceed to handoff with missing tickets.
 
+Before creating tickets, load provider config:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+PROVIDERS=$(load_providers)
+TICKETING_TYPE=$(echo "$PROVIDERS" | jq -r '.ticketing.type // empty')
+TICKETING_CONFIG=$(echo "$PROVIDERS" | jq -c '.ticketing.config // {}')
+```
+
+Read the provider config schema for reference: `${CLAUDE_PLUGIN_ROOT}/schemas/providers/{TICKETING_TYPE}.schema.json`
+
 1. **Epic handling**:
    - If `epic` field in intent.md frontmatter is already populated (provided by product), use that existing epic — do not create a new one
    - If `epic` is empty, create an epic from the intent (title from intent title, description from Problem + Solution) using the ticketing MCP tools (e.g., `mcp__*jira*__create*`, `gh issue create`), then store the epic key in intent.md frontmatter
 
-2. **Create tickets** per unit, linked to epic:
+2. **Create tickets** per unit, using config fields:
    - Title: unit title (from unit filename slug, humanized)
    - Description: unit completion criteria as checklist
-   - Link to epic
+   - Issue type: `config.issue_type` (fall back to "Task")
+   - Issue type ID: `config.issue_type_id` (overrides name lookup if set)
+   - Labels: `config.labels[unit.discipline]` (if configured, apply discipline-mapped labels)
+   - Story points: estimate and set if `config.story_points` = "required"
+   - Details: include additional content per `config.details` requirements
 
-3. **Map DAG to blocked-by**:
+   **Every unit ticket MUST be linked to the intent epic** (unless `config.epic_link` is explicitly set to `"none"`). The epic is the single parent that groups all unit work — without this link, tickets are orphaned and invisible to project tracking. This applies regardless of provider: Jira epic links, Linear parent issues, GitHub milestones/tracked-by, GitLab epic associations.
+
+3. **Map DAG to blocked-by** (if `config.issue_links` != "none"):
    - For each unit's `depends_on`, create blocked-by relationships between the corresponding tickets
+   - Use link type names from `config.link_types` (defaults: "Blocks" / "Is Blocked By")
    - Example: unit-02 depends on unit-01 → ticket for unit-02 is blocked by ticket for unit-01
 
 4. **Store keys in frontmatter**:

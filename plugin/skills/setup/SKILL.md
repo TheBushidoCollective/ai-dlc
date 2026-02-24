@@ -139,30 +139,36 @@ If **"Need to adjust"** → ask follow-up questions for each category they want 
 
 ## Phase 4: Provider-Specific Configuration
 
-For each **confirmed provider**, collect required configuration:
+For each **confirmed provider**, collect required configuration by reading the provider's config schema:
+
+1. Read `${CLAUDE_PLUGIN_ROOT}/schemas/providers/{type}.schema.json`
+2. **Required fields** (listed in the schema's `required` array) → ask via `AskUserQuestion`
+3. **Optional fields** → use defaults from schema, offer to customize
+4. Write all config under `providers.{category}.config` in settings.yml
+
+### Provider-specific notes:
 
 ### Jira
-- **Required**: Project key (e.g., `PROJ`)
-- If Jira MCP tools are available, try to list accessible projects to offer as options:
+- If Jira MCP tools are available, try to list accessible projects to offer `project_key` options:
   - Use `mcp__*__getVisibleJiraProjects` or similar tool if found via ToolSearch
   - Present discovered projects as `AskUserQuestion` options
 - If no MCP tool available for listing, ask as free-text via `AskUserQuestion`
 
 ### GitHub Issues
-- **Zero config** — no additional settings needed. Just confirm the provider type.
+- **Zero config** — no required fields in schema. Just confirm the provider type.
 
 ### Linear
-- Project/workspace identifier if needed — ask via `AskUserQuestion`
+- Schema requires `project_key` — ask via `AskUserQuestion`
 
 ### GitLab Issues
-- Project identifier if needed — ask via `AskUserQuestion`
+- Schema requires `project_id` — ask via `AskUserQuestion`
 
 ### Confluence
-- Space key — ask via `AskUserQuestion`
+- Space key is optional but recommended — ask via `AskUserQuestion`
 - If Confluence MCP tools available, try to list spaces as options
 
 ### Notion
-- Workspace ID — ask via `AskUserQuestion`
+- Workspace ID is optional but recommended — ask via `AskUserQuestion`
 
 ### Figma
 - No required config beyond confirming the provider type

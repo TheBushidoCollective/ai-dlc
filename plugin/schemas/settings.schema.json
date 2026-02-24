@@ -54,8 +54,7 @@
 				},
 				"config": {
 					"type": "object",
-					"description": "Provider-specific configuration (project keys, workspace IDs, etc.)",
-					"additionalProperties": true
+					"description": "Provider-specific configuration — schema determined by provider type"
 				},
 				"instructions": {
 					"type": "string",
@@ -63,7 +62,17 @@
 				}
 			},
 			"required": ["type"],
-			"additionalProperties": false
+			"additionalProperties": false,
+			"allOf": [
+				{
+					"if": { "properties": { "type": { "const": "notion" } } },
+					"then": { "properties": { "config": { "$ref": "providers/notion.schema.json" } } }
+				},
+				{
+					"if": { "properties": { "type": { "const": "confluence" } } },
+					"then": { "properties": { "config": { "$ref": "providers/confluence.schema.json" } } }
+				}
+			]
 		},
 		"ticketingProviderEntry": {
 			"type": "object",
@@ -76,8 +85,7 @@
 				},
 				"config": {
 					"type": "object",
-					"description": "Provider-specific configuration (project keys, workspace IDs, etc.)",
-					"additionalProperties": true
+					"description": "Provider-specific configuration — schema determined by provider type"
 				},
 				"instructions": {
 					"type": "string",
@@ -85,7 +93,25 @@
 				}
 			},
 			"required": ["type"],
-			"additionalProperties": false
+			"additionalProperties": false,
+			"allOf": [
+				{
+					"if": { "properties": { "type": { "const": "jira" } } },
+					"then": { "properties": { "config": { "$ref": "providers/jira.schema.json" } } }
+				},
+				{
+					"if": { "properties": { "type": { "const": "linear" } } },
+					"then": { "properties": { "config": { "$ref": "providers/linear.schema.json" } } }
+				},
+				{
+					"if": { "properties": { "type": { "const": "github-issues" } } },
+					"then": { "properties": { "config": { "$ref": "providers/github-issues.schema.json" } } }
+				},
+				{
+					"if": { "properties": { "type": { "const": "gitlab-issues" } } },
+					"then": { "properties": { "config": { "$ref": "providers/gitlab-issues.schema.json" } } }
+				}
+			]
 		},
 		"designProviderEntry": {
 			"type": "object",
@@ -98,8 +124,7 @@
 				},
 				"config": {
 					"type": "object",
-					"description": "Provider-specific configuration (project keys, workspace IDs, etc.)",
-					"additionalProperties": true
+					"description": "Provider-specific configuration — schema determined by provider type"
 				},
 				"instructions": {
 					"type": "string",
@@ -107,7 +132,13 @@
 				}
 			},
 			"required": ["type"],
-			"additionalProperties": false
+			"additionalProperties": false,
+			"allOf": [
+				{
+					"if": { "properties": { "type": { "const": "figma" } } },
+					"then": { "properties": { "config": { "$ref": "providers/figma.schema.json" } } }
+				}
+			]
 		},
 		"commsProviderEntry": {
 			"type": "object",
@@ -120,8 +151,7 @@
 				},
 				"config": {
 					"type": "object",
-					"description": "Provider-specific configuration (project keys, workspace IDs, etc.)",
-					"additionalProperties": true
+					"description": "Provider-specific configuration — schema determined by provider type"
 				},
 				"instructions": {
 					"type": "string",
@@ -129,7 +159,13 @@
 				}
 			},
 			"required": ["type"],
-			"additionalProperties": false
+			"additionalProperties": false,
+			"allOf": [
+				{
+					"if": { "properties": { "type": { "const": "slack" } } },
+					"then": { "properties": { "config": { "$ref": "providers/slack.schema.json" } } }
+				}
+			]
 		},
 		"vcsConfig": {
 			"type": "object",

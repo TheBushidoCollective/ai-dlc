@@ -1,0 +1,76 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://han.guru/schemas/providers/gitlab-issues.schema.json",
+	"title": "GitLab Issues Provider Config",
+	"description": "Provider-specific configuration for GitLab Issues ticketing",
+	"type": "object",
+	"properties": {
+		"project_id": {
+			"type": "string",
+			"description": "GitLab project ID or path (e.g., 'my-group/my-project')"
+		},
+		"issue_type": {
+			"type": "string",
+			"default": "issue",
+			"enum": ["issue", "incident", "test_case"],
+			"description": "Default GitLab issue type for unit tickets"
+		},
+		"labels": {
+			"type": "object",
+			"description": "Map of unit discipline to GitLab label arrays",
+			"additionalProperties": {
+				"type": "array",
+				"items": { "type": "string" }
+			}
+		},
+		"story_points": {
+			"type": "string",
+			"enum": ["required", "optional", "none"],
+			"default": "none",
+			"description": "Whether to set weight on unit issues"
+		},
+		"epic_link": {
+			"type": "string",
+			"enum": ["required", "optional", "none"],
+			"default": "required",
+			"description": "Whether to link unit issues to a GitLab epic"
+		},
+		"issue_links": {
+			"type": "string",
+			"enum": ["required", "optional", "none"],
+			"default": "required",
+			"description": "Whether to create blocking relationships from unit depends_on DAG"
+		},
+		"link_types": {
+			"type": "object",
+			"description": "GitLab link type names for DAG relationships",
+			"properties": {
+				"blocks": {
+					"type": "string",
+					"default": "blocks",
+					"description": "Link type for 'blocks' direction"
+				},
+				"blocked_by": {
+					"type": "string",
+					"default": "is_blocked_by",
+					"description": "Link type for 'blocked by' direction"
+				}
+			},
+			"additionalProperties": false
+		},
+		"milestone": {
+			"type": "string",
+			"description": "GitLab milestone title to assign unit issues to"
+		},
+		"details": {
+			"type": "object",
+			"description": "Additional issue content requirements (field name to requirement level)",
+			"additionalProperties": {
+				"type": "string",
+				"enum": ["required", "optional", "none"]
+			}
+		}
+	},
+	"required": ["project_id"],
+	"additionalProperties": false
+}

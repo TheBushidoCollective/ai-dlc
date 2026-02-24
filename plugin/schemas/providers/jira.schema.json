@@ -1,0 +1,85 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://han.guru/schemas/providers/jira.schema.json",
+	"title": "Jira Provider Config",
+	"description": "Provider-specific configuration for Jira ticketing",
+	"type": "object",
+	"properties": {
+		"project_key": {
+			"type": "string",
+			"description": "Jira project key (e.g., PROJ)"
+		},
+		"cloud_id": {
+			"type": "string",
+			"description": "Atlassian site URL or cloud ID"
+		},
+		"issue_type": {
+			"type": "string",
+			"default": "Task",
+			"description": "Default issue type name for unit tickets"
+		},
+		"issue_type_id": {
+			"type": "string",
+			"description": "Jira issue type ID (overrides issue_type name lookup)"
+		},
+		"labels": {
+			"type": "object",
+			"description": "Map of unit discipline to Jira label arrays",
+			"additionalProperties": {
+				"type": "array",
+				"items": { "type": "string" }
+			},
+			"examples": [{ "backend": ["Elixir"], "frontend": ["React", "TypeScript"] }]
+		},
+		"story_points": {
+			"type": "string",
+			"enum": ["required", "optional", "none"],
+			"default": "none",
+			"description": "Whether to estimate and set story points on unit tickets"
+		},
+		"story_points_field": {
+			"type": "string",
+			"default": "story_points",
+			"description": "Jira field ID for story points (e.g., 'customfield_10014'). Varies per Jira instance."
+		},
+		"epic_link": {
+			"type": "string",
+			"enum": ["required", "optional", "none"],
+			"default": "required",
+			"description": "Whether to link all unit tickets to the intent epic"
+		},
+		"issue_links": {
+			"type": "string",
+			"enum": ["required", "optional", "none"],
+			"default": "required",
+			"description": "Whether to create Blocks/Blocked-By links from unit depends_on DAG"
+		},
+		"link_types": {
+			"type": "object",
+			"description": "Jira link type names for DAG relationships",
+			"properties": {
+				"blocks": {
+					"type": "string",
+					"default": "Blocks",
+					"description": "Link type name for 'blocks' direction"
+				},
+				"blocked_by": {
+					"type": "string",
+					"default": "Is Blocked By",
+					"description": "Link type name for 'blocked by' direction"
+				}
+			},
+			"additionalProperties": false
+		},
+		"details": {
+			"type": "object",
+			"description": "Additional ticket content requirements (field name to requirement level)",
+			"additionalProperties": {
+				"type": "string",
+				"enum": ["required", "optional", "none"]
+			}
+		}
+	},
+	"required": ["project_key"],
+	"additionalProperties": false
+}

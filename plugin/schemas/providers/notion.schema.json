@@ -1,0 +1,22 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://han.guru/schemas/providers/notion.schema.json",
+	"title": "Notion Provider Config",
+	"description": "Provider-specific configuration for Notion spec provider",
+	"type": "object",
+	"properties": {
+		"workspace_id": {
+			"type": "string",
+			"description": "Notion workspace ID"
+		},
+		"database_id": {
+			"type": "string",
+			"description": "Notion database ID for specs"
+		},
+		"parent_page_id": {
+			"type": "string",
+			"description": "Parent page ID under which spec pages are created (alternative to database_id)"
+		}
+	},
+	"additionalProperties": false
+}

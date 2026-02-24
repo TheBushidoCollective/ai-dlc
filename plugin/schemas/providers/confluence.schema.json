@@ -1,0 +1,26 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://han.guru/schemas/providers/confluence.schema.json",
+	"title": "Confluence Provider Config",
+	"description": "Provider-specific configuration for Confluence spec provider",
+	"type": "object",
+	"properties": {
+		"space_key": {
+			"type": "string",
+			"description": "Confluence space key"
+		},
+		"cloud_id": {
+			"type": "string",
+			"description": "Atlassian site URL or cloud ID"
+		},
+		"parent_page_id": {
+			"type": "string",
+			"description": "Parent page ID under which spec pages are created"
+		},
+		"template_id": {
+			"type": "string",
+			"description": "Confluence page template ID for new spec pages"
+		}
+	},
+	"additionalProperties": false
+}

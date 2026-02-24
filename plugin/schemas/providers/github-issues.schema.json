@@ -1,0 +1,52 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://han.guru/schemas/providers/github-issues.schema.json",
+	"title": "GitHub Issues Provider Config",
+	"description": "Provider-specific configuration for GitHub Issues ticketing",
+	"type": "object",
+	"properties": {
+		"labels": {
+			"type": "object",
+			"description": "Map of unit discipline to GitHub label arrays",
+			"additionalProperties": {
+				"type": "array",
+				"items": { "type": "string" }
+			}
+		},
+		"story_points": {
+			"type": "string",
+			"enum": ["required", "optional", "none"],
+			"default": "none",
+			"description": "Whether to set story point estimates (requires GitHub Projects custom field)"
+		},
+		"epic_link": {
+			"type": "string",
+			"enum": ["required", "optional", "none"],
+			"default": "required",
+			"description": "Whether to link unit issues to a milestone or tracked-by parent issue"
+		},
+		"issue_links": {
+			"type": "string",
+			"enum": ["required", "optional", "none"],
+			"default": "required",
+			"description": "Whether to create task list references from unit depends_on DAG"
+		},
+		"milestone": {
+			"type": "string",
+			"description": "GitHub milestone name or number to use as the epic equivalent"
+		},
+		"project_number": {
+			"type": "integer",
+			"description": "GitHub Projects (v2) board number to add issues to"
+		},
+		"details": {
+			"type": "object",
+			"description": "Additional issue content requirements (field name to requirement level)",
+			"additionalProperties": {
+				"type": "string",
+				"enum": ["required", "optional", "none"]
+			}
+		}
+	},
+	"additionalProperties": false
+}

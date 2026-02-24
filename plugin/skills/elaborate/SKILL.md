@@ -830,16 +830,66 @@ Read the provider config schema for reference: `${CLAUDE_PLUGIN_ROOT}/schemas/pr
 
 1. **Epic handling**:
    - If `epic` field in intent.md frontmatter is already populated (provided by product), use that existing epic — do not create a new one
-   - If `epic` is empty, create an epic from the intent (title from intent title, description from Problem + Solution) using the ticketing MCP tools (e.g., `mcp__*jira*__create*`, `gh issue create`), then store the epic key in intent.md frontmatter
+   - If `epic` is empty, create an epic from the intent using the ticketing MCP tools (e.g., `mcp__*jira*__create*`, `gh issue create`), then store the epic key in intent.md frontmatter
+   - Epic title: intent title
+   - Epic description (multiline markdown, NOT escaped `\n`):
+     ```markdown
+     ## Problem
+
+     {problem statement from intent.md}
+
+     ## Solution
+
+     {solution description from intent.md}
+
+     ## Units
+
+     {numbered list of unit titles from the decomposition}
+     1. {unit-01 title}
+     2. {unit-02 title}
+     ...
+     ```
 
 2. **Create tickets** per unit, using config fields:
    - Title: unit title (from unit filename slug, humanized)
-   - Description: unit completion criteria as checklist
+   - Description: see **Ticket Description Format** below
    - Issue type: `config.issue_type` (fall back to "Task")
    - Issue type ID: `config.issue_type_id` (overrides name lookup if set)
    - Labels: `config.labels[unit.discipline]` (if configured, apply discipline-mapped labels)
    - Story points: estimate and set if `config.story_points` = "required"
    - Details: include additional content per `config.details` requirements
+
+   ### Ticket Description Format
+
+   **CRITICAL**: Always pass description strings with real newlines (multiline), never escaped `\n` literals. MCP tool description fields accept markdown — use it.
+
+   Build the description from the unit file content using this structure:
+
+   ```markdown
+   ## Overview
+
+   {unit description from the unit file body — the paragraph(s) after the frontmatter heading}
+
+   ## Completion Criteria
+
+   - [ ] {criterion 1}
+   - [ ] {criterion 2}
+   - [ ] {criterion 3}
+
+   ## Dependencies
+
+   {if unit has depends_on, list them here with their ticket keys if known}
+   - Blocked by: {dependency unit title} ({ticket key})
+
+   {if unit has no dependencies}
+   None — this unit can start immediately.
+
+   ## Technical Notes
+
+   {include any implementation guidance, constraints, or architectural notes from the unit file body — omit this section if the unit has no technical detail beyond the criteria}
+   ```
+
+   Omit sections that have no content (e.g., skip "Dependencies" if none, skip "Technical Notes" if the unit file has no implementation detail). The goal is a ticket that gives a developer full context without reading the `.ai-dlc/` files.
 
    **Every unit ticket MUST be linked to the intent epic** (unless `config.epic_link` is explicitly set to `"none"`). The epic is the single parent that groups all unit work — without this link, tickets are orphaned and invisible to project tracking. This applies regardless of provider: Jira epic links, Linear parent issues, GitHub milestones/tracked-by, GitLab epic associations.
 

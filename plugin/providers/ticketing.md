@@ -21,8 +21,17 @@ description: Default ticketing provider behavior for AI-DLC
 - **Reviewer rejects** → Add review feedback as ticket comment, keep In Progress
 
 ## Ticket Content
-- Include unit success criteria as a checklist in the ticket description
-- Link to the `.ai-dlc/` artifact path or branch for developer reference
+
+**CRITICAL**: Always pass description strings with real newlines (multiline), never escaped `\n` literals. MCP tool description fields accept markdown — use it.
+
+Structure ticket descriptions with these sections (omit any that are empty):
+
+1. **Overview** — unit description (the prose from the unit file, not just the title)
+2. **Completion Criteria** — checklist (`- [ ] criterion`)
+3. **Dependencies** — blocked-by units with ticket keys if known
+4. **Technical Notes** — implementation guidance, constraints, or architectural notes from the unit file
+
+The goal is a ticket that gives a developer full context without needing to read `.ai-dlc/` files.
 
 ## Provider Config
 

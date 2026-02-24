@@ -176,6 +176,53 @@ Pre-fill all values from existing `settings.yml` if re-running.
 
 ---
 
+## Phase 4b: Provider Instructions
+
+For each **confirmed provider**, offer to customize how AI-DLC interacts with it. AI-DLC ships with sensible built-in defaults (in `plugin/providers/{category}.md`), but every team is different — custom instructions let projects tailor behavior to their workflow.
+
+### For each confirmed provider:
+
+1. **Read the built-in defaults** for that category:
+   ```bash
+   cat "${CLAUDE_PLUGIN_ROOT}/providers/{category}.md"
+   ```
+   Where `{category}` is `ticketing`, `spec`, `design`, or `comms`.
+
+2. **Check for existing project override** at `.ai-dlc/providers/{type}.md` (e.g., `.ai-dlc/providers/jira.md`). If it exists, read it and show its contents.
+
+3. **Show the user the current instructions** (built-in defaults, or existing override if present) and ask:
+
+   Use `AskUserQuestion`:
+   - "Here are the current {category} instructions for {type}. Want to customize them for this project?"
+   - Options:
+     - **"Use defaults"** — Built-in defaults are fine, no project override needed
+     - **"Customize"** — Create a project override file to tailor behavior
+
+4. **If "Customize"**:
+   - Create `.ai-dlc/providers/{type}.md` with the built-in defaults pre-populated as a starting template:
+     ```markdown
+     ---
+     category: {category}
+     description: Project-specific {type} instructions
+     ---
+
+     {contents of built-in default, body only (after frontmatter)}
+     ```
+   - Tell the user: "Created `.ai-dlc/providers/{type}.md` with defaults as a starting point. Edit this file to customize how AI-DLC interacts with {type} for this project."
+
+5. **If "Use defaults"** → skip, no file created. The built-in defaults apply automatically.
+
+6. **If an override file already exists** from a previous `/setup` run, change the question to:
+   - "Project override exists at `.ai-dlc/providers/{type}.md`. Want to keep it, reset to defaults, or remove it?"
+   - Options:
+     - **"Keep as-is"** — Don't touch the existing override
+     - **"Reset to defaults"** — Overwrite with current built-in defaults
+     - **"Remove override"** — Delete the file, revert to built-in defaults only
+
+**Skip** this phase for any provider category that has no confirmed provider.
+
+---
+
 ## Phase 5: VCS Strategy
 
 Ask the user about their preferred change strategy and auto-merge behavior.
@@ -185,10 +232,9 @@ Use `AskUserQuestion`:
 **Question 1: Change strategy**
 - "How should AI-DLC organize code changes?"
 - Options:
-  - **Unit branches (Recommended)** — One branch per unit of work, merged individually
-  - **Intent branch** — One long-lived branch per intent with linear history
+  - **Unit branches (Recommended)** — Each unit gets its own branch and MR, reviewed individually. Supports human or agent builders and `/construct <unit-name>` targeting. Best for teams adopting AI-DLC gradually.
+  - **Intent branch** — All units merge into a single intent branch. Agents build autonomously via DAG ordering, one MR reviewed at the end. Best for fully autonomous workflows.
   - **Trunk** — All work on main branch, no feature branches
-  - **Bolt** — One branch per intent with squashed commits
 
 Pre-fill from existing `settings.yml` `{vcs}.change_strategy` if available.
 
@@ -200,7 +246,7 @@ Pre-fill from existing `settings.yml` `{vcs}.change_strategy` if available.
 
 Pre-fill from existing `settings.yml` `{vcs}.auto_merge` if available.
 
-Only ask auto-merge if strategy is `unit` or `bolt` (the strategies that use branches to merge).
+Only ask auto-merge if strategy is `unit` or `intent` (the strategies that use branches to merge).
 
 ---
 
@@ -262,6 +308,18 @@ Display a final summary:
 | Comms | slack |
 
 Settings written to `.ai-dlc/settings.yml`.
+```
 
+If any provider override files were created in Phase 4b, list them:
+
+```
+Provider instruction overrides (edit to customize):
+- `.ai-dlc/providers/jira.md`
+- `.ai-dlc/providers/confluence.md`
+```
+
+Finish with:
+
+```
 Next: Run `/elaborate` to start your first intent.
 ```

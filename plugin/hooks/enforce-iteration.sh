@@ -141,7 +141,12 @@ elif [ "$READY_COUNT" -gt 0 ] || [ "$IN_PROGRESS_COUNT" -gt 0 ]; then
   echo ""
   echo "### ACTION REQUIRED"
   echo ""
-  echo "Call \`/construct\` to continue the autonomous loop."
+  TARGET_UNIT=$(echo "$ITERATION_JSON" | han parse json targetUnit -r --default "" 2>/dev/null || echo "")
+  if [ -n "$TARGET_UNIT" ]; then
+    echo "Call \`/construct ${INTENT_SLUG} ${TARGET_UNIT}\` to continue targeted construction."
+  else
+    echo "Call \`/construct\` to continue the autonomous loop."
+  fi
   echo ""
   echo "**Note:** Subagents have clean context. No \`/clear\` needed."
   echo ""

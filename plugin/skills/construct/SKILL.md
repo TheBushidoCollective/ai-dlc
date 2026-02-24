@@ -1,5 +1,6 @@
 ---
 description: Continue the AI-DLC construction loop - autonomous build/review cycles until completion
+argument-hint: "[intent-slug] [unit-name]"
 disable-model-invocation: true
 ---
 
@@ -10,12 +11,17 @@ disable-model-invocation: true
 ## Synopsis
 
 ```
-/construct
+/construct [intent-slug] [unit-name]
 ```
 
 ## Description
 
 **User-facing command** - Continue the AI-DLC autonomous construction loop.
+
+**Two modes:**
+- `/construct` — DAG-driven, behavior depends on `change_strategy`
+- `/construct unit-01-backend` — target a specific unit (precheck deps first)
+- `/construct my-feature unit-01-backend` — with explicit intent slug
 
 This command resumes work from the current hat and runs until:
 - All units complete (`/advance` completes the intent automatically)
@@ -127,6 +133,72 @@ cd "$INTENT_WORKTREE"
 
 **Important:** The orchestrator runs in `/tmp/ai-dlc-{intent-slug}/`, NOT the original repo directory. This keeps main clean and enables parallel intents.
 
+### Step 0a: Parse Unit Target
+
+If arguments were provided to `/construct`, disambiguate them:
+
+```bash
+# Arguments: /construct [arg1] [arg2]
+# Disambiguation:
+#   - If arg starts with "unit-" or matches a unit file in INTENT_DIR: treat as unit target
+#   - Otherwise: treat as intent slug
+#   - /construct my-feature unit-01-backend → intent=my-feature, unit=unit-01-backend
+#   - /construct unit-01-backend → intent=(auto-detected), unit=unit-01-backend
+
+TARGET_UNIT=""
+INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
+
+# Parse argument(s) into TARGET_UNIT
+for arg in "$@"; do
+  if [[ "$arg" == unit-* ]] || [ -f "$INTENT_DIR/${arg}.md" ] || [ -f "$INTENT_DIR/unit-${arg}.md" ]; then
+    # Normalize: prepend "unit-" if needed
+    if [[ "$arg" != unit-* ]] && [ -f "$INTENT_DIR/unit-${arg}.md" ]; then
+      TARGET_UNIT="unit-${arg}"
+    else
+      TARGET_UNIT="$arg"
+    fi
+  fi
+done
+```
+
+When a unit target is provided:
+
+1. **Validate the unit file exists:**
+
+```bash
+if [ -n "$TARGET_UNIT" ]; then
+  UNIT_FILE="$INTENT_DIR/${TARGET_UNIT}.md"
+  if [ ! -f "$UNIT_FILE" ]; then
+    echo "Unit not found: ${TARGET_UNIT}"
+    echo ""
+    echo "Available units:"
+    for f in "$INTENT_DIR"/unit-*.md; do
+      [ -f "$f" ] && echo "  - $(basename "$f" .md)"
+    done
+    exit 1
+  fi
+
+  # 2. Check dependency status
+  source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
+  DEP_STATUS=$(get_unit_dep_status "$INTENT_DIR" "$TARGET_UNIT")
+  if [ $? -ne 0 ]; then
+    echo "## Blocked: ${TARGET_UNIT}"
+    echo ""
+    echo "This unit has unmet dependencies:"
+    echo ""
+    echo "$DEP_STATUS"
+    exit 1
+  fi
+
+  # 3. Check if already completed
+  UNIT_STATUS=$(parse_unit_status "$UNIT_FILE")
+  if [ "$UNIT_STATUS" = "completed" ]; then
+    echo "Unit already completed: ${TARGET_UNIT}"
+    exit 0
+  fi
+fi
+```
+
 ### Step 0b: Ensure Remote Tracking
 
 Ensure the intent branch tracks the remote so teammates can push their unit branches. This applies whether we're in a cloned cowork workspace or a local repo with a remote.
@@ -234,10 +306,29 @@ If status is "complete":
 Task already complete! Run /reset to start a new task.
 ```
 
+**Persist or clear targetUnit in state:**
+
+```bash
+# If targeting: save to state
+if [ -n "$TARGET_UNIT" ]; then
+  STATE=$(echo "$STATE" | han parse json --set "targetUnit=$TARGET_UNIT")
+else
+  # Clear any stale targetUnit from previous targeted run
+  STATE=$(echo "$STATE" | han parse json --set "targetUnit=")
+fi
+han keep save iteration.json "$STATE"
+```
+
 ### Step 1b: Detect Agent Teams
 
 ```bash
 AGENT_TEAMS_ENABLED="${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}"
+CHANGE_STRATEGY=$(han parse yaml "git.change_strategy" -r --default "unit" < "$INTENT_DIR/intent.md")
+
+# Unit strategy always uses Sequential path (subagent delegation, no team orchestration)
+if [ "$CHANGE_STRATEGY" = "unit" ]; then
+  AGENT_TEAMS_ENABLED=""
+fi
 ```
 
 If `AGENT_TEAMS_ENABLED` is set, follow the **Agent Teams** path below.
@@ -556,7 +647,7 @@ UNIT_COUNT=$(ls -1 "$INTENT_DIR"/unit-*.md 2>/dev/null | wc -l)
 
 Skip the integrator if:
 - Only one unit (the reviewer already validated it)
-- `change_strategy` is `bolt` (single squashed branch, no multi-unit merge)
+- `change_strategy` is `unit` (each unit reviewed individually via per-unit MR)
 
 ```bash
 source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
@@ -564,7 +655,7 @@ CONFIG=$(get_ai_dlc_config "$INTENT_DIR")
 CHANGE_STRATEGY=$(echo "$CONFIG" | jq -r '.change_strategy // "unit"')
 SKIP_INTEGRATOR=false
 [ "$UNIT_COUNT" -le 1 ] && SKIP_INTEGRATOR=true
-[ "$CHANGE_STRATEGY" = "bolt" ] && SKIP_INTEGRATOR=true
+[ "$CHANGE_STRATEGY" = "unit" ] && SKIP_INTEGRATOR=true
 ```
 
 If `SKIP_INTEGRATOR` is false and `integratorComplete` is not `true`:
@@ -684,7 +775,7 @@ INTENT_BRANCH="ai-dlc/${INTENT_SLUG}/main"
 git push -u origin "$INTENT_BRANCH" 2>/dev/null || true
 ```
 
-2. Create PR/MR:
+2. Collect ticket references from all units:
 
 ```bash
 source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
@@ -692,6 +783,19 @@ INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
 CONFIG=$(get_ai_dlc_config "$INTENT_DIR")
 DEFAULT_BRANCH=$(echo "$CONFIG" | jq -r '.default_branch')
 
+TICKET_REFS=""
+for unit_file in "$INTENT_DIR"/unit-*.md; do
+  [ -f "$unit_file" ] || continue
+  TICKET=$(han parse yaml ticket -r --default "" < "$unit_file" 2>/dev/null || echo "")
+  if [ -n "$TICKET" ]; then
+    TICKET_REFS="${TICKET_REFS}\nCloses ${TICKET}"
+  fi
+done
+```
+
+3. Create PR/MR:
+
+```bash
 gh pr create \
   --title "${INTENT_TITLE}" \
   --base "$DEFAULT_BRANCH" \
@@ -708,13 +812,15 @@ ${SUCCESS_CRITERIA_AS_CHECKLIST}
 ## Changes
 ${COMPLETED_UNITS_AS_CHANGE_LIST}
 
+$(printf "%b" "${TICKET_REFS}")
+
 ---
 *Built with [AI-DLC](https://ai-dlc.dev)*
 EOF
 )"
 ```
 
-3. Output the PR URL.
+4. Output the PR URL.
 
 **If manual:**
 
@@ -771,8 +877,13 @@ The following steps execute units one-at-a-time using standard Task subagents.
 This prevents conflicts with the parent session and enables true isolation.
 
 ```bash
-# Determine current unit from state or find next ready unit
-UNIT_FILE=$(find_ready_unit "$INTENT_DIR")
+# If targeting a specific unit, use it directly; otherwise find next ready unit
+TARGET_UNIT=$(echo "$STATE" | han parse json targetUnit -r --default "")
+if [ -n "$TARGET_UNIT" ]; then
+  UNIT_FILE="$INTENT_DIR/${TARGET_UNIT}.md"
+else
+  UNIT_FILE=$(find_ready_unit "$INTENT_DIR")
+fi
 UNIT_NAME=$(basename "$UNIT_FILE" .md)  # e.g., unit-01-core-backend
 UNIT_SLUG="${UNIT_NAME#unit-}"  # e.g., 01-core-backend
 UNIT_BRANCH="ai-dlc/${intentSlug}/${UNIT_SLUG}"
@@ -873,7 +984,10 @@ The construction loop is **fully autonomous**. It continues until:
 1. **Complete** - All units done, `/advance` marks intent complete (after integrator passes)
 2. **All units blocked** - No forward progress possible, human must intervene
 3. **Session exhausted** - Stop hook fires, instructs agent to call `/construct`
+4. **Targeted unit done** - When `targetUnit` is set, stop after that unit's workflow completes (do NOT auto-continue to next unit)
 
-**CRITICAL:** The agent MUST auto-continue between units. Do NOT stop after each unit.
+**CRITICAL:** When `targetUnit` is NOT set, the agent MUST auto-continue between units. Do NOT stop after each unit.
+
+**Targeted unit exception:** When `targetUnit` IS set, stop after the targeted unit's hat cycle completes. `/advance` handles clearing the `targetUnit` and outputting next-step guidance.
 
 When the intent is marked complete, present the completion summary and delivery prompt (same as advance/SKILL.md Step 5 — ask user to open PR/MR or handle manually).

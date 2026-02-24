@@ -49,6 +49,8 @@ Then you'll write these as files in `.ai-dlc/{intent-slug}/` for the constructio
 
 **CRITICAL PRINCIPLE: Elaboration is not a quick phase.** The purpose of elaboration is to build such deep understanding of the domain that the resulting spec is unambiguous. If a builder could misinterpret a unit and build the wrong thing, the elaboration is not done. Do NOT close this phase until you have a clear, specific, technically-grounded spec validated by the user.
 
+**CRITICAL: Handling "Other" / free-text responses.** Every `AskUserQuestion` has a built-in "Other" option that lets the user type free text. When a user selects "Other" and provides free-text input, you MUST treat it as a conversation request — **stop the current phase, engage in open dialogue about what they wrote, and only resume the phase once the conversation reaches a natural conclusion.** Do NOT re-ask the same question or the next question immediately. The user chose "Other" because none of the options fit — respect that by listening and discussing before continuing.
+
 ---
 
 ## Phase 0 (Pre-check): Environment Check
@@ -407,11 +409,23 @@ Each non-functional requirement MUST be expressed as a verifiable success criter
 
 Add confirmed NFRs to the success criteria list before presenting for final confirmation.
 
-Use `AskUserQuestion` to confirm criteria:
+**Before asking for confirmation, display the full criteria list as a numbered markdown checklist so the user can see exactly what they're approving.** Do NOT ask "are these complete?" without showing what "these" are. Example:
+
+```
+## Success Criteria
+
+1. [ ] API endpoint returns 200 with valid auth token
+2. [ ] Invalid tokens return 401 with error message
+3. [ ] Rate limit of 100 requests/minute is enforced
+4. [ ] All existing tests pass
+5. [ ] p95 response < 200ms under 1000 req/s
+```
+
+Then use `AskUserQuestion` to confirm:
 ```json
 {
   "questions": [{
-    "question": "Here are the success criteria I've captured. Are these complete?",
+    "question": "Are these success criteria complete?",
     "header": "Criteria",
     "options": [
       {"label": "Yes, looks good", "description": "Proceed with these criteria"},
@@ -425,33 +439,29 @@ Use `AskUserQuestion` to confirm criteria:
 
 ---
 
-## Phase 5: Decompose into Units (if complex)
+## Phase 5: Decompose into Units
 
-For medium/complex intents, decompose into **Units** - independent pieces of work.
+Decompose the intent into **Units** — independent pieces of work. This is NOT optional for complex intents. **You decide** whether decomposition is needed based on the scope:
 
-Ask with `AskUserQuestion`:
-```json
-{
-  "questions": [{
-    "question": "Should we decompose this into parallel units?",
-    "header": "Decompose",
-    "options": [
-      {"label": "Yes (Recommended)", "description": "Break into 2-5 independent units with detailed specs"},
-      {"label": "No", "description": "Keep as single unit of work"}
-    ],
-    "multiSelect": false
-  }]
-}
-```
+- **Single unit**: The intent touches one concern, one area of code, one deliverable. No decomposition needed — create one unit and proceed.
+- **Multiple units**: The intent spans multiple concerns, systems, layers, or deliverables. Decompose into 2-5 units.
 
-If yes, define each unit with **enough detail that a builder with zero prior context builds the right thing**:
+Do NOT ask the user whether to decompose. Assess the complexity from the domain model, success criteria, and data sources — then decompose accordingly.
+
+**Hard rules for unit boundaries:**
+
+1. **Units MUST NOT span dependency boundaries.** If a piece of work depends on another piece being done first, those are two separate units with an explicit `depends_on` edge. This applies regardless of change strategy (`unit` or `intent`). A unit that contains both "set up the database schema" and "build the API that uses it" is a bad unit — those are two units where the API unit depends on the schema unit.
+
+2. **Units MUST NOT span domains.** A unit has exactly one discipline (frontend, backend, api, documentation, devops, etc.). No unit should mix frontend and backend work, or API and documentation, etc. If a feature needs both a backend endpoint and a frontend view, those are two units — the frontend unit `depends_on` the backend unit.
+
+Define each unit with **enough detail that a builder with zero prior context builds the right thing**:
 
 - **Name and description**: What this unit accomplishes, stated in terms of the domain model
 - **Domain entities**: Which entities from the domain model this unit deals with
 - **Data sources**: Which APIs, queries, or data files this unit reads from or writes to. Reference specific query names, endpoint paths, or file patterns discovered during Domain Discovery.
 - **Technical specification**: Specific components, views, functions, or modules to create. If it's a UI, describe what the user sees and interacts with. If it's an API, describe the endpoints and their behavior. If it's a data layer, describe the transformations.
 - **Success criteria**: Specific, testable criteria that reference domain entities (not generic criteria like "displays data")
-- **Dependencies on other units**: What must be built first and why
+- **Dependencies on other units**: What must be built first and why. Every dependency boundary MUST be a unit boundary.
 - **Risks**: What could go wrong? Security concerns, performance risks, integration fragility, data integrity issues. Each risk should note its impact and mitigation.
 - **What this unit is NOT**: Explicit boundaries to prevent scope creep. If another unit handles related concerns, say so.
 
@@ -582,19 +592,18 @@ Use `AskUserQuestion`:
       "question": "How should unit work be branched?",
       "header": "Branching",
       "options": [
-        {"label": "Unit branches (Recommended)", "description": "One branch per unit, merged to intent branch on completion. Best for parallel work with clear boundaries."},
-        {"label": "Intent branch", "description": "One long-lived intent branch, all work happens there. Best for tightly coupled units."},
-        {"label": "Trunk-based", "description": "All work on main, no feature branches. Best for small, low-risk changes."},
-        {"label": "Bolt", "description": "One branch per intent with squashed commits. Best for clean history."}
+        {"label": "Unit branches (Recommended)", "description": "Each unit gets its own branch and MR, reviewed individually. Supports human or agent builders and /construct <unit-name> targeting. Best for teams adopting AI-DLC gradually."},
+        {"label": "Intent branch", "description": "All units merge into a single intent branch. Agents build autonomously via DAG ordering, one MR reviewed at the end. Best for fully autonomous workflows."},
+        {"label": "Trunk-based", "description": "All work on main, no feature branches. Best for small, low-risk changes."}
       ],
       "multiSelect": false
     },
     {
-      "question": "Should unit branches auto-merge to the intent branch when approved?",
+      "question": "Should completed branches auto-merge when approved?",
       "header": "Auto-merge",
       "options": [
-        {"label": "Yes (Recommended)", "description": "Automatically merge unit branches to intent branch when reviewer approves. Keeps intent branch up to date."},
-        {"label": "No", "description": "Manual merge — you decide when to merge unit branches. More control, more manual work."}
+        {"label": "Yes (Recommended)", "description": "Automatically merge when reviewer approves. For 'unit' strategy, merges unit branches to the default branch via per-unit MRs. For 'intent' strategy, merges unit branches to the intent branch."},
+        {"label": "No", "description": "Manual merge — you decide when to merge. More control, more manual work."}
       ],
       "multiSelect": false
     }
@@ -606,7 +615,7 @@ Store the selections. These will be written into the `intent.md` frontmatter in 
 
 ```yaml
 git:
-  change_strategy: unit    # or intent, trunk, bolt
+  change_strategy: unit    # or intent, trunk
   auto_merge: true         # or false
   auto_squash: false       # default false
 ```
@@ -615,7 +624,6 @@ Map user selections to config values:
 - "Unit branches" → `unit`
 - "Intent branch" → `intent`
 - "Trunk-based" → `trunk`
-- "Bolt" → `bolt`
 - "Yes" auto-merge → `true`
 - "No" auto-merge → `false`
 
@@ -680,7 +688,7 @@ This ensures:
 ---
 workflow: {workflow-name}
 git:
-  change_strategy: {unit|intent|trunk|bolt}
+  change_strategy: {unit|intent|trunk}
   auto_merge: {true|false}
   auto_squash: false
 announcements: []  # e.g., [changelog, release-notes, social-posts, blog-draft]

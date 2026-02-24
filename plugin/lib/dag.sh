@@ -137,6 +137,52 @@ are_deps_completed() {
   return 0
 }
 
+# Check dependency status for a specific unit and output formatted report
+# Returns 0 if all deps met, 1 if blocked (prints blocking report to stdout)
+# Usage: get_unit_dep_status <intent_dir> <unit_name>
+get_unit_dep_status() {
+  local intent_dir="$1"
+  local unit_name="$2"
+  local unit_file="$intent_dir/$unit_name.md"
+
+  if [ ! -f "$unit_file" ]; then
+    echo "Error: Unit file not found: $unit_file" >&2
+    return 1
+  fi
+
+  local deps
+  deps=$(parse_unit_deps "$unit_file")
+
+  # No dependencies means all deps met
+  [ -z "$deps" ] && return 0
+
+  local has_blocking=false
+  local table_rows=""
+
+  for dep in $deps; do
+    [ -z "$dep" ] && continue
+    local dep_file="$intent_dir/$dep.md"
+    local dep_status
+    dep_status=$(parse_unit_status "$dep_file")
+
+    if [ "$dep_status" != "completed" ]; then
+      has_blocking=true
+      table_rows="${table_rows}| $dep | $dep_status (blocking) |\n"
+    else
+      table_rows="${table_rows}| $dep | $dep_status |\n"
+    fi
+  done
+
+  if [ "$has_blocking" = "true" ]; then
+    echo "| Dependency | Status |"
+    echo "|------------|--------|"
+    printf "%b" "$table_rows"
+    return 1
+  fi
+
+  return 0
+}
+
 # Find ready units (pending + all deps completed)
 # Returns unit names (without .md) one per line
 # Usage: find_ready_units <intent_dir>

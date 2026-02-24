@@ -12,13 +12,9 @@ default:
   description: Standard development workflow
   hats: [planner, builder, reviewer]
 
-tdd:
-  description: Test-Driven Development (Red-Green-Refactor)
-  hats: [test-writer, implementer, refactorer]
-
 adversarial:
   description: Security-focused with Red/Blue team phases
-  hats: [builder, red-team, blue-team, reviewer]
+  hats: [planner, builder, red-team, blue-team, reviewer]
 
 hypothesis:
   description: Scientific debugging for investigating bugs

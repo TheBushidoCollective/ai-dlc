@@ -69,9 +69,32 @@ if [ -n "$CURRENT_UNIT" ] && [ -f "$INTENT_DIR/${CURRENT_UNIT}.md" ]; then
 fi
 ```
 
-### Step 2c: Merge Unit Branch on Completion
+### Step 2c: Handle Targeted Unit Completion
 
-After marking a unit as completed, merge the unit branch into the intent branch:
+When `targetUnit` is set in state and matches the just-completed unit, handle early exit:
+
+```bash
+TARGET_UNIT=$(echo "$STATE" | han parse json targetUnit -r --default "")
+if [ -n "$TARGET_UNIT" ] && [ "$TARGET_UNIT" = "$CURRENT_UNIT" ]; then
+  # Clear targetUnit from state
+  STATE=$(echo "$STATE" | han parse json --set "targetUnit=")
+  han keep save iteration.json "$STATE"
+
+  echo "## Targeted Unit Complete: ${CURRENT_UNIT}"
+  echo ""
+  echo "The targeted unit has finished its workflow."
+  echo ""
+  echo "**Next steps:**"
+  echo "- Run \`/construct\` to continue with the next ready unit"
+  echo "- Run \`/construct <unit-name>\` to target another specific unit"
+  echo "- Run \`/advance\` if all units are complete"
+  exit 0
+fi
+```
+
+### Step 2d: Merge Unit Branch on Completion
+
+After marking a unit as completed, merge behavior depends on `change_strategy`:
 
 ```bash
 # Load config for merge settings
@@ -80,11 +103,45 @@ INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
 CONFIG=$(get_ai_dlc_config "$INTENT_DIR")
 AUTO_MERGE=$(echo "$CONFIG" | jq -r '.auto_merge // "true"')
 AUTO_SQUASH=$(echo "$CONFIG" | jq -r '.auto_squash // "false"')
+CHANGE_STRATEGY=$(echo "$CONFIG" | jq -r '.change_strategy // "unit"')
+DEFAULT_BRANCH=$(echo "$CONFIG" | jq -r '.default_branch')
 
-if [ "$AUTO_MERGE" = "true" ]; then
-  UNIT_SLUG="${CURRENT_UNIT#unit-}"
-  UNIT_BRANCH="ai-dlc/${INTENT_SLUG}/${UNIT_SLUG}"
+UNIT_SLUG="${CURRENT_UNIT#unit-}"
+UNIT_BRANCH="ai-dlc/${INTENT_SLUG}/${UNIT_SLUG}"
 
+if [ "$CHANGE_STRATEGY" = "unit" ]; then
+  # Unit strategy: open a PR/MR for the unit branch directly to the default branch
+  git push -u origin "$UNIT_BRANCH" 2>/dev/null || true
+
+  # Get this unit's ticket reference (if any) for the PR body
+  UNIT_TICKET=$(han parse yaml ticket -r --default "" < "$INTENT_DIR/${CURRENT_UNIT}.md" 2>/dev/null || echo "")
+  TICKET_LINE=""
+  if [ -n "$UNIT_TICKET" ]; then
+    TICKET_LINE="Closes ${UNIT_TICKET}"
+  fi
+
+  gh pr create \
+    --base "$DEFAULT_BRANCH" \
+    --head "$UNIT_BRANCH" \
+    --title "unit: ${CURRENT_UNIT}" \
+    --body "$(cat <<EOF
+## Unit: ${CURRENT_UNIT}
+
+Part of intent: ${INTENT_SLUG}
+
+${TICKET_LINE}
+
+---
+*Built with [AI-DLC](https://ai-dlc.dev)*
+EOF
+)" 2>/dev/null || echo "PR may already exist for $UNIT_BRANCH"
+
+  # Clean up unit worktree
+  WORKTREE_PATH="/tmp/ai-dlc-${INTENT_SLUG}-${UNIT_SLUG}"
+  [ -d "$WORKTREE_PATH" ] && git worktree remove "$WORKTREE_PATH"
+
+elif [ "$AUTO_MERGE" = "true" ]; then
+  # Intent/trunk strategy: merge unit branch into intent branch
   # Ensure we're on the intent branch
   git checkout "ai-dlc/${INTENT_SLUG}/main"
 
@@ -114,10 +171,10 @@ if (dagSummary.allComplete) {
   // ALL UNITS COMPLETE - Check if integrator should run
   // Skip integrator for:
   //   - Single-unit intents (reviewer already validated it)
-  //   - change_strategy "bolt" (single squashed branch, no multi-unit merge)
+  //   - change_strategy "unit" (each unit reviewed individually via per-unit MR)
   const unitCount = dagSummary.totalCount;
   const changeStrategy = config.change_strategy || "unit";
-  const skipIntegrator = unitCount <= 1 || changeStrategy === "bolt";
+  const skipIntegrator = unitCount <= 1 || changeStrategy === "unit";
   if (!skipIntegrator && !state.integratorComplete) {
     // Spawn integrator on the intent branch
     // See Step 2e below
@@ -389,7 +446,20 @@ INTENT_BRANCH="ai-dlc/${INTENT_SLUG}/main"
 git push -u origin "$INTENT_BRANCH" 2>/dev/null || true
 ```
 
-2. Create PR/MR:
+2. Collect ticket references from all units:
+
+```bash
+TICKET_REFS=""
+for unit_file in "$INTENT_DIR"/unit-*.md; do
+  [ -f "$unit_file" ] || continue
+  TICKET=$(han parse yaml ticket -r --default "" < "$unit_file" 2>/dev/null || echo "")
+  if [ -n "$TICKET" ]; then
+    TICKET_REFS="${TICKET_REFS}\nCloses ${TICKET}"
+  fi
+done
+```
+
+3. Create PR/MR:
 
 ```bash
 gh pr create \
@@ -407,6 +477,8 @@ ${SUCCESS_CRITERIA_AS_CHECKLIST}
 
 ## Changes
 ${COMPLETED_UNITS_AS_CHANGE_LIST}
+
+$(printf "%b" "${TICKET_REFS}")
 
 ---
 *Built with [AI-DLC](https://ai-dlc.dev)*

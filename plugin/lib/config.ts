@@ -14,13 +14,13 @@ import { dirname, join } from "node:path"
 /**
  * Change strategy determines how git branches are organized
  */
-export type ChangeStrategy = "trunk" | "unit" | "bolt" | "intent"
+export type ChangeStrategy = "trunk" | "unit" | "intent"
 
 /**
  * VCS configuration for git or jj
  */
 export interface VcsConfig {
-	/** How changes are organized: trunk, unit, bolt, or intent */
+	/** How changes are organized: trunk, unit, or intent */
 	change_strategy: ChangeStrategy
 	/** Whether to create PR for elaborated intent review before planning */
 	elaboration_review: boolean

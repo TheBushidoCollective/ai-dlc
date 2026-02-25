@@ -67,6 +67,24 @@ If truly blocked (cannot proceed without user input):
 
 ## Implementation
 
+### Pre-check: Reject Cowork Mode
+
+Construction requires full CLI capabilities (file editing, worktrees, test execution, subagent teams). It cannot run in a cowork session.
+
+```bash
+if [ "${CLAUDE_CODE_IS_COWORK:-}" = "1" ]; then
+  echo "ERROR: /construct cannot run in cowork mode."
+  echo "Construction requires a full Claude Code CLI session with file system access."
+  echo ""
+  echo "To continue:"
+  echo "  1. Open Claude Code in your project directory"
+  echo "  2. Run /construct"
+  exit 1
+fi
+```
+
+If `CLAUDE_CODE_IS_COWORK=1`, stop immediately with the message above. Do NOT proceed to any further steps.
+
 ### Step 0: Ensure Intent Worktree
 
 **CRITICAL: The orchestrator MUST run in the intent worktree, not the main working directory.**

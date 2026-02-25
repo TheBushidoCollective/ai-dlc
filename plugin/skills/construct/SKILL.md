@@ -393,9 +393,8 @@ Loop over ALL ready units from the DAG (not just one):
 source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
 READY_UNITS=$(find_ready_units "$INTENT_DIR")
 
-# Determine first construction hat
-WORKFLOW_HATS=$(echo "$STATE" | han parse json workflow)
-FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '.[0]')
+# Intent-level workflow (default fallback)
+INTENT_WORKFLOW_HATS=$(echo "$STATE" | han parse json workflow)
 ```
 
 **Include repo URL for cowork**: If operating in a cloned workspace, include the repo URL in each teammate's prompt: "Repository: `<remote-url>`. Clone and checkout `ai-dlc/<intent-slug>` if you don't have local access." This enables teammates to clone independently in cowork mode.
@@ -426,10 +425,35 @@ fi
 update_unit_status "$UNIT_FILE" "in_progress"
 ```
 
-3. **Initialize unit state in `unitStates`**:
+3. **Resolve per-unit workflow** — read the unit's `workflow:` frontmatter field. If present, resolve it to a hat sequence. If absent, fall back to the intent-level workflow:
 
 ```bash
-STATE=$(echo "$STATE" | han parse json --set "unitStates.${UNIT_NAME}.hat=${FIRST_HAT}" --set "unitStates.${UNIT_NAME}.retries=0")
+UNIT_WORKFLOW_NAME=$(han parse yaml workflow -r --default "" < "$UNIT_FILE" 2>/dev/null || echo "")
+
+if [ -n "$UNIT_WORKFLOW_NAME" ]; then
+  # Resolve unit-specific workflow
+  UNIT_WORKFLOW_HATS=""
+  if [ -f ".ai-dlc/workflows.yml" ]; then
+    UNIT_WORKFLOW_HATS=$(han parse yaml "${UNIT_WORKFLOW_NAME}.hats" < ".ai-dlc/workflows.yml" 2>/dev/null || echo "")
+  fi
+  if [ -z "$UNIT_WORKFLOW_HATS" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/workflows.yml" ]; then
+    UNIT_WORKFLOW_HATS=$(han parse yaml "${UNIT_WORKFLOW_NAME}.hats" < "${CLAUDE_PLUGIN_ROOT}/workflows.yml" 2>/dev/null || echo "")
+  fi
+  [ -z "$UNIT_WORKFLOW_HATS" ] && UNIT_WORKFLOW_HATS="$INTENT_WORKFLOW_HATS"
+else
+  UNIT_WORKFLOW_HATS="$INTENT_WORKFLOW_HATS"
+fi
+
+FIRST_HAT=$(echo "$UNIT_WORKFLOW_HATS" | jq -r '.[0]')
+```
+
+4. **Initialize unit state in `unitStates`** (includes the resolved workflow):
+
+```bash
+STATE=$(echo "$STATE" | han parse json \
+  --set "unitStates.${UNIT_NAME}.hat=${FIRST_HAT}" \
+  --set "unitStates.${UNIT_NAME}.retries=0" \
+  --set "unitStates.${UNIT_NAME}.workflow=${UNIT_WORKFLOW_HATS}")
 han keep save iteration.json "$STATE"
 ```
 
@@ -523,8 +547,9 @@ The lead processes auto-delivered teammate messages. Handle each event type:
 When a teammate reports successful completion:
 
 1. Read current hat for this unit from `unitStates.{unit}.hat`
-2. Find current hat's index in the `workflow` array
-3. Determine next hat: `workflow[currentIndex + 1]`
+2. Read this unit's workflow from `unitStates.{unit}.workflow` (per-unit workflow, already resolved at spawn time)
+3. Find current hat's index in the unit's workflow array
+4. Determine next hat: `unitWorkflow[currentIndex + 1]`
 
 **If next hat exists** (not at end of workflow):
 
@@ -878,14 +903,16 @@ The `iteration.json` is extended with `unitStates` for parallel hat tracking:
   "workflow": ["planner", "builder", "reviewer"],
   "teamName": "ai-dlc-my-intent",
   "unitStates": {
-    "unit-01-foundation": { "hat": "reviewer", "retries": 0 },
-    "unit-02-dag-view": { "hat": "builder", "retries": 1 }
+    "unit-01-foundation": { "hat": "reviewer", "retries": 0, "workflow": ["planner", "builder", "reviewer"] },
+    "unit-02-design-dashboard": { "hat": "designer", "retries": 0, "workflow": ["planner", "designer", "reviewer"] },
+    "unit-03-dag-view": { "hat": "builder", "retries": 1, "workflow": ["planner", "builder", "reviewer"] }
   }
 }
 ```
 
 - `hat`: Current hat for this specific unit
 - `retries`: Number of reviewer rejection cycles (max 3 before escalating to blocked)
+- `workflow`: The hat sequence for this unit (resolved from unit frontmatter `workflow:` field, falling back to intent-level workflow)
 - Units are added when spawned, removed when completed
 
 ---

@@ -35,16 +35,20 @@ STATE=$(han keep load iteration.json --quiet)
 ### Step 2: Determine Previous Hat
 
 ```javascript
-const workflow = state.workflow || ["planner", "builder", "reviewer"];
-const currentIndex = workflow.indexOf(state.hat);
+// Resolve workflow for this unit: per-unit workflow takes priority, then intent-level fallback
+const currentUnit = state.currentUnit;
+const unitWorkflow = (currentUnit && state.unitStates?.[currentUnit]?.workflow)
+  || state.workflow
+  || ["planner", "builder", "reviewer"];
+const currentIndex = unitWorkflow.indexOf(state.hat);
 const prevIndex = currentIndex - 1;
 
 if (prevIndex < 0) {
   // Already at first hat - cannot go back
-  return "Cannot fail before the first hat (planner).";
+  return "Cannot fail before the first hat.";
 }
 
-const prevHat = workflow[prevIndex];
+const prevHat = unitWorkflow[prevIndex];
 ```
 
 ### Step 3: Document Why

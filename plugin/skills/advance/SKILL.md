@@ -38,16 +38,20 @@ STATE=$(han keep load iteration.json --quiet)
 ### Step 2: Determine Next Hat (or Handle Completion)
 
 ```javascript
-const workflow = state.workflow || ["planner", "builder", "reviewer"];
-const currentIndex = workflow.indexOf(state.hat);
+// Resolve workflow for this unit: per-unit workflow takes priority, then intent-level fallback
+const currentUnit = state.currentUnit;
+const unitWorkflow = (currentUnit && state.unitStates?.[currentUnit]?.workflow)
+  || state.workflow
+  || ["planner", "builder", "reviewer"];
+const currentIndex = unitWorkflow.indexOf(state.hat);
 const nextIndex = currentIndex + 1;
 
-if (nextIndex >= workflow.length) {
+if (nextIndex >= unitWorkflow.length) {
   // At last hat - check DAG status to determine next action
   // See Steps 2b-2d below
 }
 
-const nextHat = workflow[nextIndex];
+const nextHat = unitWorkflow[nextIndex];
 ```
 
 ### Step 2b: Last Hat Logic (Completion/Loop/Block)
@@ -304,20 +308,26 @@ The integrator specifies which units need rework. For each rejected unit:
 
 ```bash
 source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
-WORKFLOW_HATS=$(echo "$STATE" | han parse json workflow)
-FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '.[0]')
+INTENT_WORKFLOW_HATS=$(echo "$STATE" | han parse json workflow)
 
 # Re-queue each rejected unit
 for UNIT_FILE in $REJECTED_UNITS; do
   update_unit_status "$UNIT_FILE" "pending"
 
-  # Reset hat to first workflow hat in unitStates (teams mode)
+  # Reset hat to first hat of this unit's workflow (per-unit or intent-level fallback)
   UNIT_NAME=$(basename "$UNIT_FILE" .md)
-  STATE=$(echo "$STATE" | han parse json --set "unitStates.${UNIT_NAME}.hat=${FIRST_HAT}" --set "unitStates.${UNIT_NAME}.retries=0")
+  UNIT_WORKFLOW=$(echo "$STATE" | han parse json "unitStates.${UNIT_NAME}.workflow" 2>/dev/null || echo "")
+  [ -z "$UNIT_WORKFLOW" ] || [ "$UNIT_WORKFLOW" = "null" ] && UNIT_WORKFLOW="$INTENT_WORKFLOW_HATS"
+  FIRST_HAT=$(echo "$UNIT_WORKFLOW" | jq -r '.[0]')
+  STATE=$(echo "$STATE" | han parse json \
+    --set "unitStates.${UNIT_NAME}.hat=${FIRST_HAT}" \
+    --set "unitStates.${UNIT_NAME}.retries=0" \
+    --set "unitStates.${UNIT_NAME}.workflow=${UNIT_WORKFLOW}")
 done
 
 # Reset integrator state
-STATE=$(echo "$STATE" | han parse json --set "hat=${FIRST_HAT}" --set "integratorComplete=false")
+GLOBAL_FIRST_HAT=$(echo "$INTENT_WORKFLOW_HATS" | jq -r '.[0]')
+STATE=$(echo "$STATE" | han parse json --set "hat=${GLOBAL_FIRST_HAT}" --set "integratorComplete=false")
 han keep save iteration.json "$STATE"
 
 # Output: "Integrator rejected. Re-queued units: {list}. Run /construct to continue."

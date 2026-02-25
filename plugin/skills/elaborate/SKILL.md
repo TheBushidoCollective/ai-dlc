@@ -480,7 +480,20 @@ Do NOT ask the user whether to decompose. Assess the complexity from the domain 
 
 1. **Units MUST NOT span dependency boundaries.** If a piece of work depends on another piece being done first, those are two separate units with an explicit `depends_on` edge. This applies regardless of change strategy (`unit` or `intent`). A unit that contains both "set up the database schema" and "build the API that uses it" is a bad unit — those are two units where the API unit depends on the schema unit.
 
-2. **Units MUST NOT span domains.** A unit has exactly one discipline (frontend, backend, api, documentation, devops, etc.). No unit should mix frontend and backend work, or API and documentation, etc. If a feature needs both a backend endpoint and a frontend view, those are two units — the frontend unit `depends_on` the backend unit.
+2. **Units MUST NOT span domains.** A unit has exactly one discipline (frontend, backend, api, documentation, devops, design, etc.). No unit should mix frontend and backend work, or API and documentation, etc. If a feature needs both a backend endpoint and a frontend view, those are two units — the frontend unit `depends_on` the backend unit.
+
+3. **Design work is its own unit.** If a feature needs UI/UX design work (mockups, component design, interaction flows), create a separate unit with `discipline: design` and `workflow: design`. The design workflow runs `planner → designer → reviewer`. Frontend implementation units should `depends_on` the design unit so builders have finalized designs to implement against. This also enables a human to own the design unit while AI handles other units.
+
+**Per-unit workflow suggestions:** Different units may benefit from different workflows based on their discipline or risk profile. When decomposing, suggest an appropriate workflow for each unit:
+
+| Discipline / Concern | Suggested Workflow | Rationale |
+|---|---|---|
+| `backend`, `api`, `devops`, `documentation` | `default` (planner → builder → reviewer) | Standard implementation cycle |
+| `design` | `design` (planner → designer → reviewer) | Design artifacts need design hat, not builder |
+| Security-sensitive units | `adversarial` (planner → builder → red-team → blue-team → reviewer) | Adversarial testing for auth, crypto, data handling |
+| Units without a clear workflow need | (omit `workflow:` field) | Inherits the intent-level workflow |
+
+Set the `workflow:` frontmatter field on units that need a non-default workflow. Omit it (or leave empty) for units that should use the intent-level workflow.
 
 Define each unit with **enough detail that a builder with zero prior context builds the right thing**:
 
@@ -777,7 +790,8 @@ problem space.}
 status: pending
 depends_on: []
 branch: ai-dlc/{intent-slug}/NN-{unit-slug}
-discipline: {discipline}  # frontend, backend, api, documentation, devops, etc.
+discipline: {discipline}  # frontend, backend, api, documentation, devops, design, etc.
+workflow: ""  # Per-unit workflow override (optional — omit or leave empty to use intent-level workflow)
 ticket: ""  # Ticketing provider ticket key (auto-populated if ticketing provider configured)
 ---
 

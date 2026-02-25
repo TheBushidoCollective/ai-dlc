@@ -1,6 +1,7 @@
 ---
 status: pending
 depends_on: []
+mode: ""
 ---
 
 # Unit: [Unit Name]
@@ -12,6 +13,7 @@ Delete these comment blocks before use.
 
 Status values: pending, in-progress, blocked, complete
 depends_on: list of unit filenames this unit depends on
+mode: HITL, OHOTL, or AHOTL (empty = inherit intent-level default)
 -->
 
 ## Description

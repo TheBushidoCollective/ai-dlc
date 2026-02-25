@@ -791,6 +791,7 @@ status: pending
 depends_on: []
 branch: ai-dlc/{intent-slug}/NN-{unit-slug}
 discipline: {discipline}  # frontend, backend, api, documentation, devops, design, etc.
+mode: {mode}  # HITL, OHOTL, or AHOTL — set from discipline-informed defaults (see below), overridable at /construct time
 workflow: ""  # Per-unit workflow override (optional — omit or leave empty to use intent-level workflow)
 ticket: ""  # Ticketing provider ticket key (auto-populated if ticketing provider configured)
 ---
@@ -836,6 +837,30 @@ misinterpret what to build.}
 - `api` → API development agents
 - `documentation` → `do-technical-documentation` agents
 - `devops` → infrastructure/deployment agents
+
+**Discipline-informed mode defaults:**
+
+Set each unit's `mode` field based on its discipline and characteristics. These are starting defaults — the user can override per-unit when they pick it up during `/construct`.
+
+| Discipline | Default Mode | Rationale |
+|-----------|-------------|-----------|
+| `documentation` | AHOTL | Clear criteria, fully automatable, low risk |
+| `devops` | AHOTL | Infrastructure-as-code follows patterns, testable |
+| `backend` | OHOTL | Mostly clear but may need judgment on edge cases |
+| `api` | OHOTL | Contract-driven but integration nuances need oversight |
+| `frontend` | OHOTL | Subjective/creative quality, benefits from observation |
+| `design` | HITL | Taste-driven, requires human validation at each step |
+
+**Override the default when unit characteristics warrant it:**
+- If a `backend` unit touches auth, security, or migrations → use `HITL` (high risk)
+- If a `frontend` unit is purely mechanical (e.g., adding a data column) → use `AHOTL`
+- If a `documentation` unit requires architectural judgment → use `OHOTL`
+- When in doubt, prefer OHOTL — it balances speed with oversight
+
+The mode maps to Claude Code permission levels at construction time:
+- **HITL** → `plan` mode (agent proposes, human approves before execution)
+- **OHOTL** → `acceptEdits` mode (agent works, human can intervene)
+- **AHOTL** → `bypassPermissions` mode (full autonomy, criteria-gated)
 
 ### 4. Save intent slug to han keep:
 

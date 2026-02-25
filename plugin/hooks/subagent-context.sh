@@ -145,15 +145,16 @@ if [ -d "$INTENT_DIR" ] && ls "$INTENT_DIR"/unit-*.md 1>/dev/null 2>&1; then
     fi
     echo ""
   else
-    # Fallback: simple unit list with discipline
-    echo "| Unit | Status | Discipline |"
-    echo "|------|--------|------------|"
+    # Fallback: simple unit list with discipline and mode
+    echo "| Unit | Status | Mode | Discipline |"
+    echo "|------|--------|------|------------|"
     for unit_file in "$INTENT_DIR"/unit-*.md; do
       [ -f "$unit_file" ] || continue
       NAME=$(basename "$unit_file" .md)
       UNIT_STATUS=$(han parse yaml status -r --default pending < "$unit_file" 2>/dev/null || echo "pending")
       DISCIPLINE=$(han parse yaml discipline -r --default "-" < "$unit_file" 2>/dev/null || echo "-")
-      echo "| $NAME | $UNIT_STATUS | $DISCIPLINE |"
+      UNIT_MODE=$(han parse yaml mode -r --default "-" < "$unit_file" 2>/dev/null || echo "-")
+      echo "| $NAME | $UNIT_STATUS | $UNIT_MODE | $DISCIPLINE |"
     done
     echo ""
   fi

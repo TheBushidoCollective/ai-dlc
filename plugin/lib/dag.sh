@@ -98,6 +98,31 @@ parse_unit_deps() {
   _yaml_get_array "depends_on" < "$unit_file"
 }
 
+# Parse unit mode from frontmatter (fast - no subprocess)
+# Returns HITL, OHOTL, AHOTL, or empty string (inherit intent default)
+# Usage: parse_unit_mode <unit_file>
+parse_unit_mode() {
+  local unit_file="$1"
+  if [ ! -f "$unit_file" ]; then
+    echo ""
+    return
+  fi
+  _yaml_get_simple "mode" "" < "$unit_file"
+}
+
+# Map AI-DLC mode to Claude Code Task permission mode
+# Usage: mode_to_permission <mode>
+# Returns: plan, acceptEdits, or bypassPermissions
+mode_to_permission() {
+  local mode="$1"
+  case "$mode" in
+    HITL)  echo "plan" ;;
+    OHOTL) echo "acceptEdits" ;;
+    AHOTL) echo "bypassPermissions" ;;
+    *)     echo "default" ;;
+  esac
+}
+
 # Parse unit branch name from frontmatter (fast - no subprocess)
 # Usage: parse_unit_branch <unit_file>
 parse_unit_branch() {
@@ -323,8 +348,8 @@ get_dag_status_table() {
     return
   fi
 
-  echo "| Unit | Status | Blocked By |"
-  echo "|------|--------|------------|"
+  echo "| Unit | Status | Mode | Blocked By |"
+  echo "|------|--------|------|------------|"
 
   for unit_file in "$intent_dir"/unit-*.md; do
     [ -f "$unit_file" ] || continue
@@ -333,6 +358,9 @@ get_dag_status_table() {
     name=$(basename "$unit_file" .md)
     local unit_status
     unit_status=$(parse_unit_status "$unit_file")
+    local unit_mode
+    unit_mode=$(parse_unit_mode "$unit_file")
+    [ -z "$unit_mode" ] && unit_mode="-"
 
     # Find blockers (deps is space-separated)
     local blockers=""
@@ -356,7 +384,7 @@ get_dag_status_table() {
       done
     fi
 
-    echo "| $name | $unit_status | $blockers |"
+    echo "| $name | $unit_status | $unit_mode | $blockers |"
   done
 }
 

@@ -222,8 +222,56 @@ if [ -n "$TARGET_UNIT" ]; then
     echo "Unit already completed: ${TARGET_UNIT}"
     exit 0
   fi
+
+  # 4. Mode selection prompt (targeted pickup only)
+  # When a user targets a specific unit, that's a "pickup" — present the mode and let them confirm or override.
+  UNIT_MODE=$(parse_unit_mode "$UNIT_FILE")
+  UNIT_DISCIPLINE=$(_yaml_get_simple "discipline" "" < "$UNIT_FILE")
+  [ -z "$UNIT_MODE" ] && UNIT_MODE="OHOTL"  # Default if not set during elaboration
+
+  echo ""
+  echo "## Picking up: ${TARGET_UNIT}"
+  echo ""
+  echo "- **Discipline:** ${UNIT_DISCIPLINE:-unspecified}"
+  echo "- **Current mode:** ${UNIT_MODE}"
+  echo ""
 fi
 ```
+
+When a specific unit is targeted, ask the user to confirm or override the mode using `AskUserQuestion`:
+
+```json
+{
+  "questions": [{
+    "question": "How should this unit be executed?",
+    "header": "Mode",
+    "options": [
+      {"label": "HITL (Human-in-the-Loop)", "description": "You validate each step before AI proceeds. Best for high-risk, novel, or judgment-heavy work."},
+      {"label": "OHOTL (Observed Human-on-the-Loop)", "description": "AI works while you watch and can intervene anytime. Best for mostly-clear work that benefits from oversight."},
+      {"label": "AHOTL (Autonomous)", "description": "AI operates autonomously until criteria are met. Best for well-defined, low-risk, automatable work."},
+      {"label": "Keep current ({UNIT_MODE})", "description": "Use the mode set during elaboration."}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+Map the selection to the mode value:
+- "HITL" → `HITL`
+- "OHOTL" → `OHOTL`
+- "AHOTL" → `AHOTL`
+- "Keep current" → use `UNIT_MODE` as-is
+
+If the user overrides the mode, update the unit frontmatter:
+
+```bash
+if [ "$SELECTED_MODE" != "$UNIT_MODE" ]; then
+  han parse yaml-set mode "$SELECTED_MODE" < "$UNIT_FILE" > "$UNIT_FILE.tmp" && mv "$UNIT_FILE.tmp" "$UNIT_FILE"
+  UNIT_MODE="$SELECTED_MODE"
+fi
+```
+
+**When NOT targeting** (DAG auto-advance), skip the mode prompt entirely — use whatever mode is in the unit frontmatter (falling back to OHOTL if empty).
 
 ### Step 0b: Ensure Remote Tracking
 
@@ -447,17 +495,26 @@ fi
 FIRST_HAT=$(echo "$UNIT_WORKFLOW_HATS" | jq -r '.[0]')
 ```
 
-4. **Initialize unit state in `unitStates`** (includes the resolved workflow):
+3b. **Resolve per-unit mode** — read the unit's `mode:` frontmatter field. If empty, fall back to OHOTL:
+
+```bash
+UNIT_MODE=$(parse_unit_mode "$UNIT_FILE")
+[ -z "$UNIT_MODE" ] && UNIT_MODE="OHOTL"
+UNIT_PERMISSION=$(mode_to_permission "$UNIT_MODE")
+```
+
+4. **Initialize unit state in `unitStates`** (includes the resolved workflow and mode):
 
 ```bash
 STATE=$(echo "$STATE" | han parse json \
   --set "unitStates.${UNIT_NAME}.hat=${FIRST_HAT}" \
   --set "unitStates.${UNIT_NAME}.retries=0" \
+  --set "unitStates.${UNIT_NAME}.mode=${UNIT_MODE}" \
   --set "unitStates.${UNIT_NAME}.workflow=${UNIT_WORKFLOW_HATS}")
 han keep save iteration.json "$STATE"
 ```
 
-4. **Load hat instructions for the first hat**:
+4b. **Load hat instructions for the first hat**:
 
 ```bash
 # Load hat instructions for the teammate's role
@@ -492,17 +549,23 @@ TaskCreate({
 })
 ```
 
-7. **Spawn teammate with hat instructions in prompt**:
+7. **Spawn teammate with hat instructions in prompt, using unit mode for permission level**:
 
 ```javascript
 Task({
   subagent_type: getAgentTypeForHat(FIRST_HAT, unit.discipline),
+  mode: UNIT_PERMISSION,  // plan | acceptEdits | bypassPermissions — from unit mode
   description: `${FIRST_HAT}: ${unitName}`,
   name: `${FIRST_HAT}-${unitSlug}`,
   team_name: `ai-dlc-${intentSlug}`,
 
   prompt: `
     Execute the ${FIRST_HAT} role for unit ${unitName}.
+
+    ## Operating Mode: ${UNIT_MODE}
+    ${UNIT_MODE === "HITL" ? "Present your plan and wait for approval before making changes." : ""}
+    ${UNIT_MODE === "OHOTL" ? "Work autonomously but surface key decisions clearly so the observer can redirect." : ""}
+    ${UNIT_MODE === "AHOTL" ? "Work fully autonomously. Only stop when criteria are met or you are genuinely blocked." : ""}
 
     ## Your Role: ${FIRST_HAT}
     ${HAT_INSTRUCTIONS}
@@ -576,17 +639,30 @@ d. Select agent type based on hat:
    - `builder` -> discipline-specific agent (see builder agent selection table below)
    - All other hats (`reviewer`, `red-team`, `blue-team`, etc.) -> `general-purpose` agent
 
-e. Spawn teammate with hat instructions in prompt:
+e. Resolve unit mode from `unitStates.{unit}.mode` (persisted at spawn time):
+
+```bash
+UNIT_MODE=$(echo "$STATE" | han parse json "unitStates.${UNIT_NAME}.mode" -r --default "OHOTL")
+UNIT_PERMISSION=$(mode_to_permission "$UNIT_MODE")
+```
+
+f. Spawn teammate with hat instructions and mode:
 
 ```javascript
 Task({
   subagent_type: getAgentTypeForHat(nextHat, unit.discipline),
+  mode: UNIT_PERMISSION,  // plan | acceptEdits | bypassPermissions — from unit mode
   description: `${nextHat}: ${unitName}`,
   name: `${nextHat}-${unitSlug}`,
   team_name: `ai-dlc-${intentSlug}`,
 
   prompt: `
     Execute the ${nextHat} role for unit ${unitName}.
+
+    ## Operating Mode: ${UNIT_MODE}
+    ${UNIT_MODE === "HITL" ? "Present your plan and wait for approval before making changes." : ""}
+    ${UNIT_MODE === "OHOTL" ? "Work autonomously but surface key decisions clearly so the observer can redirect." : ""}
+    ${UNIT_MODE === "AHOTL" ? "Work fully autonomously. Only stop when criteria are met or you are genuinely blocked." : ""}
 
     ## Your Role: ${nextHat}
     ${HAT_INSTRUCTIONS}
@@ -903,15 +979,16 @@ The `iteration.json` is extended with `unitStates` for parallel hat tracking:
   "workflow": ["planner", "builder", "reviewer"],
   "teamName": "ai-dlc-my-intent",
   "unitStates": {
-    "unit-01-foundation": { "hat": "reviewer", "retries": 0, "workflow": ["planner", "builder", "reviewer"] },
-    "unit-02-design-dashboard": { "hat": "designer", "retries": 0, "workflow": ["planner", "designer", "reviewer"] },
-    "unit-03-dag-view": { "hat": "builder", "retries": 1, "workflow": ["planner", "builder", "reviewer"] }
+    "unit-01-foundation": { "hat": "reviewer", "retries": 0, "mode": "OHOTL", "workflow": ["planner", "builder", "reviewer"] },
+    "unit-02-design-dashboard": { "hat": "designer", "retries": 0, "mode": "HITL", "workflow": ["planner", "designer", "reviewer"] },
+    "unit-03-dag-view": { "hat": "builder", "retries": 1, "mode": "AHOTL", "workflow": ["planner", "builder", "reviewer"] }
   }
 }
 ```
 
 - `hat`: Current hat for this specific unit
 - `retries`: Number of reviewer rejection cycles (max 3 before escalating to blocked)
+- `mode`: Operating mode for this unit (HITL, OHOTL, or AHOTL) — maps to Task `mode` parameter (plan, acceptEdits, bypassPermissions)
 - `workflow`: The hat sequence for this unit (resolved from unit frontmatter `workflow:` field, falling back to intent-level workflow)
 - Units are added when spawned, removed when completed
 
@@ -990,14 +1067,30 @@ han keep save iteration.json "$STATE"
 - `documentation` -> `do-technical-documentation:documentation-engineer`
 - (other) -> `general-purpose`
 
+##### Resolve unit mode
+
+Before spawning, read the unit's mode and map it to a Task permission mode:
+
+```bash
+UNIT_MODE=$(parse_unit_mode "$UNIT_FILE")
+[ -z "$UNIT_MODE" ] && UNIT_MODE="OHOTL"
+UNIT_PERMISSION=$(mode_to_permission "$UNIT_MODE")
+```
+
 ##### Example spawn (standard subagents)
 
 ```javascript
 Task({
   subagent_type: getAgentForRole(state.hat, unit.discipline),
+  mode: UNIT_PERMISSION,  // plan | acceptEdits | bypassPermissions — from unit mode
   description: `${state.hat}: ${unit.name}`,
   prompt: `
     Execute the ${state.hat} role for this AI-DLC unit.
+
+    ## Operating Mode: ${UNIT_MODE}
+    ${UNIT_MODE === "HITL" ? "Present your plan and wait for approval before making changes." : ""}
+    ${UNIT_MODE === "OHOTL" ? "Work autonomously but surface key decisions clearly so the observer can redirect." : ""}
+    ${UNIT_MODE === "AHOTL" ? "Work fully autonomously. Only stop when criteria are met or you are genuinely blocked." : ""}
 
     ## CRITICAL: Work in Worktree
     **Worktree path:** ${WORKTREE_PATH}

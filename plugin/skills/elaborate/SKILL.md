@@ -1220,7 +1220,13 @@ Workflow: {workflowName}
 Next hat: {next-hat}
 ```
 
-Then ask the user how to proceed using `AskUserQuestion`:
+Then ask the user how to proceed. **The options depend on whether this is a cowork session.**
+
+```bash
+IS_COWORK="${CLAUDE_CODE_IS_COWORK:-}"
+```
+
+**If NOT cowork mode** (full CLI):
 
 ```json
 {
@@ -1236,7 +1242,30 @@ Then ask the user how to proceed using `AskUserQuestion`:
 }
 ```
 
-### If Construct:
+**If cowork mode** (`IS_COWORK=1`):
+
+The artifacts have already been written to `.ai-dlc/{intent-slug}/` in the working directory. Determine the handoff based on how the user connected to the repo in Phase 0:
+
+- **If the user pointed to a local folder** — the artifacts are already in their repo. They just need to commit.
+- **If the repo was cloned to a temp workspace** — the user may not have push access. Offer a zip download.
+
+```json
+{
+  "questions": [{
+    "question": "Elaboration is complete! How would you like to deliver the spec?",
+    "header": "Handoff",
+    "options": [
+      {"label": "Push branch + open PR/MR", "description": "Push the spec branch and create a pull/merge request for review (requires git push access)"},
+      {"label": "Download as zip", "description": "Package all spec artifacts into a zip file you can share with your team"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+**Note:** If the user connected via **local folder**, skip the question entirely — just tell them the artifacts are written and ready to commit (see "If local folder" below).
+
+### If Construct (CLI only):
 
 Tell the user:
 
@@ -1303,9 +1332,46 @@ EOF
 ```
 Spec PR created: {PR_URL}
 
-Review the spec with your team. When approved, run:
+Review the spec with your team. When approved, a developer can run:
   /construct
+```
 
-Note: All AI-DLC work happens in the worktree at .ai-dlc/worktrees/{intent-slug}/
-Your main working directory stays clean on the main branch.
+### If local folder (cowork — no question needed):
+
+The artifacts are already written in the user's own repo checkout. Just tell them:
+
+```
+Spec artifacts written to .ai-dlc/{intent-slug}/:
+- intent.md
+- unit-01-{name}.md
+- unit-02-{name}.md
+...
+
+These are ready to commit. From your project directory, run:
+  git add .ai-dlc/{intent-slug}/
+  git commit -m "elaborate: define intent and units for {intent-slug}"
+
+Then a developer can run `/construct` in Claude Code to start the build loop.
+```
+
+### If Download as zip (cowork):
+
+Package all spec artifacts into a zip file:
+
+```bash
+INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
+ZIP_PATH="/tmp/ai-dlc-${INTENT_SLUG}-spec.zip"
+cd "$(git rev-parse --show-toplevel)"
+zip -r "$ZIP_PATH" "$INTENT_DIR"
+```
+
+Tell the user:
+
+```
+Spec packaged: {ZIP_PATH}
+
+To use this spec:
+1. Unzip into the project root (preserves the .ai-dlc/{intent-slug}/ structure)
+2. Commit the files
+3. Run /construct in Claude Code to start the build loop
 ```

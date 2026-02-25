@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-02-25
+
+### Added
+
+- add wireframe generation phase and move worktrees into project ([156b2cb](../../commit/156b2cb))
+- unit targeting, enriched change strategies, remove bolt strategy ([9d32003](../../commit/9d32003))
+- add completion announcements, risk descriptions, iteration cap, and bolt terminology ([a6b4790](../../commit/a6b4790))
+- add NFR prompts, cross-cutting concerns, integrator hat, delivery prompts, and /refine skill ([4e448dd](../../commit/4e448dd))
+- add /setup skill and enforce ticket creation during elaboration ([7bdcbbe](../../commit/7bdcbbe))
+- add provider integration, cowork support, and three-tier instruction merge ([4fd4f48](../../commit/4fd4f48))
+- providers, cowork support, and plugin reorganization ([50aa5a1](../../commit/50aa5a1))
+- add domain discovery, spec validation, and deep research to elaboration ([edf7a4b](../../commit/edf7a4b))
+
+### Fixed
+
+- improve ticket description formatting and structure ([9f927c7](../../commit/9f927c7))
+- move iteration.json initialization from elaboration to construction ([53db2b7](../../commit/53db2b7))
+- make testing non-negotiable, remove per-intent testing config ([a118872](../../commit/a118872))
+- make subagent context hook load state from correct branch ([055de0a](../../commit/055de0a))
+- namespace intent branches as ai-dlc/{slug}/main ([3f5765d](../../commit/3f5765d))
+- remove elaborator from construction workflows and improve intent discovery ([68340c4](../../commit/68340c4))
+- update plugin install commands to use Claude Code native /plugin CLI ([6b7ba91](../../commit/6b7ba91))
+- session retrospective — branch ordering, team mode hats, workflow transitions, merge strategy ([e4c7707](../../commit/e4c7707))
+
+### Changed
+
+- rename reference skills, make non-user-invocable ([64332a2](../../commit/64332a2))
+- remove all mode references from hooks, skills, and specs ([2ac4321](../../commit/2ac4321))
+- remove mode selection from elaboration and construction ([5238358](../../commit/5238358))
+- consolidate intent.yaml into intent.md frontmatter ([3617cac](../../commit/3617cac))
+
+### Other
+
+- Merge branch 'main' of github.com:TheBushidoCollective/ai-dlc ([5d6e008](../../commit/5d6e008))
+- more provider settings ([c415c37](../../commit/c415c37))
+- Merge branch 'main' of github.com:TheBushidoCollective/ai-dlc ([92ad94e](../../commit/92ad94e))
+- remove intent ([0040b8c](../../commit/0040b8c))
+- update settings ([24a54a1](../../commit/24a54a1))
+
 ## [1.8.3] - 2026-02-24
 
 ### Added

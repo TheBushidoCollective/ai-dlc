@@ -64,7 +64,15 @@ The Designer creates visual designs, UI mockups, and user experience flows. This
    - You SHOULD reference design tokens if available
    - You MUST specify accessibility requirements (contrast, labels)
    - You SHOULD include responsive breakpoints
+   - You MUST reference colors by named tokens (design tokens, CSS custom properties, framework variables) — never by raw hex unless defining a new token
    - **Validation**: Specs sufficient for implementation
+
+#### Working with External Designs
+
+When exploring designs in design tools (Figma, Sketch, Adobe XD, etc.):
+
+- **Download assets for analysis.** Use design tool APIs or MCP tools to export images, icons, and SVGs. Analyze downloaded assets rather than relying solely on visual inspection.
+- **Distinguish annotations from design.** Designers annotate mockups with callouts, arrows, measurement labels, sticky notes, and descriptive text that convey UX intent and implementation detail. These annotations are **guidance, not UI elements.** Extract the guidance (spacing rules, interaction notes, state descriptions) and incorporate it into your design specs, but do not treat annotation visuals as part of the design itself.
 
 ## Success Criteria
 

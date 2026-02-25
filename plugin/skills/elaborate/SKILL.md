@@ -208,7 +208,7 @@ Based on what the user described in Phase 2, identify every relevant technical s
 7. **Configured Providers**: If providers are configured in `.ai-dlc/settings.yml` or discovered via MCP:
    - **Spec providers** (Notion, Confluence, Google Docs): Search for requirements docs, PRDs, or technical specs related to the intent
    - **Ticketing providers** (Jira, Linear): Search for existing tickets, epics, or stories that relate to or duplicate this work
-   - **Design providers** (Figma): Search for design files, component libraries, or mockups relevant to UI work
+   - **Design providers** (Figma, Sketch, Adobe XD): Search for design files, component libraries, or mockups relevant to UI work. When possible, download/export assets (images, icons, SVGs) for analysis rather than relying on visual inspection alone. **Important:** Designers often annotate mockups with callouts, arrows, measurement labels, sticky notes, and descriptive text that convey UX behavior or implementation details. These annotations are **guidance, not part of the design itself** — extract the guidance (interaction notes, spacing rules, state descriptions, edge cases) and incorporate it into unit specs, but do not treat annotation visuals as UI elements to build.
    - **Comms providers** (Slack, Teams): Search for relevant discussions or decisions in channels
    Use `ToolSearch` to discover available MCP tools matching provider types, then use read-only MCP tools for research.
 
@@ -872,6 +872,8 @@ DESIGN_TYPE=$(echo "$PROVIDERS" | jq -r '.design.type // empty')
 ```
 
 If a design provider is configured (e.g., Figma), reference component names from the design system in HTML comments (e.g., `<!-- DS: ButtonPrimary -->`) but maintain low-fidelity wireframe aesthetic. Do NOT import actual design system styles.
+
+If design mockups exist, download/export assets when possible for analysis. **Distinguish annotations from design elements** — designers annotate mockups with callouts, arrows, measurement labels, and descriptive text that describe UX behavior and implementation detail. Extract this guidance into the unit specs (interaction notes, edge cases, state descriptions) but do not render annotations as wireframe elements.
 
 ### Step 3: Create mockups directory
 

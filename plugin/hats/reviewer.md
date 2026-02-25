@@ -44,7 +44,7 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
    - You MUST run verification commands, not just read code
    - You MUST NOT assume - verify programmatically
    - You SHOULD cross-reference spec provider for requirement accuracy if configured
-   - You SHOULD cross-reference design provider for visual/UX compliance if configured
+   - You SHOULD cross-reference design provider for visual/UX compliance if configured. When comparing implementation to designs, match colors against the project's named color tokens (design tokens, CSS custom properties, theme variables) — not raw hex values. If the design contains annotations (callouts, arrows, measurement labels, descriptive text), treat them as implementation guidance that should have been followed, not UI elements that should have been rendered.
    - **Validation**: Each criterion marked pass/fail with evidence
 
 3. Review code quality

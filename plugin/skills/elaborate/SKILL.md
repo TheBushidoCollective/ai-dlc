@@ -57,13 +57,43 @@ Then you'll write these as files in `.ai-dlc/{intent-slug}/` for the constructio
 
 Before any elaboration, verify the working environment:
 
-1. Check if you are in a git repository: `git rev-parse --git-dir`
-2. If **yes**: proceed to Phase 0 (Existing Intent Check) below.
-3. If **no** (cowork mode):
-   a. **Get the repo URL** — Ask the user: "What repository should this work target?" If VCS MCP tools are available (e.g., GitHub MCP), offer discovered repos as options.
-   b. **Clone immediately**: `git clone <url> /tmp/ai-dlc-workspace-<slug>/`
-   c. **Enter the clone**: `cd /tmp/ai-dlc-workspace-<slug>/`
-   d. **Proceed normally** — The clone has `.ai-dlc/settings.yml`, providers config, and all project context. No special cowork paths needed from this point forward.
+1. **Detect cowork mode**: Check `$CLAUDE_CODE_IS_COWORK` environment variable.
+   ```bash
+   IS_COWORK="${CLAUDE_CODE_IS_COWORK:-}"
+   IN_REPO=$(git rev-parse --git-dir 2>/dev/null && echo "true" || echo "false")
+   ```
+2. If **not cowork** (`IS_COWORK` is empty) **and in a repo** (`IN_REPO` is `true`): proceed to Phase 0 (Existing Intent Check) below.
+3. If **cowork** (`IS_COWORK=1`) **or not in a repo**:
+   a. **Ask how to access the project**:
+      ```json
+      {
+        "questions": [{
+          "question": "How would you like to connect to the project repository?",
+          "header": "Repo access",
+          "options": [
+            {"label": "Local folder", "description": "I have the repo cloned on this machine already — I'll provide the path"},
+            {"label": "Clone from URL", "description": "Clone the repository from a remote URL (GitHub, GitLab, etc.)"}
+          ],
+          "multiSelect": false
+        }]
+      }
+      ```
+   b. **If local folder**:
+      - Ask the user: "What's the path to the project?" (free text input via "Other" or they can type it directly).
+      - Verify it's a git repo: `git -C <path> rev-parse --git-dir 2>/dev/null`
+      - If valid: `cd <path>` and proceed normally.
+      - If not a valid git repo: tell the user and re-ask.
+   c. **If clone from URL**:
+      - Ask the user: "What repository should this work target?" If VCS MCP tools are available (e.g., GitHub MCP), offer discovered repos as options.
+      - Clone directly — the user's home directory credentials (SSH keys, git credential helpers, `gh`/`glab` auth) are typically available:
+        ```bash
+        WORKSPACE="/tmp/ai-dlc-workspace-<slug>"
+        git clone <url> "$WORKSPACE" 2>&1
+        ```
+      - **If clone fails** (authentication error, permission denied) — tell the user the clone failed and show the error output. Ask them to ensure their git credentials are configured (e.g., SSH keys in `~/.ssh`, `gh auth login`, `glab auth login`, or a git credential helper) and to grant the cowork session access to their home directory if they haven't already. Then retry once.
+        - If it still fails, surface the error clearly and let the user troubleshoot. Do not loop.
+      - **Enter the clone**: `cd "$WORKSPACE"`
+   d. **Proceed normally** — from this point the working directory is a git repo with `.ai-dlc/settings.yml`, providers config, and all project context. No special cowork paths needed.
 
 **Key principle:** Cloning the repo eliminates the cowork problem surface. Once cloned, all hooks, config loading, and provider discovery work identically to being in a real repo.
 
@@ -165,7 +195,7 @@ Based on what the user described in Phase 2, identify every relevant technical s
 
 1. **APIs and Schemas**: If the intent involves an API, query it. Run introspection queries. Read the actual schema. Map every type, field, query, mutation, and subscription. Don't guess what data is available — verify it.
 
-2. **Existing Codebases**: If the intent builds on or integrates with existing code, read it. Use `Glob` and `Grep` to find relevant files. Read source code, not just file names. Understand existing patterns, conventions, and architecture.
+2. **Existing Codebases**: If the intent builds on or integrates with existing code, explore it via Explore subagents. Have them find relevant files, read source code, and report back on existing patterns, conventions, and architecture.
 
 3. **Data Sources**: If the intent involves data, understand where it lives. Query for real sample data. Understand what fields are populated, what's empty, what's missing. Identify gaps between what's available and what's needed.
 
@@ -205,11 +235,9 @@ Task({
 
 3. **Web research for external context**: Use `WebSearch` for library docs, design patterns, API references, prior art. Use `WebFetch` to read specific documentation pages.
 
-4. **Direct exploration**: Use `Read`, `Glob`, `Grep`, and `Bash` (for curl, CLI tools, introspection queries) directly when you know what you're looking for.
-
 **Spawn multiple research paths in parallel.** Don't serialize explorations that are independent — launch all of them at once and synthesize when results return.
 
-If a VCS MCP is available (e.g., GitHub MCP), use it for code browsing alongside or instead of local `Glob`/`Grep`.
+If a VCS MCP is available (e.g., GitHub MCP), use it for code browsing alongside or instead of local file tools.
 
 ### Communicate Findings as You Go
 

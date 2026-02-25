@@ -104,8 +104,16 @@ starting_hat=$(get_recommended_hat ".ai-dlc/${slug}" "${workflow}")
 **CRITICAL: The orchestrator MUST run in the intent worktree, not the main working directory.**
 
 ```bash
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
 INTENT_BRANCH="ai-dlc/${slug}/main"
-INTENT_WORKTREE="/tmp/ai-dlc-${slug}"
+INTENT_WORKTREE="${PROJECT_ROOT}/.ai-dlc/worktrees/${slug}"
+
+mkdir -p "${PROJECT_ROOT}/.ai-dlc/worktrees"
+if ! grep -q '\.ai-dlc/worktrees/' "${PROJECT_ROOT}/.gitignore" 2>/dev/null; then
+  echo '.ai-dlc/worktrees/' >> "${PROJECT_ROOT}/.gitignore"
+  git add "${PROJECT_ROOT}/.gitignore"
+  git commit -m "chore: gitignore .ai-dlc/worktrees"
+fi
 
 if [ ! -d "$INTENT_WORKTREE" ]; then
   git worktree add -B "$INTENT_BRANCH" "$INTENT_WORKTREE"
@@ -157,7 +165,7 @@ If `AGENT_TEAMS_ENABLED` is set:
 **Slug:** {slug}
 **Workflow:** {workflow}
 **Starting Hat:** {startingHat}
-**Worktree:** /tmp/ai-dlc-{slug}/
+**Worktree:** .ai-dlc/worktrees/{slug}/
 **Team:** {teamName} (if Agent Teams enabled)
 
 ### Unit Status
@@ -167,7 +175,7 @@ If `AGENT_TEAMS_ENABLED` is set:
 
 **Next:** Run `/construct` to continue the construction loop.
 
-Note: All AI-DLC work happens in the worktree at /tmp/ai-dlc-{slug}/
+Note: All AI-DLC work happens in the worktree at .ai-dlc/worktrees/{slug}/
 ```
 
 ## Examples
@@ -184,7 +192,7 @@ AI: Found 1 resumable intent: han-team-platform
 **Slug:** han-team-platform
 **Workflow:** default
 **Starting Hat:** builder
-**Worktree:** /tmp/ai-dlc-han-team-platform/
+**Worktree:** .ai-dlc/worktrees/han-team-platform/
 
 ### Unit Status
 | Unit | Status | Blocked By |

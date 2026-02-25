@@ -30,3 +30,6 @@ coverage/
 
 # Misc
 *.tsbuildinfo
+
+# AI-DLC worktrees
+.ai-dlc/worktrees/

@@ -667,8 +667,18 @@ Create the intent branch and worktree, then write files in `.ai-dlc/{intent-slug
 **CRITICAL: The intent MUST run in an isolated worktree, not the main working directory. Create this BEFORE writing any artifacts so all files are committed to the intent branch.**
 
 ```bash
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
 INTENT_BRANCH="ai-dlc/${intentSlug}/main"
-INTENT_WORKTREE="/tmp/ai-dlc-${intentSlug}"
+INTENT_WORKTREE="${PROJECT_ROOT}/.ai-dlc/worktrees/${intentSlug}"
+
+# Ensure worktrees directory exists and is gitignored
+mkdir -p "${PROJECT_ROOT}/.ai-dlc/worktrees"
+if ! grep -q '\.ai-dlc/worktrees/' "${PROJECT_ROOT}/.gitignore" 2>/dev/null; then
+  echo '.ai-dlc/worktrees/' >> "${PROJECT_ROOT}/.gitignore"
+  git add "${PROJECT_ROOT}/.gitignore"
+  git commit -m "chore: gitignore .ai-dlc/worktrees"
+fi
+
 git worktree add -B "$INTENT_BRANCH" "$INTENT_WORKTREE"
 cd "$INTENT_WORKTREE"
 ```
@@ -813,6 +823,190 @@ This ensures builders can pull the intent branch when working remotely. Note in 
 
 ---
 
+## Phase 6.25: Generate Frontend Wireframes
+
+**Skip this phase entirely if no units have `discipline: frontend` in their frontmatter.**
+
+For each frontend unit, generate a low-fidelity HTML wireframe that gives product a concrete visual to react to before construction begins. These wireframes are a spec tool, not a design tool — high-fidelity design happens during construction.
+
+### Step 1: Identify frontend units
+
+Scan all `unit-*.md` files in `.ai-dlc/{intent-slug}/`. Collect units where frontmatter contains `discipline: frontend`.
+
+If no frontend units exist, skip to Phase 6.5.
+
+### Step 2: Check for design provider context
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+PROVIDERS=$(load_providers)
+DESIGN_TYPE=$(echo "$PROVIDERS" | jq -r '.design.type // empty')
+```
+
+If a design provider is configured (e.g., Figma), reference component names from the design system in HTML comments (e.g., `<!-- DS: ButtonPrimary -->`) but maintain low-fidelity wireframe aesthetic. Do NOT import actual design system styles.
+
+### Step 3: Create mockups directory
+
+```bash
+mkdir -p ".ai-dlc/${INTENT_SLUG}/mockups"
+```
+
+### Step 4: Generate wireframe HTML per frontend unit
+
+For each frontend unit, create a self-contained HTML file at:
+`.ai-dlc/{intent-slug}/mockups/unit-{NN}-{slug}-wireframe.html`
+
+Where `{NN}` is the zero-padded unit number and `{slug}` is the unit filename slug.
+
+#### Wireframe Style Reference
+
+All wireframes MUST use this exact visual style — a gray/white low-fidelity aesthetic with no brand colors, no custom fonts, and no JavaScript:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe: {Unit Title}</title>
+<style>
+  /* === BASE === */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #333; padding: 40px 20px; }
+  h1 { text-align: center; font-size: 18px; color: #666; margin-bottom: 8px; }
+  .subtitle { text-align: center; font-size: 13px; color: #999; margin-bottom: 40px; }
+
+  /* === LAYOUT === */
+  .flow { display: flex; gap: 32px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+  .arrow { display: flex; align-items: center; font-size: 28px; color: #bbb; padding-top: 160px; }
+
+  /* === SCREEN CARDS === */
+  .screen { width: 300px; background: #fff; border: 2px solid #ddd; border-radius: 12px; overflow: hidden; }
+  .screen-header {
+    background: #e8e8e8; padding: 12px 16px; font-size: 11px; font-weight: 600;
+    color: #888; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #ddd;
+  }
+  .screen-body { padding: 24px 20px; }
+  .screen-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .screen-desc { font-size: 13px; color: #888; margin-bottom: 24px; line-height: 1.4; }
+
+  /* === FORM FIELDS (dashed borders) === */
+  .field { border: 2px dashed #ccc; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; font-size: 14px; color: #aaa; }
+  .field.filled { border-style: solid; color: #333; }
+
+  /* === BUTTONS === */
+  .btn {
+    width: 100%; padding: 14px; border-radius: 8px; border: none;
+    font-size: 15px; font-weight: 600; cursor: default; margin-bottom: 8px; text-align: center;
+  }
+  .btn-primary { background: #888; color: #fff; }
+  .btn-secondary { background: #f0f0f0; color: #666; }
+  .btn-text { background: none; color: #666; font-size: 13px; }
+
+  /* === DIVIDERS === */
+  .divider { text-align: center; font-size: 12px; color: #bbb; margin: 16px 0; position: relative; }
+  .divider::before, .divider::after {
+    content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: #e0e0e0;
+  }
+  .divider::before { left: 0; }
+  .divider::after { right: 0; }
+
+  /* === PLACEHOLDER ELEMENTS === */
+  .placeholder { background: #e0e0e0; border-radius: 8px; height: 40px; margin-bottom: 12px; }
+  .placeholder.tall { height: 120px; }
+  .placeholder.avatar { width: 36px; height: 36px; border-radius: 50%; display: inline-block; }
+
+  /* === FLOW NOTES (yellow callout) === */
+  .note {
+    background: #fffde7; border: 1px solid #fff176; border-radius: 6px;
+    padding: 10px 12px; font-size: 12px; color: #666; margin-top: 16px; line-height: 1.4;
+  }
+  .note strong { color: #333; }
+
+  /* === COPY REVIEW ANNOTATIONS (orange) === */
+  .copy-note { font-size: 11px; color: #e65100; font-style: italic; margin-top: 4px; }
+
+  /* === LIST/CARD ITEMS === */
+  .card {
+    border: 2px solid #e0e0e0; border-radius: 8px; padding: 12px 14px;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 12px;
+  }
+</style>
+</head>
+<body>
+
+<h1>{Intent Title}</h1>
+<p class="subtitle">Wireframe &mdash; Unit: {Unit Title} &mdash; AI-DLC Elaboration Artifact</p>
+
+<div class="flow">
+  <!-- Build screens here -->
+</div>
+
+</body>
+</html>
+```
+
+#### What to include
+
+- **Screens**: One `.screen` card per distinct view or state described in the unit. Use `.screen-header` for screen identification (e.g., "Screen 1 — Login") and `.screen-body` for content.
+- **User flows**: Use `.arrow` elements (`→`) between screens to show navigation flow. Wrap screens and arrows in `.flow` container.
+- **Form fields**: Use `.field` with dashed borders for inputs. Use `.field.filled` for pre-filled example states.
+- **Buttons**: Use `.btn-primary` for main actions, `.btn-secondary` for alternatives, `.btn-text` for tertiary/link actions. Keep buttons gray (`#888`) — no brand colors.
+- **Placeholder copy**: Write realistic placeholder text for all headings, descriptions, labels, and button text. Mark any copy needing product review with `<div class="copy-note">^ Copy: needs product review</div>`.
+- **Flow notes**: Use `.note` callouts to explain behavior, transitions, conditional logic, and edge cases (e.g., "Auto-submits when all 6 digits entered").
+- **States**: Show key states (empty, filled, error, success) as separate screens or annotate with flow notes.
+- **Placeholders**: Use `.placeholder` for images, avatars, or content areas that don't need detail.
+
+#### What to exclude
+
+- Brand colors — use only grays (#888, #666, #aaa, #ccc, #ddd, #e0e0e0, #f0f0f0, #f5f5f5) and white
+- Custom fonts — use only `system-ui, sans-serif`
+- Icons — describe in text or use unicode characters
+- JavaScript — no interactivity, no animations
+- Responsive breakpoints — fixed 300px screen cards only
+- High-fidelity design — no shadows, gradients, or brand styling
+
+### Step 5: Add wireframe field to unit frontmatter
+
+For each frontend unit that received a wireframe, add the `wireframe:` field to its frontmatter pointing to the relative mockup path:
+
+```yaml
+wireframe: mockups/unit-{NN}-{slug}-wireframe.html
+```
+
+### Step 6: Product review gate
+
+Present all generated wireframes to product for review using `AskUserQuestion`:
+
+```json
+{
+  "questions": [{
+    "question": "I've generated low-fidelity wireframes for the frontend units. Please open them in a browser to review screen structure, flow, and placeholder copy. How do they look?",
+    "header": "Wireframes",
+    "options": [
+      {"label": "Approved", "description": "Wireframes accurately capture the intended screens, flows, and copy"},
+      {"label": "Needs revision", "description": "Some screens or flows need changes — I'll describe what to adjust"},
+      {"label": "Skip wireframes", "description": "Remove wireframes and proceed without them"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+- **Approved**: Proceed to Step 7.
+- **Needs revision**: Discuss feedback, update the wireframe HTML files, and re-present for review. Loop until approved.
+- **Skip wireframes**: Delete the `mockups/` directory, remove `wireframe:` fields from unit frontmatter, and proceed to Phase 6.5.
+
+### Step 7: Commit wireframe artifacts
+
+```bash
+git add .ai-dlc/${INTENT_SLUG}/mockups/
+git add .ai-dlc/${INTENT_SLUG}/unit-*.md
+git commit -m "elaborate: add wireframes for ${intentSlug} frontend units"
+```
+
+---
+
 ## Phase 6.5: Sync to Ticketing Provider
 
 If a ticketing provider is configured and MCP tools are available, you **MUST** complete all steps below. Phase 6.75 will validate that all tickets were created — you cannot proceed to handoff with missing tickets.
@@ -883,6 +1077,15 @@ Read the provider config schema for reference: `${CLAUDE_PLUGIN_ROOT}/schemas/pr
 
    {if unit has no dependencies}
    None — this unit can start immediately.
+
+   ## Wireframe
+
+   {if unit has `wireframe:` frontmatter field populated}
+   Low-fidelity wireframe available at `.ai-dlc/{intent-slug}/{wireframe-path}`.
+   Shows approved screen structure, flow, and placeholder copy.
+   Apply full visual design during construction.
+
+   {if unit does not have `wireframe:` field — omit this section entirely}
 
    ## Technical Notes
 
@@ -975,7 +1178,7 @@ Present the elaboration summary:
 ```
 Elaboration complete!
 
-Intent Worktree: /tmp/ai-dlc-{intent-slug}/
+Intent Worktree: .ai-dlc/worktrees/{intent-slug}/
 Branch: ai-dlc/{intent-slug}/main
 
 Created: .ai-dlc/{intent-slug}/
@@ -983,6 +1186,7 @@ Created: .ai-dlc/{intent-slug}/
 - unit-01-{name}.md
 - unit-02-{name}.md
 ...
+- mockups/unit-NN-{name}-wireframe.html  (if wireframes generated)
 
 Workflow: {workflowName}
 Next hat: {next-hat}
@@ -1015,7 +1219,7 @@ To start the autonomous build loop:
 The construction phase will iterate through each unit, using quality gates
 (tests, types, lint) as backpressure until all success criteria are met.
 
-Note: All AI-DLC work happens in the worktree at /tmp/ai-dlc-{intent-slug}/
+Note: All AI-DLC work happens in the worktree at .ai-dlc/worktrees/{intent-slug}/
 Your main working directory stays clean on the main branch.
 ```
 
@@ -1074,6 +1278,6 @@ Spec PR created: {PR_URL}
 Review the spec with your team. When approved, run:
   /construct
 
-Note: All AI-DLC work happens in the worktree at /tmp/ai-dlc-{intent-slug}/
+Note: All AI-DLC work happens in the worktree at .ai-dlc/worktrees/{intent-slug}/
 Your main working directory stays clean on the main branch.
 ```

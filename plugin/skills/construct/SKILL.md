@@ -121,8 +121,16 @@ elif [ ${#ACTIVE_INTENTS[@]} -gt 1 ]; then
 fi
 
 # Ensure we're in the intent worktree
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
 INTENT_BRANCH="ai-dlc/${INTENT_SLUG}/main"
-INTENT_WORKTREE="/tmp/ai-dlc-${INTENT_SLUG}"
+INTENT_WORKTREE="${PROJECT_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}"
+
+mkdir -p "${PROJECT_ROOT}/.ai-dlc/worktrees"
+if ! grep -q '\.ai-dlc/worktrees/' "${PROJECT_ROOT}/.gitignore" 2>/dev/null; then
+  echo '.ai-dlc/worktrees/' >> "${PROJECT_ROOT}/.gitignore"
+  git add "${PROJECT_ROOT}/.gitignore"
+  git commit -m "chore: gitignore .ai-dlc/worktrees"
+fi
 
 if [ ! -d "$INTENT_WORKTREE" ]; then
   git worktree add -B "$INTENT_BRANCH" "$INTENT_WORKTREE"
@@ -131,7 +139,7 @@ fi
 cd "$INTENT_WORKTREE"
 ```
 
-**Important:** The orchestrator runs in `/tmp/ai-dlc-{intent-slug}/`, NOT the original repo directory. This keeps main clean and enables parallel intents.
+**Important:** The orchestrator runs in `.ai-dlc/worktrees/{intent-slug}/`, NOT the original repo directory. This keeps main clean and enables parallel intents.
 
 ### Step 0a: Parse Unit Target
 
@@ -387,7 +395,7 @@ For EACH ready unit:
 UNIT_NAME=$(basename "$UNIT_FILE" .md)
 UNIT_SLUG="${UNIT_NAME#unit-}"
 UNIT_BRANCH="ai-dlc/${INTENT_SLUG}/${UNIT_SLUG}"
-WORKTREE_PATH="/tmp/ai-dlc-${INTENT_SLUG}-${UNIT_SLUG}"
+WORKTREE_PATH="${PROJECT_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}-${UNIT_SLUG}"
 
 if [ ! -d "$WORKTREE_PATH" ]; then
   git worktree add -B "$UNIT_BRANCH" "$WORKTREE_PATH"
@@ -595,7 +603,7 @@ if [ "$AUTO_MERGE" = "true" ]; then
     git merge --no-ff "$UNIT_BRANCH" -m "Merge ${UNIT_NAME} into intent branch"
   fi
 
-  WORKTREE_PATH="/tmp/ai-dlc-${INTENT_SLUG}-${UNIT_SLUG}"
+  WORKTREE_PATH="${PROJECT_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}-${UNIT_SLUG}"
   [ -d "$WORKTREE_PATH" ] && git worktree remove "$WORKTREE_PATH"
 fi
 ```
@@ -692,11 +700,11 @@ Task({
     ${HAT_INSTRUCTIONS}
 
     ## CRITICAL: Work on Intent Branch
-    **Worktree path:** /tmp/ai-dlc-${intentSlug}/
+    **Worktree path:** .ai-dlc/worktrees/${intentSlug}/
     **Branch:** ai-dlc/${intentSlug}/main
 
     You MUST:
-    1. cd /tmp/ai-dlc-${intentSlug}/
+    1. cd .ai-dlc/worktrees/${intentSlug}/
     2. Verify you're on the intent branch (not a unit branch)
     3. This branch contains ALL merged unit work
 
@@ -835,7 +843,7 @@ To create PR manually:
   gh pr create --base ${DEFAULT_BRANCH} --head ai-dlc/{intent-slug}/main
 
 To clean up:
-  git worktree remove /tmp/ai-dlc-{intent-slug}
+  git worktree remove .ai-dlc/worktrees/{intent-slug}
   /reset
 ```
 
@@ -887,7 +895,7 @@ fi
 UNIT_NAME=$(basename "$UNIT_FILE" .md)  # e.g., unit-01-core-backend
 UNIT_SLUG="${UNIT_NAME#unit-}"  # e.g., 01-core-backend
 UNIT_BRANCH="ai-dlc/${intentSlug}/${UNIT_SLUG}"
-WORKTREE_PATH="/tmp/ai-dlc-${intentSlug}-${UNIT_SLUG}"
+WORKTREE_PATH="${PROJECT_ROOT}/.ai-dlc/worktrees/${intentSlug}-${UNIT_SLUG}"
 
 # Create worktree if it doesn't exist
 if [ ! -d "$WORKTREE_PATH" ]; then

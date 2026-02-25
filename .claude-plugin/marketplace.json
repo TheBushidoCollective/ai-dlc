@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "AI-DLC methodology for iterative AI-driven development with hat-based workflows, completion criteria, and automatic context preservation.",
-    "version": "1.10.0"
+    "version": "1.11.0"
   },
   "plugins": [
     {

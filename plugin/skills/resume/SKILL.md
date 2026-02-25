@@ -34,6 +34,18 @@ User: /construct
 
 ## Implementation
 
+### Pre-check: Reject Cowork Mode
+
+```bash
+if [ "${CLAUDE_CODE_IS_COWORK:-}" = "1" ]; then
+  echo "ERROR: /resume cannot run in cowork mode."
+  echo "Run this in a full Claude Code CLI session."
+  exit 1
+fi
+```
+
+If `CLAUDE_CODE_IS_COWORK=1`, stop immediately with the message above. Do NOT proceed.
+
 ### Step 1: Find Resumable Intents
 
 If no slug provided, scan multiple sources for active intents:

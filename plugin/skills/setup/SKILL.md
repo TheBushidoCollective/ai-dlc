@@ -35,6 +35,20 @@ This skill is **idempotent** — re-running `/setup` preserves existing settings
 
 ---
 
+## Pre-check: Reject Cowork Mode
+
+```bash
+if [ "${CLAUDE_CODE_IS_COWORK:-}" = "1" ]; then
+  echo "ERROR: /setup cannot run in cowork mode."
+  echo "Run this in a full Claude Code CLI session inside your project directory."
+  exit 1
+fi
+```
+
+If `CLAUDE_CODE_IS_COWORK=1`, stop immediately with the message above. Do NOT proceed.
+
+---
+
 ## Phase 0: Load Existing Settings
 
 1. Check if `.ai-dlc/settings.yml` exists using the `Read` tool.

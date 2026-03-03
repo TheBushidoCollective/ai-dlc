@@ -34,7 +34,7 @@ const steps: Step[] = [
 			},
 			{
 				id: "hats",
-				label: "Learn about the Four Hats",
+				label: "Learn about the Hat System",
 				href: "/docs/hats/",
 			},
 			{

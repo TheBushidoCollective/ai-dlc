@@ -3,30 +3,6 @@ import Link from "next/link"
 
 const hats = [
 	{
-		name: "Researcher",
-		icon: (
-			<svg
-				className="h-8 w-8"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				aria-hidden="true"
-			>
-				<path
-					strokeLinecap="round"
-					strokeLinejoin="round"
-					strokeWidth={1.5}
-					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-				/>
-			</svg>
-		),
-		description:
-			"Gather context, understand requirements, and research patterns.",
-		color: "text-blue-600 dark:text-blue-400",
-		bgColor: "bg-blue-50 dark:bg-blue-950/50",
-		borderColor: "border-blue-200 dark:border-blue-900",
-	},
-	{
 		name: "Planner",
 		icon: (
 			<svg
@@ -456,13 +432,14 @@ export default function Home() {
 			<section className="bg-gray-50 px-4 py-16 dark:bg-gray-900/50">
 				<div className="mx-auto max-w-6xl">
 					<div className="mb-12 text-center">
-						<h2 className="mb-4 text-3xl font-bold">Four Hats, One Workflow</h2>
+						<h2 className="mb-4 text-3xl font-bold">Hats Drive Every Phase</h2>
 						<p className="mx-auto max-w-2xl text-lg text-gray-600 dark:text-gray-400">
-							AI-DLC uses a hat-based approach to separate concerns. Each hat
-							represents a distinct mindset and set of responsibilities.
+							AI-DLC uses a hat-based approach to separate concerns. The default
+							workflow uses three core hats, with specialized hats available for
+							security, design, testing, and debugging workflows.
 						</p>
 					</div>
-					<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+					<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 						{hats.map((hat) => (
 							<div
 								key={hat.name}

@@ -23,7 +23,7 @@ const segmentLabels: Record<string, string> = {
 	"quick-start": "Quick Start",
 	installation: "Installation",
 	concepts: "Concepts",
-	hats: "The Four Hats",
+	hats: "Hats",
 	community: "Community",
 	"example-feature": "Feature Example",
 	"example-bugfix": "Bugfix Example",

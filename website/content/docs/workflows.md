@@ -1,19 +1,20 @@
 ---
 title: Workflows
-description: Named workflow patterns in AI-DLC - Default, TDD, Adversarial, and Hypothesis
+description: Named workflow patterns in AI-DLC - Default, Adversarial, Design, Hypothesis, and custom workflows
 order: 5
 ---
 
-AI-DLC provides four named workflows, each optimized for different types of work. Choose the workflow that matches your task.
+AI-DLC provides four built-in workflows, each optimized for different types of work. Choose the workflow that matches your task, or define your own.
 
 ## What Is a Workflow?
 
 A workflow is a named sequence of hats. Each workflow defines:
 - Which hats are used
 - The order of transitions
-- The operating mode for each hat
 
-Workflows are selected during `/elaborate` and can be customized per project.
+Workflows are selected during `/elaborate` and can be customized per project. Individual units within an intent can also override the intent-level workflow.
+
+> **Note on operating modes:** The HITL (Human-in-the-Loop) and OHOTL (Over-the-Horizon) modes listed below are recommendations for how you might interact with each hat. The plugin does not enforce a specific mode per hat -- you choose how much oversight to apply.
 
 ## Default Workflow
 
@@ -21,9 +22,10 @@ The standard development workflow for most feature work.
 
 ### Hats
 
-| Hat | Mode | Focus |
-|-----|------|-------|
-| Elaborator | HITL | Define intent and criteria with user |
+Planner → Builder → Reviewer
+
+| Hat | Recommended Mode | Focus |
+|-----|------------------|-------|
 | Planner | HITL | Create tactical plan for the unit |
 | Builder | OHOTL | Implement according to plan |
 | Reviewer | HITL | Verify implementation meets criteria |
@@ -33,7 +35,7 @@ The standard development workflow for most feature work.
 ```
 /elaborate
     ↓
-Elaborator (HITL): Define what to build
+Define intent, criteria, units, and workflow
     ↓
 /construct
     ↓
@@ -45,6 +47,8 @@ Reviewer (HITL): Verify it's done
     ↓
 Next unit or intent complete
 ```
+
+> **Where did Elaborator go?** Elaboration is not a hat in the construction workflow. It happens before construction starts, via the `/elaborate` command. By the time `/construct` runs, the intent and its units are already defined.
 
 ### When to Use
 
@@ -58,8 +62,11 @@ Next unit or intent complete
 **Intent:** Add user profile editing
 
 ```
-Elaborator: "What fields should users edit?"
+/elaborate: "What fields should users edit?"
 You: "Name, email, avatar image"
+(Intent and units are now defined)
+
+/construct kicks off:
 
 Planner: "I'll add an /api/profile endpoint, a ProfileForm
 component, and image upload with size validation."
@@ -70,70 +77,17 @@ Reviewer: "All criteria met. Users can edit name, email,
 upload avatar. Tests pass. Ready for review."
 ```
 
-## TDD Workflow
-
-Test-Driven Development: Red-Green-Refactor pattern.
-
-### Hats
-
-| Hat | Mode | Focus |
-|-----|------|-------|
-| Test Writer | OHOTL | Write failing tests first |
-| Implementer | OHOTL | Make tests pass with minimal code |
-| Refactorer | OHOTL | Improve code while keeping tests green |
-
-### Flow
-
-```
-/elaborate (select TDD workflow)
-    ↓
-/construct
-    ↓
-Test Writer (OHOTL): Write tests that fail
-    ↓
-Implementer (OHOTL): Make tests pass
-    ↓
-Refactorer (OHOTL): Clean up the code
-    ↓
-All tests still pass? → Next unit
-```
-
-### When to Use
-
-- Well-specified behavior (API contracts, business rules)
-- Bug fixes (write test that reproduces, then fix)
-- Refactoring with safety net
-- When you want tests as living documentation
-
-### Example
-
-**Intent:** Fix payment calculation bug
-
-```
-Test Writer: "Writing test that reproduces the bug:
-  test('applies discount before tax, not after')"
-
-Implementer: "Test fails as expected. Fixing calculation
-order in applyDiscount()... Test passes."
-
-Refactorer: "Extracting discount logic to separate
-function for clarity. All tests still green."
-```
-
-### Philosophy
-
-> "Write the tests you wish you had."
-
-The Test Writer doesn't just write any tests - it writes the tests that would have caught the bug or validated the feature from the start.
-
 ## Adversarial Workflow
 
 Security-focused development with Red/Blue team phases.
 
 ### Hats
 
-| Hat | Mode | Focus |
-|-----|------|-------|
+Planner → Builder → Red Team → Blue Team → Reviewer
+
+| Hat | Recommended Mode | Focus |
+|-----|------------------|-------|
+| Planner | HITL | Plan the feature with security in mind |
 | Builder | OHOTL | Implement to specification |
 | Red Team | OHOTL | Attack - find vulnerabilities |
 | Blue Team | OHOTL | Defend - fix vulnerabilities |
@@ -145,6 +99,8 @@ Security-focused development with Red/Blue team phases.
 /elaborate (select adversarial workflow)
     ↓
 /construct
+    ↓
+Planner (HITL): Plan the feature
     ↓
 Builder (OHOTL): Implement the feature
     ↓
@@ -170,6 +126,10 @@ Secure? → Complete
 **Intent:** Add API key management
 
 ```
+Planner: "Plan: generate keys with crypto-random bytes,
+store hashed, validate with constant-time compare,
+rate-limit the validation endpoint."
+
 Builder: "Implemented API key generation, storage,
 and validation endpoints."
 
@@ -191,14 +151,78 @@ Approved for production."
 
 The adversarial workflow assumes every feature is a potential attack surface. By switching between attacker and defender mindsets, you build more secure software.
 
+## Design Workflow
+
+UI/UX-focused workflow that produces design artifacts before implementation.
+
+### Hats
+
+Planner → Designer → Reviewer
+
+| Hat | Recommended Mode | Focus |
+|-----|------------------|-------|
+| Planner | HITL | Define the design problem and constraints |
+| Designer | HITL | Create visual designs, UI mockups, and UX flows |
+| Reviewer | HITL | Verify design meets requirements and is implementable |
+
+### Flow
+
+```
+/elaborate (select design workflow)
+    ↓
+/construct
+    ↓
+Planner (HITL): Define what needs to be designed
+    ↓
+Designer (HITL): Explore options, refine with user, create specs
+    ↓
+Reviewer (HITL): Validate design is complete and implementable
+    ↓
+Design specs ready for implementation
+```
+
+### When to Use
+
+- New UI components or pages
+- UX redesigns
+- Design system additions
+- When visual fidelity matters before code is written
+- Units that need design specs as their deliverable (not running code)
+
+### Example
+
+**Intent:** Design a dashboard for project analytics
+
+```
+Planner: "Need a dashboard showing: build success rate,
+deployment frequency, and mean time to recovery.
+Target users: engineering managers. Must work on mobile."
+
+Designer: "Option A: Card grid with sparklines.
+Option B: Single scrollable timeline.
+Option C: Tabbed sections by metric category.
+Recommending Option A for scanability on desktop
+and stacking naturally on mobile."
+
+Reviewer: "Design specs are complete: spacing, colors
+reference design tokens, responsive breakpoints defined,
+accessibility contrast ratios met. Ready for implementation."
+```
+
+### Philosophy
+
+The design workflow separates design decisions from implementation. This is useful when an intent contains units that need design exploration before code is written. Pair it with the default workflow for implementation units in the same intent using per-unit workflows.
+
 ## Hypothesis Workflow
 
 Scientific debugging for investigating complex bugs.
 
 ### Hats
 
-| Hat | Mode | Focus |
-|-----|------|-------|
+Observer → Hypothesizer → Experimenter → Analyst
+
+| Hat | Recommended Mode | Focus |
+|-----|------------------|-------|
 | Observer | OHOTL | Gather data about the bug |
 | Hypothesizer | HITL | Form theories about the cause |
 | Experimenter | OHOTL | Test hypotheses systematically |
@@ -264,35 +288,135 @@ Analyst: "Root cause confirmed. Fix:
 
 The hypothesis workflow prevents "shotgun debugging" (changing random things hoping to fix the bug). Each change is a controlled experiment testing a specific hypothesis.
 
+## TDD Workflow
+
+Test-Driven Development: Red-Green-Refactor pattern.
+
+> **Note:** The TDD workflow is not a built-in named workflow in the plugin. The hats (`test-writer`, `implementer`, `refactorer`) exist, but you need to register the workflow yourself. Add it to `.ai-dlc/workflows.yml` in your project to use it:
+>
+> ```yaml
+> tdd:
+>   description: Test-Driven Development - Red-Green-Refactor
+>   hats: [test-writer, implementer, refactorer]
+> ```
+
+### Hats
+
+Test Writer → Implementer → Refactorer
+
+| Hat | Recommended Mode | Focus |
+|-----|------------------|-------|
+| Test Writer | OHOTL | Write failing tests first |
+| Implementer | OHOTL | Make tests pass with minimal code |
+| Refactorer | OHOTL | Improve code while keeping tests green |
+
+### Flow
+
+```
+/elaborate (select tdd workflow)
+    ↓
+/construct
+    ↓
+Test Writer (OHOTL): Write tests that fail
+    ↓
+Implementer (OHOTL): Make tests pass
+    ↓
+Refactorer (OHOTL): Clean up the code
+    ↓
+All tests still pass? → Next unit
+```
+
+### When to Use
+
+- Well-specified behavior (API contracts, business rules)
+- Bug fixes (write test that reproduces, then fix)
+- Refactoring with safety net
+- When you want tests as living documentation
+
+### Example
+
+**Intent:** Fix payment calculation bug
+
+```
+Test Writer: "Writing test that reproduces the bug:
+  test('applies discount before tax, not after')"
+
+Implementer: "Test fails as expected. Fixing calculation
+order in applyDiscount()... Test passes."
+
+Refactorer: "Extracting discount logic to separate
+function for clarity. All tests still green."
+```
+
+### Philosophy
+
+> "Write the tests you wish you had."
+
+The Test Writer doesn't just write any tests - it writes the tests that would have caught the bug or validated the feature from the start.
+
 ## Choosing a Workflow
 
 | Task Type | Workflow | Why |
 |-----------|----------|-----|
 | New feature | Default | Balanced plan-build-review cycle |
+| UI/UX work | Design | Design exploration before implementation |
 | Bug fix (known cause) | TDD | Test reproduces bug, verifies fix |
 | Bug fix (unknown cause) | Hypothesis | Systematic investigation |
 | Security-sensitive | Adversarial | Built-in security validation |
 | Performance work | Hypothesis | Data-driven optimization |
 | Refactoring | TDD | Tests provide safety net |
 
+## Per-Unit Workflows
+
+Different units within a single intent can use different workflows. This is useful when an intent spans multiple concerns -- for example, a feature that involves both UI design and backend logic.
+
+To set a per-unit workflow, add a `workflow:` field to the unit's frontmatter:
+
+```markdown
+---
+title: Dashboard UI
+status: pending
+workflow: design
+---
+
+Design the analytics dashboard layout...
+```
+
+```markdown
+---
+title: Analytics API
+status: pending
+workflow: default
+---
+
+Build the API endpoints for analytics data...
+```
+
+When `/construct` processes each unit, it resolves the unit's workflow independently:
+1. If the unit has a `workflow:` field, that workflow is used
+2. If not, the intent-level workflow applies
+
+This means a single intent can have some units flowing through Planner → Designer → Reviewer while others go through Planner → Builder → Reviewer, each progressing through their own hat sequence.
+
 ## Custom Workflows
 
-Create project-specific workflows in `.ai-dlc/workflows.yml`:
+Create project-specific workflows in `.ai-dlc/workflows.yml`. Project workflows merge with the built-in workflows, and project definitions take precedence if names collide.
 
 ```yaml
-workflows:
-  research-first:
-    description: Research before building
-    hats: [elaborator, researcher, planner, builder, reviewer]
+tdd:
+  description: Test-Driven Development - Red-Green-Refactor
+  hats: [test-writer, implementer, refactorer]
 
-  design-heavy:
-    description: UX-focused with design phase
-    hats: [elaborator, designer, builder, reviewer]
+research-first:
+  description: Research before building
+  hats: [researcher, planner, builder, reviewer]
 
-  quick-fix:
-    description: Minimal overhead for trivial changes
-    hats: [builder, reviewer]
+quick-fix:
+  description: Minimal overhead for trivial changes
+  hats: [builder, reviewer]
 ```
+
+Any hat defined in the plugin's `hats/` directory can be referenced in a custom workflow. See the [Hats](/docs/hats/) page for the full list.
 
 ## Next Steps
 

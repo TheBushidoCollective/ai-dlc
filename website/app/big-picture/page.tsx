@@ -40,8 +40,8 @@ export default function BigPicturePage() {
 						color="blue"
 					/>
 					<ExplanationCard
-						title="The Four Hats"
-						description="Each hat represents a distinct mindset: Researcher gathers context, Planner designs the approach, Builder executes, and Reviewer validates quality."
+						title="The Hat System"
+						description="Each hat represents a distinct mindset. The core workflow uses Planner, Builder, and Reviewer, with specialized hats for security testing, design, debugging, and TDD."
 						href="/docs/hats/"
 						color="purple"
 					/>

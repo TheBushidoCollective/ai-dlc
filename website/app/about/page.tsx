@@ -38,15 +38,10 @@ export default function AboutPage() {
 						each phase of development gets proper attention.
 					</p>
 
-					<h2>The Four Hats</h2>
+					<h2>The Hat System</h2>
 
-					<h3>Researcher</h3>
 					<p>
-						The Researcher gathers context and understanding before any
-						implementation begins. This phase involves reading existing code,
-						understanding requirements, researching patterns, and identifying
-						constraints. The goal is to build a complete mental model of the
-						problem space.
+						AI-DLC organizes work through hats — distinct mindsets that keep each phase of development focused. The default construction workflow uses three core hats, while specialized workflows add hats for security testing, design, TDD, and scientific debugging.
 					</p>
 
 					<h3>Planner</h3>
@@ -71,6 +66,10 @@ export default function AboutPage() {
 						checking that tests pass, requirements are met, edge cases are
 						handled, and code quality meets standards. The Reviewer ensures work
 						is ready for production.
+					</p>
+
+					<p>
+						Beyond the core three, AI-DLC includes specialized hats like Designer for UI/UX work, Red Team and Blue Team for adversarial security testing, and Observer, Hypothesizer, Experimenter, and Analyst for scientific debugging. See the <a href="/docs/hats/">full hat reference</a> for details.
 					</p>
 
 					<h2>Units of Work</h2>

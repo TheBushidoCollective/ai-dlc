@@ -100,9 +100,9 @@ export const navigation: NavCategory[] = [
 						description: "What is AI-DLC and why it matters",
 					},
 					{
-						title: "The Four Hats",
+						title: "Hats",
 						href: "/docs/hats/",
-						description: "Researcher, Planner, Builder, Reviewer",
+						description: "Role-based focus for every phase of development",
 					},
 					{
 						title: "Key Concepts",
@@ -280,6 +280,11 @@ export const navigation: NavCategory[] = [
 						description: "Join the AI-DLC community",
 					},
 					{
+						title: "Changelog",
+						href: "/changelog/",
+						description: "What's new in AI-DLC",
+					},
+					{
 						title: "GitHub",
 						href: "https://github.com/thebushidocollective/ai-dlc",
 						description: "Source code and discussions",
@@ -313,7 +318,7 @@ export const footerNavigation = {
 		title: "Learn",
 		items: [
 			{ title: "Introduction", href: "/docs/" },
-			{ title: "The Four Hats", href: "/docs/hats/" },
+			{ title: "Hats", href: "/docs/hats/" },
 			{ title: "Key Concepts", href: "/docs/concepts/" },
 			{ title: "Workflows", href: "/docs/workflows/" },
 			{ title: "Role Guides", href: "/docs/guide-developer/" },
@@ -343,6 +348,7 @@ export const footerNavigation = {
 		items: [
 			{ title: "Community", href: "/docs/community/" },
 			{ title: "Blog", href: "/blog/" },
+			{ title: "Changelog", href: "/changelog/" },
 			{
 				title: "GitHub",
 				href: "https://github.com/thebushidocollective/ai-dlc",

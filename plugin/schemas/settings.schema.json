@@ -241,7 +241,7 @@
 				},
 				"auto_merge": {
 					"type": "boolean",
-					"description": "Whether to automatically merge completed unit branches. Only applies to 'unit' and 'intent' strategies."
+					"description": "Whether to automatically merge completed unit branches into the intent branch. Only applies to 'intent' strategy. For 'unit' strategy, merging is the user's responsibility via PRs."
 				},
 				"auto_squash": {
 					"type": "boolean",

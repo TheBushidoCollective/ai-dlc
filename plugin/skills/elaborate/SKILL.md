@@ -748,12 +748,21 @@ Use `AskUserQuestion`:
         {"label": "Trunk-based", "description": "All work on main, no feature branches. Best for small, low-risk changes."}
       ],
       "multiSelect": false
-    },
+    }
+  ]
+}
+```
+
+**If the user selected "Intent branch"**, ask a follow-up about auto-merge:
+
+```json
+{
+  "questions": [
     {
-      "question": "Should completed branches auto-merge when approved?",
+      "question": "Should completed unit branches auto-merge into the intent branch when approved?",
       "header": "Auto-merge",
       "options": [
-        {"label": "Yes (Recommended)", "description": "Automatically merge when reviewer approves. For 'unit' strategy, merges unit branches to the default branch via per-unit MRs. For 'intent' strategy, merges unit branches to the intent branch."},
+        {"label": "Yes (Recommended)", "description": "Automatically merge unit branches into the intent branch when reviewer approves."},
         {"label": "No", "description": "Manual merge — you decide when to merge. More control, more manual work."}
       ],
       "multiSelect": false
@@ -762,21 +771,23 @@ Use `AskUserQuestion`:
 }
 ```
 
+**Skip the auto-merge question for "Unit branches"** — in unit strategy, each unit creates its own PR and the user is responsible for merging. **Skip for "Trunk-based"** — no branches to merge.
+
 Store the selections. These will be written into the `intent.md` frontmatter in Phase 6 under a `git:` key:
 
 ```yaml
 git:
   change_strategy: unit    # or intent, trunk
-  auto_merge: true         # or false
-  auto_squash: false       # default false
+  auto_merge: true         # only for intent strategy; omit for unit/trunk
+  auto_squash: false       # default false, only relevant when auto_merge is true
 ```
 
 Map user selections to config values:
-- "Unit branches" → `unit`
+- "Unit branches" → `unit` (no `auto_merge` key — user merges their own PRs)
 - "Intent branch" → `intent`
 - "Trunk-based" → `trunk`
-- "Yes" auto-merge → `true`
-- "No" auto-merge → `false`
+- "Yes" auto-merge → `auto_merge: true` (intent strategy only)
+- "No" auto-merge → `auto_merge: false` (intent strategy only)
 
 ### Hybrid Per-Unit Strategy (Optional)
 

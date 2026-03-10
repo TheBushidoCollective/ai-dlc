@@ -258,15 +258,15 @@ Use `AskUserQuestion`:
 
 Pre-fill from existing `settings.yml` `{vcs}.change_strategy` if available.
 
-**Question 2: Auto-merge**
-- "Should completed unit branches be automatically merged?"
+**Question 2: Auto-merge** *(intent strategy only)*
+- "Should completed unit branches be automatically merged into the intent branch?"
 - Options:
   - **Yes (Recommended)** — Auto-merge when unit passes review
   - **No** — Manual merge after review
 
 Pre-fill from existing `settings.yml` `{vcs}.auto_merge` if available.
 
-Only ask auto-merge if strategy is `unit` or `intent` (the strategies that use branches to merge).
+Only ask auto-merge if strategy is `intent`. For `unit` strategy, merging is the user's responsibility (they merge their own PRs), so skip this question and do not set `auto_merge`. For `trunk`, branches aren't used.
 
 ---
 

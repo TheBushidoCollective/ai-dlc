@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.26.0] - 2026-03-26
+
+### Added
+
+- rework /followup to create linked iteration intents ([0723438](../../commit/0723438))
+
+### Other
+
+- Merge pull request #14 from TheBushidoCollective/hampton/followup-workflow ([3e44f9c](../../commit/3e44f9c))
+
 ## [1.25.0] - 2026-03-26
 
 ### Added

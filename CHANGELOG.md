@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.27.0] - 2026-03-26
+
+### Added
+
+- add design-specific unit template sections ([ef67955](../../commit/ef67955))
+
+### Other
+
+- Merge pull request #19 from TheBushidoCollective/hampton/design-unit-template ([8b1e653](../../commit/8b1e653))
+
 ## [1.26.0] - 2026-03-26
 
 ### Added

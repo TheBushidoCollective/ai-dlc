@@ -1022,12 +1022,74 @@ misinterpret what to build.}
 {Implementation hints, context, pitfalls to avoid}
 ```
 
+> **Template selection by discipline:** For `discipline: design` units, use the design template below (Design Deliverables, States to Cover, Constraints, Design Tokens Reference). For all other disciplines (`frontend`, `backend`, `api`, `documentation`, `devops`, etc.), use the standard template above (Domain Entities, Data Sources, Technical Specification).
+
+#### Design unit file template:
+
+When a unit has `discipline: design`, use this template instead of the standard one above:
+
+```markdown
+---
+status: pending
+depends_on: []
+branch: ai-dlc/{intent-slug}/NN-{unit-slug}
+discipline: design
+pass: ""  # Which pass this unit belongs to (design, product, dev) — empty for single-pass intents
+workflow: ""  # Per-unit workflow override (optional — omit or leave empty to use intent-level workflow)
+ticket: ""  # Ticketing provider ticket key (auto-populated if ticketing provider configured)
+# git:                         # Optional: per-unit VCS override (only include when unit has an override)
+#   change_strategy: ""        # Overrides intent-level strategy for this unit (e.g., "unit" for foundational units)
+---
+
+# unit-NN-{slug}
+
+## Description
+{What screens, components, or flows to design}
+
+## Discipline
+design - This unit will be executed by design-focused agents.
+
+## Design Deliverables
+- {Screen layouts, component specs, interaction flows, responsive rules}
+- {List each deliverable expected from this unit}
+
+## States to Cover
+- Default (happy path)
+- Empty state
+- Loading state
+- Error state
+- {Other states relevant to this unit}
+
+## Constraints
+- {Design system to follow (e.g., specific tokens, component library)}
+- {Accessibility requirements (WCAG level, contrast ratios, touch targets)}
+- {Brand guidelines or visual boundaries}
+- {Responsive breakpoints to support}
+
+## Design Tokens Reference
+- {Color tokens, spacing scale, typography scale from the design system}
+- {Reference to design system documentation if available}
+
+## Success Criteria
+- [ ] {Design-focused criteria — visual approval, responsive coverage, state coverage}
+
+## Risks
+- **{Risk}**: {impact}. Mitigation: {how to address it}.
+
+## Boundaries
+{What this unit does NOT handle. Reference which other units own related concerns.}
+
+## Notes
+{Implementation hints, context, pitfalls to avoid}
+```
+
 **Discipline determines which specialized agents execute the unit:**
 - `frontend` → `do-frontend-development` agents
 - `backend` → backend-focused agents
 - `api` → API development agents
 - `documentation` → `do-technical-documentation` agents
 - `devops` → infrastructure/deployment agents
+- `design` → design-focused agents
 
 #### Per-unit review loop:
 

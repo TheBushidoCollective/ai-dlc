@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.64.0] - 2026-03-27
+
+### Added
+
+- add parallel review perspectives for multi-file units ([1bb3fa4](../../commit/1bb3fa4))
+
+### Fixed
+
+- restore Two-Stage Review section missing from main ([f2a013a](../../commit/f2a013a))
+- resolve conflicts with main — restore missing steps and section order ([59ded75](../../commit/59ded75))
+- restore CoVe and Specialized Pre-Delivery Reviews sections ([7a38399](../../commit/7a38399))
+
+### Other
+
+- Merge pull request #29 from TheBushidoCollective/eco/reviewer-parallel ([270aeb7](../../commit/270aeb7))
+- Merge branch 'eco/reviewer-parallel' of github.com:TheBushidoCollective/ai-dlc into eco/reviewer-parallel ([61b7a5b](../../commit/61b7a5b))
+- resolve conflicts with main ([4f4e456](../../commit/4f4e456))
+
 ## [1.63.0] - 2026-03-27
 
 ### Added

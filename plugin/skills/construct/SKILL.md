@@ -351,6 +351,48 @@ fi
 han keep save iteration.json "$STATE"
 ```
 
+### State Persistence
+
+During construction, maintain a `STATE.md` file in the intent directory as a human-readable snapshot of current progress:
+
+```markdown
+# State: {intent title}
+
+## Current Position
+- **Hat:** {current hat}
+- **Unit:** {current unit}
+- **Bolt:** {iteration number}
+
+## Decisions Made
+- {decision 1}: {rationale}
+
+## Blockers
+- {blocker}: {status}
+
+## Metrics
+- Units complete: {n}/{total}
+- Iterations: {count}
+```
+
+Update STATE.md at each hat transition and unit completion. This survives context resets and session boundaries better than ephemeral state.
+
+Use the file-based state helpers from `lib/state.sh`:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/state.sh"
+
+# Write the full STATE.md
+write_state_file "$INTENT_DIR" "STATE.md" "$state_content"
+
+# Read it back
+current_state=$(read_state_file "$INTENT_DIR" "STATE.md")
+
+# Update just one section (lockfile-protected)
+update_state_section "$INTENT_DIR" "Current Position" "- **Hat:** builder
+- **Unit:** unit-02-api
+- **Bolt:** 3"
+```
+
 ### Step 1b: Detect Agent Teams
 
 ```bash

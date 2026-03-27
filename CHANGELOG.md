@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.68.1] - 2026-03-27
+
+### Added
+
+- add workflow mode and granularity tuning ([aff733c](../../commit/aff733c))
+
+### Fixed
+
+- restore executable permissions on shell scripts ([b751920](../../commit/b751920))
+
+### Other
+
+- Merge pull request #62 from TheBushidoCollective/eco/config-system ([80196fd](../../commit/80196fd))
+- Merge pull request #49 from TheBushidoCollective/eco/compound-reflect-docs ([5174bda](../../commit/5174bda))
+- resolve conflicts with main ([d6366a7](../../commit/d6366a7))
+- resolve conflicts with main ([b6c4d3b](../../commit/b6c4d3b))
+- Merge remote-tracking branch 'origin/main' into eco/compound-reflect-docs ([e40be8b](../../commit/e40be8b))
+- remove temp files ([0c1663b](../../commit/0c1663b))
+- checking commit permissions ([be3cc91](../../commit/be3cc91))
+- resolve conflicts with main (add review_agents, config precedence, phase 4c) ([3acfe0c](../../commit/3acfe0c))
+- add reflect integration lifecycle documentation ([b5a664d](../../commit/b5a664d))
+
 ## [1.68.0] - 2026-03-27
 
 ### Added
@@ -128,7 +150,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Other
 
 - add Claude conflict resolver workflow ([c28bac4](../../commit/c28bac4))
-
 
 ## [1.61.0] - 2026-03-27
 

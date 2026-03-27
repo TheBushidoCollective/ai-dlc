@@ -65,6 +65,24 @@ The Planner reviews the current Unit and creates a tactical execution plan for t
    - You MUST include verification steps
    - **Validation**: Plan saved and readable
 
+### Plan Deepening (Optional)
+
+For complex units (3+ tasks, unfamiliar technology, or high-risk changes), deepen the plan by dispatching parallel research agents:
+
+1. For each major task in the plan, spawn a research agent:
+   - Search `docs/solutions/` for relevant learnings
+   - Search the codebase for existing patterns
+   - Identify potential pitfalls from similar past work
+
+2. Incorporate findings into the plan:
+   - Add "Research Notes" to each task
+   - Update risk assessment based on findings
+   - Adjust approach if research reveals a better path
+
+3. Mark the plan as "deepened" in the completion marker
+
+**When to skip:** Simple tasks, well-understood codebases, or when learnings retrieval already covered the ground.
+
 ## Success Criteria
 
 - [ ] Remaining criteria clearly identified

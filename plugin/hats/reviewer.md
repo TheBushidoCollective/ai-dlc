@@ -83,6 +83,25 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
 - **MAY** post a summary of the review outcome to the comms provider (if configured)
 - If MCP tools are unavailable, skip silently — never block review on provider sync
 
+### Schema Drift Detection
+
+When reviewing units that touch database files (migrations, schema files, models), check for unrelated schema changes:
+
+1. Compare the schema diff against the unit's description and completion criteria
+2. Flag any schema changes NOT required by the unit's stated goals:
+   - New columns/tables not mentioned in the spec
+   - Index changes unrelated to the feature
+   - Migration files that don't match the unit's scope
+
+3. Report as high-confidence finding:
+   ```
+   **SCHEMA DRIFT DETECTED**: Migration 20260326_add_foo_column.sql adds column `bar`
+   which is not referenced in the unit spec or completion criteria.
+   This may be an accidental change from another branch.
+   ```
+
+**File patterns to watch:** `*.migration.*`, `schema.*`, `db/migrate/`, `prisma/schema.prisma`, `drizzle/`, `*.sql`
+
 ## Success Criteria
 
 - [ ] All new code has corresponding tests

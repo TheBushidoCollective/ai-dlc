@@ -147,6 +147,44 @@ For each criterion being reviewed, apply the CoVe pattern:
 
 **Why:** Initial assessments based on code reading alone have a ~20% false positive rate (claiming PASS when the code actually fails). CoVe forces verification with evidence.
 
+### Master Reviewer Delegation
+
+The reviewer hat acts as a **coordinator**, not a solo reviewer. It delegates to specialized review agents and consolidates findings.
+
+**Architecture:**
+```
+Reviewer (Master)
+  ├── Security Review Agent
+  ├── Performance Review Agent
+  ├── Architecture Review Agent
+  ├── Correctness Review Agent
+  ├── Test Quality Review Agent
+  └── {domain-specific agents from review_agents config}
+```
+
+**Pros of delegation:**
+- Each agent has focused context (not polluted by other concerns)
+- Parallel execution — all reviews run simultaneously
+- Specialized agents catch issues a generalist misses
+- Findings are already categorized by domain
+
+**Cons of delegation:**
+- More subagent spawns = more tokens
+- Need consolidation logic to merge overlapping findings
+- Overkill for small units (1-2 files changed)
+
+**When to delegate:**
+- **Always delegate** for units with 3+ modified files
+- **Always delegate** for units marked `high_stakes: true`
+- **Skip delegation** for units with 1-2 files — the reviewer hat handles these directly
+
+**How:**
+1. Master reviewer reads the unit, identifies which specialized agents to spawn (based on changed files and `review_agents` config)
+2. Spawn all applicable agents in parallel
+3. Collect findings from all agents
+4. De-duplicate and rank by confidence
+5. Present consolidated review with agent attribution
+
 ## Specialized Review Perspectives
 
 > **Note:** Domain-specific review checks (e.g., schema drift detection, security audit,

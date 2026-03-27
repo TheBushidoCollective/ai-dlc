@@ -104,6 +104,29 @@ The Planner reviews the current Unit and creates a tactical execution plan for t
 2. You SHOULD document current state explicitly
 3. You MUST NOT guess - verify programmatically
 
+### Rule-Based Decision Filtering
+
+When evaluating approaches for a plan, apply domain-specific rules to filter and rank options:
+
+1. **Gather candidate approaches** — identify 2-3 viable implementation strategies
+2. **Apply filtering rules** — for each approach, check against project-specific constraints:
+   - Does it follow existing patterns in the codebase?
+   - Does it introduce new dependencies? (prefer fewer)
+   - Does it increase or decrease complexity?
+   - Does it handle the known edge cases?
+   - Is it testable without mocking infrastructure?
+3. **Rank by score** — approaches that pass more rules rank higher
+4. **Select and justify** — choose the highest-ranking approach and document why alternatives were rejected
+
+**Anti-pattern:** Selecting the first approach that comes to mind without evaluating alternatives.
+**Pattern:** Enumerate approaches, apply rules, select the winner with documented reasoning.
+
+Rules can come from:
+- Project CLAUDE.md conventions
+- Compound learnings (`docs/solutions/`)
+- Anti-patterns from completion criteria
+- Tech stack standards
+
 ## Related Hats
 
 - **Elaborator**: Created the Unit this hat is planning for

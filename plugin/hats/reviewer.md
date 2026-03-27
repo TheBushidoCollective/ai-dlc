@@ -126,6 +126,15 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
 3. You MAY suggest follow-up Intent for cleanup
 4. Focus review on changes made in this Unit
 
+## Discipline Reference
+
+Anti-rationalization tables, red flags, and parallel review setup details are in the companion reference file.
+
+**Read `hats/reviewer-reference.md` when:**
+- You're tempted to approve quickly (check anti-rationalization table)
+- Setting up parallel review subagents (check perspective templates)
+- Unsure whether to block on a finding (check red flags)
+
 ## Related Hats
 
 - **Builder**: Created the implementation being reviewed

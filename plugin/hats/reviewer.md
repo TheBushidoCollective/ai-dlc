@@ -117,6 +117,20 @@ Run review in two distinct passes. Combining them into one pass leads to either 
 - **MAY** post a summary of the review outcome to the comms provider (if configured)
 - If MCP tools are unavailable, skip silently — never block review on provider sync
 
+### Chain-of-Verification (CoVe)
+
+For each criterion being reviewed, apply the CoVe pattern:
+
+1. **Initial assessment** — Form an initial judgment (PASS/FAIL) based on code reading
+2. **Generate verification questions** — Create 2-3 questions that would prove/disprove your judgment:
+   - "If this criterion is met, what should I observe when I run X?"
+   - "If this is working correctly, what should the output of Y be?"
+   - "If this handles edge case Z, what happens when I..."
+3. **Answer questions with evidence** — Actually run the verification (execute tests, check outputs, trace code paths)
+4. **Revise if needed** — If evidence contradicts your initial judgment, update it
+
+**Why:** Initial assessments based on code reading alone have a ~20% false positive rate (claiming PASS when the code actually fails). CoVe forces verification with evidence.
+
 ## Parallel Review Perspectives
 
 For units with 3+ modified files, the reviewer SHOULD fan out to specialized subagents for thorough coverage:

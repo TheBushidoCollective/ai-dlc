@@ -5,6 +5,263 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.51.2] - 2026-03-27
+
+### Fixed
+
+- allow bot actors in Claude Code mention workflow ([744b746](../../commit/744b746))
+
+## [1.51.1] - 2026-03-27
+
+### Other
+
+- Merge pull request #39 from TheBushidoCollective/eco/role-scoped-context ([0193711](../../commit/0193711))
+- role-scoped subagent context saves ~400 tokens per review agent ([669ad6c](../../commit/669ad6c))
+
+## [1.51.0] - 2026-03-27
+
+### Added
+
+- add brownfield codebase mapping to discovery phase ([b11e66d](../../commit/b11e66d))
+
+### Other
+
+- Merge pull request #40 from TheBushidoCollective/eco/brownfield-mapping ([b9c7b8d](../../commit/b9c7b8d))
+
+## [1.50.0] - 2026-03-27
+
+### Added
+
+- aggregate compound learnings into reflection ([acc4c1e](../../commit/acc4c1e))
+
+### Other
+
+- Merge pull request #41 from TheBushidoCollective/eco/reflect-compound ([553d584](../../commit/553d584))
+
+## [1.49.0] - 2026-03-27
+
+### Added
+
+- add hard-gate synchronization points ([cb7c0b0](../../commit/cb7c0b0))
+
+### Other
+
+- Merge pull request #43 from TheBushidoCollective/eco/hard-gates ([e1485a7](../../commit/e1485a7))
+
+## [1.48.0] - 2026-03-27
+
+### Added
+
+- add automated spec review before construction ([a9ac7b0](../../commit/a9ac7b0))
+
+### Other
+
+- Merge pull request #44 from TheBushidoCollective/eco/spec-review ([112bcee](../../commit/112bcee))
+
+## [1.47.0] - 2026-03-27
+
+### Added
+
+- add verification-before-completion requirement ([944a458](../../commit/944a458))
+
+### Other
+
+- Merge pull request #52 from TheBushidoCollective/eco/verify-before-complete ([3ca26a6](../../commit/3ca26a6))
+
+## [1.46.0] - 2026-03-27
+
+### Added
+
+- add /seed skill for forward-looking ideas with trigger conditions ([ecbb857](../../commit/ecbb857))
+
+### Other
+
+- Merge pull request #58 from TheBushidoCollective/eco/seed-system ([74b1521](../../commit/74b1521))
+
+## [1.45.0] - 2026-03-27
+
+### Added
+
+- add comprehensive pre-delivery checklist ([54dd6b1](../../commit/54dd6b1))
+
+### Changed
+
+- replace static checklist with specialized review agents ([034b969](../../commit/034b969))
+
+### Other
+
+- Merge pull request #98 from TheBushidoCollective/eco/pre-delivery-checklist ([ddfc75a](../../commit/ddfc75a))
+
+## [1.44.3] - 2026-03-27
+
+### Added
+
+- interpolate default branch name into git strategy questions ([944ee1f](../../commit/944ee1f))
+- support configurable remote in default branch detection ([c0f0554](../../commit/c0f0554))
+
+### Other
+
+- Merge pull request #101 from joshampton/task/default-branch-names ([6c063a2](../../commit/6c063a2))
+
+## [1.44.2] - 2026-03-27
+
+### Other
+
+- "Claude Code Review workflow" ([3462dbf](../../commit/3462dbf))
+- "Update Claude PR Assistant workflow" ([8a93ed1](../../commit/8a93ed1))
+
+## [1.44.1] - 2026-03-27
+
+### Other
+
+- add Claude Code mention bot workflow ([74e1a7e](../../commit/74e1a7e))
+
+## [1.44.0] - 2026-03-27
+
+### Added
+
+- add file-based state persistence with lockfile protection ([227f170](../../commit/227f170))
+
+### Other
+
+- Merge pull request #60 from TheBushidoCollective/eco/file-state ([1deaa46](../../commit/1deaa46))
+
+## [1.43.0] - 2026-03-27
+
+### Added
+
+- add prompt injection guard and workflow enforcement hooks ([32c8d47](../../commit/32c8d47))
+
+### Other
+
+- Merge pull request #61 from TheBushidoCollective/eco/security-hooks ([461f70d](../../commit/461f70d))
+
+## [1.42.0] - 2026-03-27
+
+### Added
+
+- add /quick mode for trivial tasks that skip full elaboration ([823e0e2](../../commit/823e0e2))
+
+### Other
+
+- Merge pull request #63 from TheBushidoCollective/eco/quick-mode ([2816f4d](../../commit/2816f4d))
+
+## [1.41.0] - 2026-03-27
+
+### Added
+
+- add no-verify parallel commit strategy for agent teams ([97cca40](../../commit/97cca40))
+
+### Other
+
+- Merge pull request #64 from TheBushidoCollective/eco/no-verify-parallel ([ff18336](../../commit/ff18336))
+
+## [1.40.0] - 2026-03-27
+
+### Added
+
+- add catalog of specialized review agents by domain ([011bb08](../../commit/011bb08))
+
+### Other
+
+- Merge pull request #67 from TheBushidoCollective/eco/specialized-reviewers ([604b0b2](../../commit/604b0b2))
+
+## [1.39.0] - 2026-03-27
+
+### Added
+
+- add /backlog skill for parking lot ideas ([4809022](../../commit/4809022))
+
+### Other
+
+- Merge pull request #68 from TheBushidoCollective/eco/backlog-system ([9f99c2e](../../commit/9f99c2e))
+
+## [1.38.0] - 2026-03-27
+
+### Added
+
+- add /ideate skill for adversarially-filtered improvement ideas ([522eefb](../../commit/522eefb))
+
+### Other
+
+- Merge pull request #69 from TheBushidoCollective/eco/ideation ([ff56030](../../commit/ff56030))
+
+## [1.37.0] - 2026-03-27
+
+### Added
+
+- add plan deepening with parallel research agents ([7b9f4b0](../../commit/7b9f4b0))
+
+### Other
+
+- Merge pull request #71 from TheBushidoCollective/eco/deepen-plan ([3404949](../../commit/3404949))
+
+## [1.36.0] - 2026-03-27
+
+### Added
+
+- add spec flow analysis to identify specification gaps ([b9792bc](../../commit/b9792bc))
+
+### Other
+
+- Merge pull request #77 from TheBushidoCollective/eco/spec-flow ([7303820](../../commit/7303820))
+
+## [1.35.0] - 2026-03-27
+
+### Added
+
+- add per-project review agent configuration ([bb47bcd](../../commit/bb47bcd))
+
+### Other
+
+- Merge pull request #78 from TheBushidoCollective/eco/setup-config ([b001d09](../../commit/b001d09))
+
+## [1.34.0] - 2026-03-27
+
+### Added
+
+- add chain-of-verification (CoVe) for evidence-based reviews ([c123153](../../commit/c123153))
+
+### Other
+
+- Merge pull request #83 from TheBushidoCollective/eco/chain-verification ([c64a84e](../../commit/c64a84e))
+
+## [1.33.0] - 2026-03-27
+
+### Added
+
+- add relevance-ranked learning search with multi-signal ranking ([630de09](../../commit/630de09))
+
+### Other
+
+- Merge pull request #94 from TheBushidoCollective/eco/bm25-search ([37a3cc7](../../commit/37a3cc7))
+
+## [1.32.0] - 2026-03-27
+
+### Added
+
+- add version-aware building with rollback guidance ([d64f599](../../commit/d64f599))
+
+### Other
+
+- Merge pull request #95 from TheBushidoCollective/eco/version-rollback ([8daaa27](../../commit/8daaa27))
+
+## [1.31.0] - 2026-03-27
+
+### Added
+
+- add rule-based decision filtering for approach selection ([5203a64](../../commit/5203a64))
+
+### Other
+
+- Merge pull request #96 from TheBushidoCollective/eco/reasoning-engine ([d460b60](../../commit/d460b60))
+
+## [1.30.0] - 2026-03-27
+
+### Added
+
+- document master + overrides configuration precedence pattern ([f01c3fa](../../commit/f01c3fa))
+
 ## [1.29.0] - 2026-03-26
 
 ### Added

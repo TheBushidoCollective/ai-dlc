@@ -351,6 +351,48 @@ fi
 han keep save iteration.json "$STATE"
 ```
 
+### State Persistence
+
+During construction, maintain a `STATE.md` file in the intent directory as a human-readable snapshot of current progress:
+
+```markdown
+# State: {intent title}
+
+## Current Position
+- **Hat:** {current hat}
+- **Unit:** {current unit}
+- **Bolt:** {iteration number}
+
+## Decisions Made
+- {decision 1}: {rationale}
+
+## Blockers
+- {blocker}: {status}
+
+## Metrics
+- Units complete: {n}/{total}
+- Iterations: {count}
+```
+
+Update STATE.md at each hat transition and unit completion. This survives context resets and session boundaries better than ephemeral state.
+
+Use the file-based state helpers from `lib/state.sh`:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/state.sh"
+
+# Write the full STATE.md
+write_state_file "$INTENT_DIR" "STATE.md" "$state_content"
+
+# Read it back
+current_state=$(read_state_file "$INTENT_DIR" "STATE.md")
+
+# Update just one section (lockfile-protected)
+update_state_section "$INTENT_DIR" "Current Position" "- **Hat:** builder
+- **Unit:** unit-02-api
+- **Bolt:** 3"
+```
+
 ### Step 1b: Detect Agent Teams
 
 ```bash
@@ -1052,6 +1094,26 @@ The `iteration.json` is extended with `unitStates` for parallel hat tracking:
 - `retries`: Number of reviewer rejection cycles (max 3 before escalating to blocked)
 - `workflow`: The hat sequence for this unit (resolved from unit frontmatter `workflow:` field, falling back to intent-level workflow)
 - Units are added when spawned, removed when completed
+
+### Parallel Commit Strategy
+
+When Agent Teams are active and multiple units execute in parallel:
+
+**Per-agent commits:** Individual agents commit with `--no-verify` to avoid redundant hook execution. Each agent is working in its own worktree/branch, so hook conflicts and slowdowns are unnecessary overhead.
+
+**Post-wave validation:** After a wave of parallel units completes, the orchestrator runs the full validation suite once on the merged result:
+```bash
+# After merging wave results into intent branch
+git checkout "ai-dlc/${INTENT_SLUG}/main"
+# Run full pre-commit hooks, lint, tests on merged code
+npm run lint && npm test
+```
+
+**Why:** Pre-commit hooks on N parallel agents means N redundant executions. Running once post-merge catches the same issues with 1/Nth the cost.
+
+**Sequential fallback:** When NOT using Agent Teams (single agent), always use normal commits with hooks enabled.
+
+**IMPORTANT:** This only applies to AI-DLC parallel agent execution, not to user-facing commits. Final commits (PRs, merges) always run full hooks.
 
 ---
 

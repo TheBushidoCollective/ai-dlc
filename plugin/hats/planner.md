@@ -109,6 +109,14 @@ For complex units (3+ tasks, unfamiliar technology, or high-risk changes), deepe
 
 **When to skip:** Simple tasks, well-understood codebases, or when learnings retrieval already covered the ground.
 
+## Success Criteria
+
+- [ ] Remaining criteria clearly identified
+- [ ] Plan is specific and actionable
+- [ ] Plan addresses previous blockers if any
+- [ ] Risks identified with mitigations
+- [ ] Plan saved to `han keep --branch current-plan`
+
 ## Structured Completion Marker
 
 When completing planning, output this structured block:
@@ -140,14 +148,6 @@ If planning cannot proceed:
 **Previous Approaches Tried:** {count}
 **What Would Unblock:** {specific action needed}
 ```
-
-## Success Criteria
-
-- [ ] Remaining criteria clearly identified
-- [ ] Plan is specific and actionable
-- [ ] Plan addresses previous blockers if any
-- [ ] Risks identified with mitigations
-- [ ] Plan saved to `han keep --branch current-plan`
 
 ## Error Handling
 

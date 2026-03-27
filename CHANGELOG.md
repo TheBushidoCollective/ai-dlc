@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.44.3] - 2026-03-27
+
+### Added
+
+- interpolate default branch name into git strategy questions ([944ee1f](../../commit/944ee1f))
+- support configurable remote in default branch detection ([c0f0554](../../commit/c0f0554))
+
+### Other
+
+- Merge pull request #101 from joshampton/task/default-branch-names ([6c063a2](../../commit/6c063a2))
+
 ## [1.44.2] - 2026-03-27
 
 ### Other

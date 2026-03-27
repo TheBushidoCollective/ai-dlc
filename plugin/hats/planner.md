@@ -29,6 +29,32 @@ The Planner reviews the current Unit and creates a tactical execution plan for t
 - `han keep --branch active-intent` set
 - Unit file exists with criteria defined
 
+### Relevance-Ranked Learning Search
+
+When searching `docs/solutions/` for relevant learnings, use a multi-signal ranking approach:
+
+1. **Frontmatter match (highest signal)** — Exact matches on `tags`, `module`, `component` fields
+2. **Title match (high signal)** — Keywords from the current unit appear in the learning title
+3. **Category match (medium signal)** — Learning category matches the unit's discipline (e.g., `debugging` category for a bug fix unit)
+4. **Content match (lower signal)** — Keywords appear in the body text
+
+**Search strategy:**
+```bash
+# Phase 1: Frontmatter-first (high precision)
+grep -rl "tags:.*${TECHNOLOGY}" docs/solutions/ | head -5
+grep -rl "module: ${MODULE}" docs/solutions/ | head -5
+
+# Phase 2: Category narrowing
+ls docs/solutions/${CATEGORY}/ 2>/dev/null | head -10
+
+# Phase 3: Content search (if Phase 1-2 yield <3 results)
+grep -rl "${KEYWORD}" docs/solutions/ | head -5
+```
+
+**Always read:** `docs/solutions/patterns/critical-patterns.md` (if it exists) — this file contains patterns that apply to ALL work, regardless of search results.
+
+**Read strategy:** Read only frontmatter (~30 lines) first to assess relevance. Full-read only files where frontmatter signals strong relevance. Never bulk-read all learnings.
+
 ## Steps
 
 1. Review current state

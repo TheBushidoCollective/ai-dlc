@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.39.0] - 2026-03-27
+
+### Added
+
+- add /backlog skill for parking lot ideas ([4809022](../../commit/4809022))
+
+### Other
+
+- Merge pull request #68 from TheBushidoCollective/eco/backlog-system ([9f99c2e](../../commit/9f99c2e))
+
 ## [1.38.0] - 2026-03-27
 
 ### Added

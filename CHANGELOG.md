@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.48.0] - 2026-03-27
+
+### Added
+
+- add automated spec review before construction ([a9ac7b0](../../commit/a9ac7b0))
+
+### Other
+
+- Merge pull request #44 from TheBushidoCollective/eco/spec-review ([112bcee](../../commit/112bcee))
+
 ## [1.47.0] - 2026-03-27
 
 ### Added

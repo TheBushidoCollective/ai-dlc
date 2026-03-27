@@ -83,6 +83,49 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
 - **MAY** post a summary of the review outcome to the comms provider (if configured)
 - If MCP tools are unavailable, skip silently — never block review on provider sync
 
+## Structured Completion Marker
+
+When the review is complete, emit exactly one of the following markers as the final output block. These markers enable deterministic parsing of review outcomes by orchestration tooling.
+
+### APPROVED
+
+```markdown
+## REVIEW COMPLETE
+
+**Decision:** APPROVED
+**Unit:** {unit name}
+**Criteria:** {met}/{total} satisfied
+**Tests:** {pass}/{total} passing
+**Findings:** {high} high, {medium} medium, {low} low confidence
+**Anti-patterns:** none | {count} found (non-blocking)
+
+### Verified Truths
+- [x] {observable truth 1} — verified via {evidence}
+```
+
+### REQUEST CHANGES
+
+```markdown
+## REVIEW COMPLETE
+
+**Decision:** REQUEST CHANGES
+**Unit:** {unit name}
+**Criteria:** {met}/{total} satisfied
+**Blocking Issues:** {count}
+
+### High-Confidence Issues (MUST fix)
+1. {issue} — {evidence}
+
+### Medium-Confidence Issues (SHOULD fix)
+1. {issue} — {reasoning}
+
+### Low-Confidence Issues (MAY fix)
+1. {issue} — {suggestion}
+
+### Failed Truths
+- [ ] {observable truth} — {why it failed}
+```
+
 ## Success Criteria
 
 - [ ] All new code has corresponding tests

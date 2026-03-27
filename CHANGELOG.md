@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.67.0] - 2026-03-27
+
+### Added
+
+- add model profiles for cost-optimized hat routing ([801229b](../../commit/801229b))
+
+### Fixed
+
+- add missing sections from main and align version ([c33b7d1](../../commit/c33b7d1))
+- use load_repo_settings + jq for model_profiles resolution ([25275ee](../../commit/25275ee))
+- restore sections accidentally dropped from main ([7d38fde](../../commit/7d38fde))
+
+### Other
+
+- Merge pull request #45 from TheBushidoCollective/eco/model-profiles ([22b0986](../../commit/22b0986))
+- resolve conflicts with main ([fe2d383](../../commit/fe2d383))
+- resolve conflicts with main ([38a8bcd](../../commit/38a8bcd))
+
 ## [1.66.0] - 2026-03-27
 
 ### Added

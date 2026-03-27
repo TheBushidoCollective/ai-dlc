@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.68.0] - 2026-03-27
+
+### Added
+
+- add DOT flowchart process authority guideline ([041e102](../../commit/041e102))
+
+### Other
+
+- Merge pull request #47 from TheBushidoCollective/eco/dot-flowcharts ([2c3429c](../../commit/2c3429c))
+- resolve conflicts with main ([fcf8bd5](../../commit/fcf8bd5))
+- sync branch with main (unrelated histories) ([46557d4](../../commit/46557d4))
+- resolve conflicts with main, keep DOT flowcharts and hard gates ([0f3981c](../../commit/0f3981c))
+
 ## [1.67.0] - 2026-03-27
 
 ### Added
@@ -115,7 +128,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Other
 
 - add Claude conflict resolver workflow ([c28bac4](../../commit/c28bac4))
-
 
 ## [1.61.0] - 2026-03-27
 

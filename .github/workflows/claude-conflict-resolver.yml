@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   resolve-conflicts:
     runs-on: ubuntu-latest
@@ -23,11 +26,31 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Wait a moment for GitHub to recalculate mergeability
-          sleep 5
+          # GitHub needs time to recalculate mergeability after a push.
+          # Poll with backoff until no PRs show UNKNOWN, or up to ~90 seconds.
+          CONFLICTING=""
+          for attempt in 1 2 3 4 5 6; do
+            echo "Attempt $attempt: checking mergeability..."
+            sleep $(( attempt * 10 ))
 
-          # Get all open PRs targeting this branch
-          CONFLICTING=$(gh pr list --base main --state open --json number,headRefName,mergeable --jq '[.[] | select(.mergeable == "CONFLICTING")] | .[].number' 2>/dev/null || echo "")
+            ALL_PRS=$(gh pr list --base main --state open --json number,mergeable 2>/dev/null || echo "[]")
+            UNKNOWN_COUNT=$(echo "$ALL_PRS" | jq '[.[] | select(.mergeable == "UNKNOWN")] | length')
+
+            echo "  UNKNOWN: $UNKNOWN_COUNT"
+
+            # If no PRs are UNKNOWN, GitHub has finished calculating
+            if [ "$UNKNOWN_COUNT" -eq 0 ]; then
+              CONFLICTING=$(echo "$ALL_PRS" | jq -r '[.[] | select(.mergeable == "CONFLICTING")] | .[].number' | tr '\n' ' ')
+              break
+            fi
+
+            # On last attempt, take whatever we have
+            if [ "$attempt" -eq 6 ]; then
+              CONFLICTING=$(echo "$ALL_PRS" | jq -r '[.[] | select(.mergeable == "CONFLICTING")] | .[].number' | tr '\n' ' ')
+            fi
+          done
+
+          CONFLICTING=$(echo "$CONFLICTING" | xargs)  # trim whitespace
 
           if [ -z "$CONFLICTING" ]; then
             echo "No conflicting PRs found"

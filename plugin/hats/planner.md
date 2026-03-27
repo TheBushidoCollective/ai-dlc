@@ -53,6 +53,7 @@ done
 - **Recent refactors** — understand the direction the code is moving
 - **Stable files** (0-1 changes) — changes here may surprise maintainers, plan communication
 
+
 ### Relevance-Ranked Learning Search
 
 When searching `docs/solutions/` for relevant learnings, use a multi-signal ranking approach:

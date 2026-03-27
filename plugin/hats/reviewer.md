@@ -83,24 +83,16 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
 - **MAY** post a summary of the review outcome to the comms provider (if configured)
 - If MCP tools are unavailable, skip silently — never block review on provider sync
 
-### Schema Drift Detection
+## Specialized Review Perspectives
 
-When reviewing units that touch database files (migrations, schema files, models), check for unrelated schema changes:
-
-1. Compare the schema diff against the unit's description and completion criteria
-2. Flag any schema changes NOT required by the unit's stated goals:
-   - New columns/tables not mentioned in the spec
-   - Index changes unrelated to the feature
-   - Migration files that don't match the unit's scope
-
-3. Report as high-confidence finding:
-   ```
-   **SCHEMA DRIFT DETECTED**: Migration 20260326_add_foo_column.sql adds column `bar`
-   which is not referenced in the unit spec or completion criteria.
-   This may be an accidental change from another branch.
-   ```
-
-**File patterns to watch:** `*.migration.*`, `schema.*`, `db/migrate/`, `prisma/schema.prisma`, `drizzle/`, `*.sql`
+> **Note:** Domain-specific review checks (e.g., schema drift detection, security audit,
+> performance profiling) belong in `reviewer-reference.md` as specialized review agents
+> activated by file-pattern matching -- not in the general reviewer hat. When
+> `reviewer-reference.md` is added, register specialized agents there using the format:
+>
+> | Agent | Detects | Activation File Patterns |
+> |-------|---------|--------------------------|
+> | **Schema Drift** | Unrelated schema changes, accidental migrations | Database files (`*.migration.*`, `schema.*`, `db/migrate/`) |
 
 ## Success Criteria
 

@@ -29,6 +29,30 @@ The Planner reviews the current Unit and creates a tactical execution plan for t
 - `han keep --branch active-intent` set
 - Unit file exists with criteria defined
 
+### Git History Analysis
+
+Before planning changes to existing code, analyze its evolution:
+
+```bash
+# Find files that will be modified by this unit
+# Then check their change frequency and recent authors
+for file in {files-to-modify}; do
+  echo "## $file"
+  echo "Change frequency (last 6 months):"
+  git log --oneline --since="6 months ago" -- "$file" | wc -l
+  echo "Recent changes:"
+  git log --oneline -5 -- "$file"
+  echo "Contributors:"
+  git log --format="%an" --since="6 months ago" -- "$file" | sort -u
+done
+```
+
+**Use this to inform planning:**
+- **High churn files** (>10 changes in 6 months) — likely complex, plan extra review time
+- **Multiple contributors** — coordinate, check for in-flight work
+- **Recent refactors** — understand the direction the code is moving
+- **Stable files** (0-1 changes) — changes here may surprise maintainers, plan communication
+
 ## Steps
 
 1. Review current state

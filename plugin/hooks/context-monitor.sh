@@ -31,7 +31,7 @@ DEBOUNCE_FILE="/tmp/context-monitor-${SESSION_ID}"
 if [ "$REMAINING" -le 25 ]; then
   if ! grep -q "25" "$DEBOUNCE_FILE" 2>/dev/null; then
     echo "25" >> "$DEBOUNCE_FILE"
-    cat <<'WARN'
+    cat >&2 <<'WARN'
 ⚠️ CONTEXT CRITICAL (≤25% remaining)
 
 **You MUST:**
@@ -42,11 +42,12 @@ if [ "$REMAINING" -le 25 ]; then
 
 Quality degrades severely at low context. Wrap up.
 WARN
+    exit 2
   fi
 elif [ "$REMAINING" -le 35 ]; then
   if ! grep -q "35" "$DEBOUNCE_FILE" 2>/dev/null; then
     echo "35" >> "$DEBOUNCE_FILE"
-    cat <<'WARN'
+    cat >&2 <<'WARN'
 ⚠️ CONTEXT WARNING (≤35% remaining)
 
 **Recommended:**
@@ -55,5 +56,6 @@ elif [ "$REMAINING" -le 35 ]; then
 - Consider saving state for session handoff
 - Keep responses concise
 WARN
+    exit 2
   fi
 fi

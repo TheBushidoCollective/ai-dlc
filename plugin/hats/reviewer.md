@@ -185,6 +185,17 @@ Reviewer (Master)
 4. De-duplicate and rank by confidence
 5. Present consolidated review with agent attribution
 
+## Specialized Review Perspectives
+
+> **Note:** Domain-specific review checks (e.g., schema drift detection, security audit,
+> performance profiling) belong in `reviewer-reference.md` as specialized review agents
+> activated by file-pattern matching -- not in the general reviewer hat. When
+> `reviewer-reference.md` is added, register specialized agents there using the format:
+>
+> | Agent | Detects | Activation File Patterns |
+> |-------|---------|--------------------------|
+> | **Schema Drift** | Unrelated schema changes, accidental migrations | Database files (`*.migration.*`, `schema.*`, `db/migrate/`) |
+
 ## Structured Completion Marker
 
 When the review is complete, emit exactly one of the following markers as the final output block. These markers enable deterministic parsing of review outcomes by orchestration tooling.

@@ -472,7 +472,11 @@ git commit -m "elaborate(${INTENT_SLUG}): write discovery brief"
 ### Step 3: Invoke discovery subagent
 
 ```
-Skill("elaborate-discover", args: ".ai-dlc/{INTENT_SLUG}/.briefs/elaborate-discover.md")
+Agent({
+  subagent_type: "general-purpose",
+  description: "elaborate-discover: {INTENT_SLUG}",
+  prompt: "Run the /ai-dlc:elaborate-discover skill. Read the skill definition at plugin/skills/elaborate-discover/SKILL.md first, then execute it with the brief file at .ai-dlc/{INTENT_SLUG}/.briefs/elaborate-discover.md as input."
+})
 ```
 
 **CRITICAL — DO NOT STOP HERE.** Discovery is only one sub-step of elaboration. After the discovery subagent completes, you MUST immediately proceed to Step 4 below. There are many more phases remaining (Domain Model validation, Workflow Selection, Success Criteria, Decomposition, etc.). Stopping after discovery means the elaboration is incomplete.
@@ -1505,7 +1509,11 @@ git commit -m "elaborate(${INTENT_SLUG}): write wireframes brief"
 ### Step 4: Invoke wireframes subagent
 
 ```
-Skill("elaborate-wireframes", args: ".ai-dlc/{INTENT_SLUG}/.briefs/elaborate-wireframes.md")
+Agent({
+  subagent_type: "general-purpose",
+  description: "elaborate-wireframes: {INTENT_SLUG}",
+  prompt: "Run the /ai-dlc:elaborate-wireframes skill. Read the skill definition at plugin/skills/elaborate-wireframes/SKILL.md first, then execute it with the brief file at .ai-dlc/{INTENT_SLUG}/.briefs/elaborate-wireframes.md as input."
+})
 ```
 
 **CRITICAL — DO NOT STOP HERE.** After the wireframes subagent completes, immediately proceed to Step 5.
@@ -1618,7 +1626,11 @@ git commit -m "elaborate(${INTENT_SLUG}): write ticket sync brief"
 ### Step 3: Invoke ticket sync subagent
 
 ```
-Skill("elaborate-ticket-sync", args: ".ai-dlc/{INTENT_SLUG}/.briefs/elaborate-ticket-sync.md")
+Agent({
+  subagent_type: "general-purpose",
+  description: "elaborate-ticket-sync: {INTENT_SLUG}",
+  prompt: "Run the /ai-dlc:elaborate-ticket-sync skill. Read the skill definition at plugin/skills/elaborate-ticket-sync/SKILL.md first, then execute it with the brief file at .ai-dlc/{INTENT_SLUG}/.briefs/elaborate-ticket-sync.md as input."
+})
 ```
 
 **CRITICAL — DO NOT STOP HERE.** After the ticket sync subagent completes, immediately proceed to Step 4.

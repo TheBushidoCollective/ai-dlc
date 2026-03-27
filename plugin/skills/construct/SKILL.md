@@ -68,6 +68,38 @@ If truly blocked (cannot proceed without user input):
 2. Stop the loop naturally (don't call /advance)
 3. The Stop hook will alert the user that human intervention is required
 
+### Hard Gates
+
+Hard gates are named checkpoints that MUST be satisfied before the workflow advances. Unlike hat transitions (which rely on agent judgment), hard gates are explicit conditions verified programmatically.
+
+| Gate | Between | Condition | Enforcement |
+|------|---------|-----------|-------------|
+| `PLAN_APPROVED` | planner -> builder | Plan saved to han keep, all criteria have planned tasks | Check plan exists and covers all criteria |
+| `TESTS_PASS` | builder -> reviewer | All quality gates (tests, lint, types) pass | Run test suite, verify exit code 0 |
+| `CRITERIA_MET` | reviewer -> advance | Each criterion has PASS with evidence | Parse structured completion marker |
+
+### Gate Enforcement
+
+Before advancing to the next hat, verify the gate condition:
+
+```bash
+# Example: TESTS_PASS gate before reviewer
+if ! verify_gate "TESTS_PASS"; then
+  echo "## HARD GATE: TESTS_PASS"
+  echo ""
+  echo "Cannot advance to reviewer — quality gates are not passing."
+  echo "Fix failing tests/lint/types before requesting review."
+  exit 1
+fi
+```
+
+Gates are checked by the `/advance` skill. If a gate fails, advance is blocked and the agent must fix the issue before retrying.
+
+**An agent MUST NEVER skip a hard gate.** Hard gates exist to prevent the most common workflow failures:
+- Reviewing code that doesn't compile
+- Building without a plan
+- Marking criteria met without evidence
+
 ## Implementation
 
 ### Pre-check: Reject Cowork Mode

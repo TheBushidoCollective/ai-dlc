@@ -34,6 +34,7 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
 Run review in two distinct passes. Combining them into one pass leads to either spec compliance being sacrificed for code quality concerns or vice versa.
 
 **Stage 1: Spec Compliance** — Does the implementation satisfy the unit's completion criteria?
+- Test coverage and quality (tests are the evidence for spec compliance)
 - Compare each criterion against the code
 - Verify with evidence (test results, file existence, behavior)
 - Result: PASS/FAIL per criterion
@@ -41,7 +42,6 @@ Run review in two distinct passes. Combining them into one pass leads to either 
 **Stage 2: Code Quality** — Is the code well-written?
 - Security, performance, maintainability
 - Adherence to project conventions
-- Test quality and coverage
 - Result: Findings scored by confidence
 
 **Key rule:** Stage 1 failures block approval regardless of Stage 2 results. Stage 2 findings are improvement suggestions, not blockers (unless high-confidence security/correctness issues).

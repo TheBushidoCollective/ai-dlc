@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.76.0] - 2026-03-28
+
+### Added
+
+- add subagent-hook, context preflight, hard gates, DOT flowcharts ([d3d8333](../../commit/d3d8333))
+
 ## [1.75.1] - 2026-03-28
 
 ### Fixed

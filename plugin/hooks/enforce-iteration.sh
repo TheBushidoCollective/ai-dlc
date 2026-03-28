@@ -132,12 +132,14 @@ if [ "$ALL_COMPLETE" = "true" ]; then
     INTENT_STATUS=$(dlc_frontmatter_get "status" "${INTENT_DIR}/intent.md" 2>/dev/null || echo "")
     if [ "$INTENT_STATUS" = "active" ]; then
       dlc_frontmatter_set "status" "completed" "${INTENT_DIR}/intent.md"
+      # Check off intent-level completion criteria checkboxes
+      dlc_check_intent_criteria "${INTENT_DIR}"
       # Also update iteration.json status
       if [ -n "$ITERATION_JSON" ]; then
         UPDATED_STATE=$(echo "$ITERATION_JSON" | jq -c '.status = "completed"')
         dlc_state_save "$INTENT_DIR" "iteration.json" "$UPDATED_STATE"
       fi
-      git add "${INTENT_DIR}/intent.md" "${INTENT_DIR}/state/iteration.json" 2>/dev/null || true
+      git add "${INTENT_DIR}/intent.md" "${INTENT_DIR}/state/iteration.json" "${INTENT_DIR}/completion-criteria.md" "${INTENT_DIR}/state/completion-criteria.md" 2>/dev/null || true
       git commit -m "status: mark $(basename "$INTENT_DIR") as completed (auto-reconciled)" 2>/dev/null || true
     fi
   fi

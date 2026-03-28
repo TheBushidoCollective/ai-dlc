@@ -132,6 +132,8 @@ source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
 CURRENT_UNIT=$(echo "$ITERATION_JSON" | dlc_json_get "currentUnit" "")
 if [ -n "$CURRENT_UNIT" ] && [ -f "$INTENT_DIR/${CURRENT_UNIT}.md" ]; then
   update_unit_status "$INTENT_DIR/${CURRENT_UNIT}.md" "completed"
+  # Check off completion criteria checkboxes in the unit file
+  dlc_check_unit_criteria "$INTENT_DIR/${CURRENT_UNIT}.md"
   # Commit the status change so it persists across sessions
   git add "$INTENT_DIR/${CURRENT_UNIT}.md"
   git commit -m "status: mark ${CURRENT_UNIT} as completed"
@@ -298,7 +300,11 @@ SKIP_INTEGRATOR=false
 ```bash
 # Update intent.md frontmatter status so it persists in git
 dlc_frontmatter_set "status" "completed" "$INTENT_DIR/intent.md"
+# Check off intent-level completion criteria checkboxes
+dlc_check_intent_criteria "$INTENT_DIR"
 git add "$INTENT_DIR/intent.md"
+git add "$INTENT_DIR/completion-criteria.md" 2>/dev/null || true
+git add "$INTENT_DIR/state/completion-criteria.md" 2>/dev/null || true
 git commit -m "status: mark intent ${INTENT_SLUG} as completed"
 ```
 
@@ -398,7 +404,11 @@ dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
 
 # Update intent.md frontmatter status so it persists in git
 dlc_frontmatter_set "status" "completed" "$INTENT_DIR/intent.md"
+# Check off intent-level completion criteria checkboxes
+dlc_check_intent_criteria "$INTENT_DIR"
 git add "$INTENT_DIR/intent.md"
+git add "$INTENT_DIR/completion-criteria.md" 2>/dev/null || true
+git add "$INTENT_DIR/state/completion-criteria.md" 2>/dev/null || true
 git commit -m "status: mark intent ${INTENT_SLUG} as completed"
 
 # Proceed to Step 5 (completion summary)
@@ -550,6 +560,7 @@ for unit_file in "$INTENT_DIR"/unit-*.md; do
   if [ "$UNIT_STATUS" != "completed" ]; then
     echo "Fixing: $(basename "$unit_file" .md) status '$UNIT_STATUS' → 'completed'"
     update_unit_status "$unit_file" "completed"
+    dlc_check_unit_criteria "$unit_file"
     git add "$unit_file"
   fi
 done
@@ -561,6 +572,11 @@ if [ "$INTENT_STATUS" != "completed" ]; then
   dlc_frontmatter_set "status" "completed" "$INTENT_DIR/intent.md"
   git add "$INTENT_DIR/intent.md"
 fi
+
+# Check off completion criteria checkboxes
+dlc_check_intent_criteria "$INTENT_DIR"
+git add "$INTENT_DIR/completion-criteria.md" 2>/dev/null || true
+git add "$INTENT_DIR/state/completion-criteria.md" 2>/dev/null || true
 
 # Commit any status fixes
 if ! git diff --cached --quiet 2>/dev/null; then

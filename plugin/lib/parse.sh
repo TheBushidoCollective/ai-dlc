@@ -166,3 +166,75 @@ dlc_frontmatter_set() {
 
   yq --front-matter=process "$expr" "$file" > "$tmp" 2>/dev/null && mv "$tmp" "$file"
 }
+
+# ============================================================================
+# Markdown Checkbox Functions (completion criteria helpers)
+# ============================================================================
+
+# Check off all markdown checkboxes in a file (or within a specific section)
+# Converts all "- [ ]" to "- [x]" within the target section(s).
+# If no section is specified, checks off ALL checkboxes in the file.
+# Usage: dlc_check_all_criteria <file> [section_heading]
+dlc_check_all_criteria() {
+  local file="$1"
+  local section="${2:-}"
+
+  [ -f "$file" ] || return 1
+
+  if [ -z "$section" ]; then
+    # No section filter: check all checkboxes in the entire file
+    local tmp="${file}.tmp.$$"
+    sed 's/- \[ \]/- [x]/g' "$file" > "$tmp" && mv "$tmp" "$file"
+  else
+    # Section-scoped: only check boxes between the section heading and the next ## heading
+    local tmp="${file}.tmp.$$"
+    awk -v section="$section" '
+      BEGIN { in_section = 0 }
+      /^## / {
+        if (index($0, section) > 0) {
+          in_section = 1
+        } else if (in_section) {
+          in_section = 0
+        }
+      }
+      in_section && /- \[ \]/ {
+        gsub(/- \[ \]/, "- [x]")
+      }
+      { print }
+    ' "$file" > "$tmp" && mv "$tmp" "$file"
+  fi
+}
+
+# Check off all completion criteria checkboxes in a unit file
+# Handles both "Success Criteria" and "Completion Criteria" section names
+# Usage: dlc_check_unit_criteria <unit_file>
+dlc_check_unit_criteria() {
+  local unit_file="$1"
+  [ -f "$unit_file" ] || return 1
+
+  if grep -q '^## Success Criteria' "$unit_file"; then
+    dlc_check_all_criteria "$unit_file" "Success Criteria"
+  elif grep -q '^## Completion Criteria' "$unit_file"; then
+    dlc_check_all_criteria "$unit_file" "Completion Criteria"
+  fi
+}
+
+# Check off all completion criteria in intent-level files
+# Handles: intent.md Success Criteria section + standalone completion-criteria.md
+# Usage: dlc_check_intent_criteria <intent_dir>
+dlc_check_intent_criteria() {
+  local intent_dir="$1"
+
+  if [ -f "$intent_dir/intent.md" ]; then
+    if grep -q '^## Success Criteria' "$intent_dir/intent.md"; then
+      dlc_check_all_criteria "$intent_dir/intent.md" "Success Criteria"
+    elif grep -q '^## Completion Criteria' "$intent_dir/intent.md"; then
+      dlc_check_all_criteria "$intent_dir/intent.md" "Completion Criteria"
+    fi
+  fi
+
+  # Check standalone completion-criteria.md files (all checkboxes)
+  for criteria_file in "$intent_dir/completion-criteria.md" "$intent_dir/state/completion-criteria.md"; do
+    [ -f "$criteria_file" ] && dlc_check_all_criteria "$criteria_file"
+  done
+}

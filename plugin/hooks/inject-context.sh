@@ -153,7 +153,14 @@ if [ "$CURRENT_BRANCH" = "$DEFAULT_BRANCH" ]; then
     # If has units and all completed, mark intent as completed
     if [ "$reconcile_has_units" = "true" ] && [ "$reconcile_all_done" = "true" ]; then
       dlc_frontmatter_set "status" "completed" "$reconcile_intent_file"
-      git add "$reconcile_intent_file" 2>/dev/null || true
+      # Check off intent-level completion criteria checkboxes
+      dlc_check_intent_criteria "$reconcile_dir"
+      # Also check off unit criteria
+      for reconcile_unit_file in "$reconcile_dir"/unit-*.md; do
+        [ -f "$reconcile_unit_file" ] || continue
+        dlc_check_unit_criteria "$reconcile_unit_file"
+      done
+      git add "$reconcile_intent_file" "$reconcile_dir"/unit-*.md "$reconcile_dir/completion-criteria.md" "$reconcile_dir/state/completion-criteria.md" 2>/dev/null || true
       git commit -m "status: reconcile $(basename "$reconcile_dir") after merge" 2>/dev/null || true
     fi
   done

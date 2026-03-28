@@ -796,13 +796,17 @@ Do NOT ask the user whether to decompose. Assess the complexity from the domain 
 |---|---|---|
 | `backend`, `api`, `devops`, `documentation` | `default` (planner → builder → reviewer) | Standard implementation cycle |
 | `design` | `design` (planner → designer → reviewer) | Design artifacts need design hat, not builder |
+| `infrastructure` | `default` (planner → builder → reviewer) | IaC provisioning follows standard plan-build-review |
+| `observability` | `default` (planner → builder → reviewer) | Monitoring/alerting setup follows standard plan-build-review |
 | Security-sensitive units | `adversarial` (planner → builder → red-team → blue-team → reviewer) | Adversarial testing for auth, crypto, data handling |
 | Test-driven units | `tdd` (test-writer → implementer → refactorer → reviewer) | Red-Green-Refactor cycle for high-correctness code |
 | Units without a clear workflow need | (omit `workflow:` field) | Inherits the intent-level workflow |
 
 Set the `workflow:` frontmatter field on units that need a non-default workflow. Omit it (or leave empty) for units that should use the intent-level workflow.
 
-**Auto-routing rule:** When generating a unit with `discipline: design`, automatically set `workflow: design` in the frontmatter. Do not require the user to specify this manually. This ensures design units always route through the design workflow (`planner → designer → reviewer`) instead of accidentally inheriting the intent-level workflow.
+**Auto-routing rules:**
+- When generating a unit with `discipline: design`, automatically set `workflow: design` in the frontmatter. This ensures design units always route through the design workflow (`planner → designer → reviewer`) instead of accidentally inheriting the intent-level workflow.
+- When generating a unit with `discipline: infrastructure` or `discipline: observability`, the default workflow applies — no `workflow:` override is needed (omit or leave empty). Do not require the user to specify this manually.
 
 Define each unit with **enough detail that a builder with zero prior context builds the right thing**:
 
@@ -1356,6 +1360,8 @@ design - This unit will be executed by design-focused agents.
 - `api` → API development agents
 - `documentation` → `do-technical-documentation` agents
 - `devops` → infrastructure/deployment agents
+- `infrastructure` → general-purpose agents with IaC/provisioning context
+- `observability` → general-purpose agents with monitoring/alerting context
 - `design` → design-focused agents
 
 #### Per-unit review loop:

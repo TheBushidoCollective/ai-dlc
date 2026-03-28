@@ -65,6 +65,19 @@ dlc_state_list() {
   fi
 }
 
+# Validate phase against known enum; return default if unknown
+# Usage: dlc_validate_phase <phase> [default]
+dlc_validate_phase() {
+  local phase="$1" default="${2:-execution}"
+  case "$phase" in
+    elaboration|execution|operation|reflection|closed) echo "$phase" ;;
+    *)
+      [ -n "$phase" ] && echo "ai-dlc: unknown phase '$phase', defaulting to '$default'" >&2
+      echo "$default"
+      ;;
+  esac
+}
+
 # Fast YAML scalar extraction from frontmatter (pure bash, no subprocess)
 # Only handles simple "field: value" lines — used for performance-critical paths.
 _state_yaml_get_simple() {

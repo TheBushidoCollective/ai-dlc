@@ -35,11 +35,10 @@ STATE=$(dlc_state_load "$INTENT_DIR" "iteration.json")
 ### Step 2: Determine Previous Hat
 
 ```javascript
-// Resolve workflow for this unit: per-unit workflow takes priority, then intent-level fallback
+// Resolve workflow for this unit: per-unit workflow from frontmatter takes priority, then intent-level fallback
 const currentUnit = state.currentUnit;
-const unitWorkflow = (currentUnit && state.unitStates?.[currentUnit]?.workflow)
-  || state.workflow
-  || ["planner", "builder", "reviewer"];
+const unitWorkflow = state.workflow || ["planner", "builder", "reviewer"];
+// Per-unit workflow override: read from unit frontmatter if set
 const currentIndex = unitWorkflow.indexOf(state.hat);
 const prevIndex = currentIndex - 1;
 
@@ -91,11 +90,11 @@ AGENT_TEAMS_ENABLED="${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}"
 
 If `AGENT_TEAMS_ENABLED` is set:
 
-1. Read `unitStates` from `iteration.json`
-2. Increment `unitStates.{currentUnit}.retries`
+1. Read retry count from unit frontmatter (`dlc_frontmatter_get "retries" "$UNIT_FILE"`)
+2. Increment retries in unit frontmatter
 3. Check retry limit:
    - If `retries >= 3`: Mark unit as blocked, save blocker documentation
-   - If `retries < 3`: Update `unitStates.{currentUnit}.hat = "builder"`
+   - If `retries < 3`: Update hat in unit frontmatter: `dlc_frontmatter_set "hat" "builder" "$UNIT_FILE"`
 4. Spawn new builder teammate with reviewer feedback:
 
 ```javascript
@@ -118,7 +117,7 @@ Task({
 })
 ```
 
-5. Save updated `unitStates` to `iteration.json`
+5. Commit updated unit frontmatter
 
 **Without Agent Teams:** The existing behavior (update hat to previous, continue in sequential loop) remains unchanged.
 

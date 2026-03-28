@@ -51,20 +51,19 @@ if ! echo "$ITERATION_JSON" | dlc_json_validate; then
   exit 0
 fi
 
-# Parse state
-STATUS=$(echo "$ITERATION_JSON" | dlc_json_get "status" "active")
+# Single-pass extraction of iteration state fields
+eval "$(echo "$ITERATION_JSON" | jq -r '@sh "
+  STATUS=\(.status // \"active\")
+  CURRENT_ITERATION=\(.iteration // 1)
+  HAT=\(.hat // \"builder\")
+  MAX_ITERATIONS=\(.maxIterations // 0)
+  TARGET_UNIT=\(.targetUnit // \"\")
+"')"
 
 # If task is already complete, don't enforce iteration
 if [ "$STATUS" = "complete" ]; then
   exit 0
 fi
-
-# Get current iteration and hat
-CURRENT_ITERATION=$(echo "$ITERATION_JSON" | dlc_json_get "iteration" "1")
-HAT=$(echo "$ITERATION_JSON" | dlc_json_get "hat" "builder")
-
-# Get iteration limit (0 or null = unlimited)
-MAX_ITERATIONS=$(echo "$ITERATION_JSON" | dlc_json_get "maxIterations" "0")
 
 # Check if iteration limit exceeded
 if [ "$MAX_ITERATIONS" -gt 0 ] && [ "$CURRENT_ITERATION" -ge "$MAX_ITERATIONS" ]; then
@@ -142,7 +141,6 @@ elif [ "$READY_COUNT" -gt 0 ] || [ "$IN_PROGRESS_COUNT" -gt 0 ]; then
   echo ""
   echo "### ACTION REQUIRED"
   echo ""
-  TARGET_UNIT=$(echo "$ITERATION_JSON" | dlc_json_get "targetUnit")
   if [ -n "$TARGET_UNIT" ]; then
     echo "Call \`/execute ${INTENT_SLUG} ${TARGET_UNIT}\` to continue targeted execution."
   else

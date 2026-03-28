@@ -102,11 +102,10 @@ esac
 Then determine the next hat:
 
 ```javascript
-// Resolve workflow for this unit: per-unit workflow takes priority, then intent-level fallback
+// Resolve workflow for this unit: per-unit workflow from frontmatter takes priority, then intent-level fallback
 const currentUnit = state.currentUnit;
-const unitWorkflow = (currentUnit && state.unitStates?.[currentUnit]?.workflow)
-  || state.workflow
-  || ["planner", "builder", "reviewer"];
+const unitWorkflow = state.workflow || ["planner", "builder", "reviewer"];
+// Per-unit workflow override: read from unit frontmatter if set
 const currentIndex = unitWorkflow.indexOf(state.hat);
 const nextIndex = currentIndex + 1;
 
@@ -329,11 +328,11 @@ If `AGENT_TEAMS_ENABLED` is set and `readyCount > 0` after completing a unit:
 
 1. Read `teamName` from `iteration.json`
 2. For each newly ready unit:
-   - Initialize `unitStates.{unit}.hat = "planner"` and `unitStates.{unit}.retries = 0`
+   - Set `hat: planner` and `retries: 0` in unit frontmatter
    - Create unit worktree
    - Mark unit as `in_progress`
    - Spawn planner teammate via Task with `team_name` and `name`
-3. Save updated state to `iteration.json`
+3. Commit updated unit frontmatter
 
 This replaces the sequential "loop back to builder" behavior when Agent Teams is active. Instead of the lead picking up the next unit sequentially, newly unblocked units are spawned as parallel teammates immediately.
 
@@ -410,13 +409,14 @@ for UNIT_FILE in $REJECTED_UNITS; do
   update_unit_status "$UNIT_FILE" "pending"
 
   # Reset hat to first hat of this unit's workflow (per-unit or intent-level fallback)
-  UNIT_NAME=$(basename "$UNIT_FILE" .md)
-  UNIT_WORKFLOW=$(echo "$STATE" | dlc_json_get "unitStates.${UNIT_NAME}.workflow" 2>/dev/null || echo "")
-  [ -z "$UNIT_WORKFLOW" ] || [ "$UNIT_WORKFLOW" = "null" ] && UNIT_WORKFLOW="$INTENT_WORKFLOW_HATS"
-  FIRST_HAT=$(echo "$UNIT_WORKFLOW" | jq -r '.[0]')
-  STATE=$(echo "$STATE" | dlc_json_set "unitStates.${UNIT_NAME}.hat" "${FIRST_HAT}" \
-    | dlc_json_set "unitStates.${UNIT_NAME}.retries" "0" \
-    | dlc_json_set "unitStates.${UNIT_NAME}.workflow" "${UNIT_WORKFLOW}")
+  UNIT_WORKFLOW_NAME=$(dlc_frontmatter_get "workflow" "$UNIT_FILE" 2>/dev/null || echo "")
+  if [ -n "$UNIT_WORKFLOW_NAME" ]; then
+    FIRST_HAT=$(resolve_workflow_first_hat "$UNIT_WORKFLOW_NAME")
+  else
+    FIRST_HAT=$(echo "$INTENT_WORKFLOW_HATS" | jq -r '.[0]')
+  fi
+  dlc_frontmatter_set "hat" "${FIRST_HAT}" "$UNIT_FILE"
+  dlc_frontmatter_set "retries" "0" "$UNIT_FILE"
 done
 
 # Reset integration state

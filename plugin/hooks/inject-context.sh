@@ -302,19 +302,40 @@ if ! echo "$ITERATION_JSON" | dlc_json_validate; then
   exit 0
 fi
 
+# Migration: strip deprecated unitStates field
+if echo "$ITERATION_JSON" | jq -e '.unitStates' &>/dev/null; then
+  ITERATION_JSON=$(echo "$ITERATION_JSON" | jq 'del(.unitStates)')
+  [ -n "$INTENT_DIR" ] && dlc_state_save "$INTENT_DIR" "iteration.json" "$ITERATION_JSON" 2>/dev/null || true
+fi
+
+# Single-pass extraction of all iteration state fields (one jq subprocess instead of 10+)
+eval "$(echo "$ITERATION_JSON" | jq -r '@sh "
+  PHASE=\(.phase // \"\")
+  NEEDS_ADVANCE=\(.needsAdvance // false)
+  ITERATION=\(.iteration // 1)
+  HAT=\(.hat // \"planner\")
+  STATUS=\(.status // \"active\")
+  WORKFLOW_NAME=\(.workflowName // \"default\")
+  CURRENT_UNIT=\(.currentUnit // \"\")
+  MAX_ITERATIONS=\(.maxIterations // 0)
+  TARGET_UNIT=\(.targetUnit // \"\")
+  INTENT_SLUG_STATE=\(.intentSlug // \"\")
+  WORKFLOW_HATS=\((.workflow // [\"planner\",\"builder\",\"reviewer\"]) | tostring)
+"')"
+
 # State migration: add 'phase' field if missing (backward compat with pre-H•AI•K•U state)
-PHASE=$(echo "$ITERATION_JSON" | dlc_json_get "phase")
 if [ -z "$PHASE" ]; then
   # Infer phase from current hat
-  HAT_FOR_PHASE=$(echo "$ITERATION_JSON" | dlc_json_get "hat" "builder")
-  case "$HAT_FOR_PHASE" in
+  case "$HAT" in
     planner) PHASE="elaboration" ;;
     *) PHASE="execution" ;;
   esac
   ITERATION_JSON=$(echo "$ITERATION_JSON" | dlc_json_set "phase" "$PHASE" || echo "$ITERATION_JSON")
-  # Save migrated state
   [ -n "$INTENT_DIR" ] && dlc_state_save "$INTENT_DIR" "iteration.json" "$ITERATION_JSON" 2>/dev/null || true
 fi
+
+# Validate phase against known enum
+PHASE=$(dlc_validate_phase "$PHASE")
 
 # Check for needsAdvance flag (set by Stop hook to signal iteration should increment)
 # Only advance on 'clear' or 'startup' sources - NOT on 'compact' events.
@@ -327,29 +348,21 @@ fi
 # Note: This read-modify-write pattern is safe because Claude Code serializes
 # hook execution within a session. Cross-session race conditions are possible
 # but unlikely in practice since iterations are scoped to a branch/intent.
-NEEDS_ADVANCE=$(echo "$ITERATION_JSON" | dlc_json_get "needsAdvance" "false")
 if [ "$NEEDS_ADVANCE" = "true" ] && [ "$SOURCE" != "compact" ]; then
   # Increment iteration and clear the flag
-  CURRENT_ITER=$(echo "$ITERATION_JSON" | dlc_json_get "iteration" "1")
-  NEW_ITER=$((CURRENT_ITER + 1))
+  NEW_ITER=$((ITERATION + 1))
   ITERATION_JSON=$(echo "$ITERATION_JSON" | dlc_json_set "iteration" "$NEW_ITER")
   ITERATION_JSON=$(echo "$ITERATION_JSON" | dlc_json_set "needsAdvance" "false")
+  ITERATION=$NEW_ITER
+  NEEDS_ADVANCE="false"
   # Save updated state
   [ -n "$INTENT_DIR" ] && dlc_state_save "$INTENT_DIR" "iteration.json" "$ITERATION_JSON" 2>/dev/null || true
 
   # Emit telemetry for bolt iteration advance
   if type aidlc_log_event &>/dev/null; then
-    _ADVANCE_INTENT_SLUG=$(echo "$ITERATION_JSON" | dlc_json_get "intentSlug")
-    _ADVANCE_UNIT_SLUG=$(echo "$ITERATION_JSON" | dlc_json_get "targetUnit")
-    aidlc_record_bolt_iteration "$_ADVANCE_INTENT_SLUG" "$_ADVANCE_UNIT_SLUG" "$NEW_ITER" "advanced"
+    aidlc_record_bolt_iteration "$INTENT_SLUG_STATE" "$TARGET_UNIT" "$NEW_ITER" "advanced"
   fi
 fi
-
-# Parse iteration state
-ITERATION=$(echo "$ITERATION_JSON" | dlc_json_get "iteration" "1")
-HAT=$(echo "$ITERATION_JSON" | dlc_json_get "hat" "planner")
-STATUS=$(echo "$ITERATION_JSON" | dlc_json_get "status" "active")
-WORKFLOW_NAME=$(echo "$ITERATION_JSON" | dlc_json_get "workflowName" "default")
 
 # Validate workflow name against known workflows (loaded above from workflows.yml files)
 if ! echo "$KNOWN_WORKFLOWS" | grep -qw "$WORKFLOW_NAME"; then
@@ -357,10 +370,7 @@ if ! echo "$KNOWN_WORKFLOWS" | grep -qw "$WORKFLOW_NAME"; then
   WORKFLOW_NAME="default"
 fi
 
-# Get workflow hats array as string
-WORKFLOW_HATS=$(echo "$ITERATION_JSON" | dlc_json_get_raw "workflow")
-[ -z "$WORKFLOW_HATS" ] || [ "$WORKFLOW_HATS" = "null" ] && WORKFLOW_HATS='["planner","builder","reviewer"]'
-# Format as arrow-separated list
+# Format workflow hats as arrow-separated list
 WORKFLOW_HATS_STR=$(echo "$WORKFLOW_HATS" | tr -d '[]"' | sed 's/,/ → /g')
 [ -z "$WORKFLOW_HATS_STR" ] && WORKFLOW_HATS_STR="planner → builder → reviewer"
 

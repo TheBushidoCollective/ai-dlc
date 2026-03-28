@@ -469,16 +469,18 @@ fi
 FIRST_HAT=$(echo "$UNIT_WORKFLOW_HATS" | jq -r '.[0]')
 ```
 
-4. **Initialize unit state in `unitStates`** (includes the resolved workflow):
+4. **Track unit hat in unit frontmatter** (per-unit hat derived from unit-*.md + DAG):
 
 ```bash
-STATE=$(echo "$STATE" | dlc_json_set "unitStates.${UNIT_NAME}.hat" "${FIRST_HAT}" \
-  | dlc_json_set "unitStates.${UNIT_NAME}.retries" "0" \
-  | dlc_json_set "unitStates.${UNIT_NAME}.workflow" "${UNIT_WORKFLOW_HATS}")
-dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
+# Per-unit hat tracking is derived from unit frontmatter status and the DAG.
+# The unit's current workflow position is determined by its status field
+# and the workflow defined in unit frontmatter or intent-level fallback.
+dlc_frontmatter_set "hat" "${FIRST_HAT}" "$INTENT_DIR/${UNIT_NAME}.md"
+git add "$INTENT_DIR/${UNIT_NAME}.md"
+git commit -m "status: set hat for ${UNIT_NAME}"
 ```
 
-4. **Load hat instructions for the first hat**:
+5. **Load hat instructions for the first hat**:
 
 ```bash
 # Load hat instructions for the teammate's role
@@ -567,15 +569,15 @@ The lead processes auto-delivered teammate messages. Handle each event type:
 
 When a teammate reports successful completion:
 
-1. Read current hat for this unit from `unitStates.{unit}.hat`
-2. Read this unit's workflow from `unitStates.{unit}.workflow` (per-unit workflow, already resolved at spawn time)
+1. Read current hat for this unit from unit frontmatter (`dlc_frontmatter_get "hat" "$UNIT_FILE"`)
+2. Read this unit's workflow from unit frontmatter or intent-level fallback
 3. Find current hat's index in the unit's workflow array
 4. Determine next hat: `unitWorkflow[currentIndex + 1]`
 
 **If next hat exists** (not at end of workflow):
 
-a. Update `unitStates.{unit}.hat = nextHat`
-b. Save state: `dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"`
+a. Update hat in unit frontmatter: `dlc_frontmatter_set "hat" "$nextHat" "$UNIT_FILE"`
+b. Commit: `git add "$UNIT_FILE" && git commit -m "status: advance hat for $(basename "$UNIT_FILE" .md)"`
 c. Load hat file for nextHat:
 
 ```bash
@@ -650,8 +652,7 @@ update_unit_status "$UNIT_FILE" "completed"
 git add "$UNIT_FILE"
 git commit -m "status: mark $(basename "$UNIT_FILE" .md) as completed"
 ```
-b. Remove unit from `unitStates`
-c. Merge or PR based on effective change strategy:
+b. Merge or PR based on effective change strategy:
 
 ```bash
 # Determine merge behavior based on per-unit or intent-level change strategy
@@ -722,11 +723,11 @@ Then follow the same spawn logic from Step 3 (load hat instructions, select agen
 
 When a teammate reports issues or rejects the work:
 
-1. Read current hat index from `workflow` array
+1. Read current hat from unit frontmatter
 2. Determine previous hat: `workflow[currentIndex - 1]`
-3. Increment `unitStates.{unit}.retries`
+3. Increment retry count in unit frontmatter (`dlc_frontmatter_get "retries" "$UNIT_FILE"`)
 4. If `retries >= 3`: Mark unit as blocked, document in `dlc_state_save "$INTENT_DIR" "blockers.md"`
-5. Otherwise: Set `unitStates.{unit}.hat = previousHat`
+5. Otherwise: Update hat in unit frontmatter: `dlc_frontmatter_set "hat" "$previousHat" "$UNIT_FILE"`
 6. Load hat file for previousHat
 7. Spawn teammate at previous hat with the feedback/issues in the prompt
 
@@ -1001,28 +1002,13 @@ To clean up:
 
 ### Per-Unit Hat Tracking
 
-The `iteration.json` is extended with `unitStates` for parallel hat tracking:
+Per-unit hat tracking is derived from unit-*.md frontmatter and the DAG, rather than stored in iteration.json. Each unit file tracks:
 
-```json
-{
-  "iteration": 3,
-  "hat": "builder",
-  "status": "active",
-  "workflowName": "default",
-  "workflow": ["planner", "builder", "reviewer"],
-  "teamName": "ai-dlc-my-intent",
-  "unitStates": {
-    "unit-01-foundation": { "hat": "reviewer", "retries": 0, "workflow": ["planner", "builder", "reviewer"] },
-    "unit-02-design-dashboard": { "hat": "designer", "retries": 0, "workflow": ["planner", "designer", "reviewer"] },
-    "unit-03-dag-view": { "hat": "builder", "retries": 1, "workflow": ["planner", "builder", "reviewer"] }
-  }
-}
-```
+- `hat`: Current hat for this specific unit (frontmatter field)
+- `retries`: Number of reviewer rejection cycles, max 3 before escalating to blocked (frontmatter field)
+- Workflow: Resolved from unit frontmatter `workflow:` field, falling back to intent-level workflow
 
-- `hat`: Current hat for this specific unit
-- `retries`: Number of reviewer rejection cycles (max 3 before escalating to blocked)
-- `workflow`: The hat sequence for this unit (resolved from unit frontmatter `workflow:` field, falling back to intent-level workflow)
-- Units are added when spawned, removed when completed
+This keeps `iteration.json` small and avoids duplicating state that already lives in the unit files.
 
 ---
 

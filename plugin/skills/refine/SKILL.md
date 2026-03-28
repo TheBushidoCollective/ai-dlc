@@ -171,24 +171,23 @@ For each affected unit:
 2. Set `status: pending` in frontmatter
 3. Write the updated file
 
-Update `iteration.json`:
-- For each affected unit in `unitStates`, reset `hat` to the first hat in the workflow
-- If `unitStates` doesn't track the unit (sequential mode), set `currentUnit` to null
+Update state:
+- For each affected unit, reset `hat` to the first hat in the workflow (in unit frontmatter)
+- Clear `currentUnit` in iteration.json
 
 ```bash
 source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
 
-# Re-queue affected units
-for unit_file in $AFFECTED_UNITS; do
-  update_unit_status "$unit_file" "pending"
-done
-
-# Reset hat tracking in iteration.json
+# Re-queue affected units and reset hat tracking in frontmatter
 WORKFLOW_HATS=$(echo "$STATE" | dlc_json_get "workflow")
 FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '.[0]')
 
-# For teams mode: reset unitStates entries
-# For sequential mode: clear currentUnit
+for unit_file in $AFFECTED_UNITS; do
+  update_unit_status "$unit_file" "pending"
+  dlc_frontmatter_set "hat" "${FIRST_HAT}" "$unit_file"
+done
+
+# Clear currentUnit in iteration.json
 STATE=$(echo "$STATE" | dlc_json_set "currentUnit" "")
 dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
 
@@ -206,12 +205,12 @@ source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
 # Re-queue the specific unit
 update_unit_status "$INTENT_DIR/${UNIT_NAME}.md" "pending"
 
-# Reset hat tracking
+# Reset hat tracking in unit frontmatter
 WORKFLOW_HATS=$(echo "$STATE" | dlc_json_get "workflow")
 FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '.[0]')
+dlc_frontmatter_set "hat" "${FIRST_HAT}" "$INTENT_DIR/${UNIT_NAME}.md"
 
-# For teams mode: reset this unit's hat in unitStates
-# For sequential mode: clear currentUnit if it matches
+# Clear currentUnit if it matches
 CURRENT_UNIT=$(echo "$STATE" | dlc_json_get "currentUnit" "")
 if [ "$CURRENT_UNIT" = "$UNIT_NAME" ]; then
   STATE=$(echo "$STATE" | dlc_json_set "currentUnit" "")

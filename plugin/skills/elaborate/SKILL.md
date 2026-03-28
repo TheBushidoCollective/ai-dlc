@@ -837,7 +837,7 @@ Clicking an intent navigates to the Intent Detail view which shows:
 Data sources:
 - Intent metadata: Read `.ai-dlc/{slug}/intent.md` frontmatter via filesystem API
 - Unit metadata: Read `.ai-dlc/{slug}/unit-*.md` frontmatter
-- Live state: Query `dlc_state_load "$INTENT_DIR" "iteration.json"` for current hat and unitStates
+- Live state: Query `dlc_state_load "$INTENT_DIR" "iteration.json"` for current hat and phase
 
 This unit does NOT handle: hat visualization (unit-03), live monitoring (unit-04),
 or timeline replay (unit-05). It only renders the structural hierarchy.

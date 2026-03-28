@@ -33,11 +33,14 @@ if [[ "$CURRENT_BRANCH" == ai-dlc/*/* ]] && [[ "$CURRENT_BRANCH" != ai-dlc/*/mai
   IS_UNIT_BRANCH=true
 fi
 
-# Parse iteration state
-ITERATION=$(echo "$ITERATION_JSON" | dlc_json_get "iteration" "1")
-HAT=$(echo "$ITERATION_JSON" | dlc_json_get "hat")
-STATUS=$(echo "$ITERATION_JSON" | dlc_json_get "status" "active")
-WORKFLOW_NAME=$(echo "$ITERATION_JSON" | dlc_json_get "workflowName" "default")
+# Single-pass extraction of iteration state fields
+eval "$(echo "$ITERATION_JSON" | jq -r '@sh "
+  ITERATION=\(.iteration // 1)
+  HAT=\(.hat // \"\")
+  STATUS=\(.status // \"active\")
+  WORKFLOW_NAME=\(.workflowName // \"default\")
+  WORKFLOW_HATS=\((.workflow // [\"planner\",\"builder\",\"reviewer\"]) | tostring)
+"')"
 
 # Skip if no active task
 if [ "$STATUS" = "complete" ] || [ -z "$HAT" ]; then
@@ -49,16 +52,12 @@ fi
 # This saves ~400 tokens per review subagent invocation
 case "$HAT" in
   reviewer|red-team|blue-team)
-    # Lean context: skip bootstrap, worktree, resilience sections
-    # Include: unit criteria, code context, review methodology
     CONTEXT_SCOPE="review"
     ;;
   builder|implementer|refactorer)
-    # Full context: include everything
     CONTEXT_SCOPE="build"
     ;;
   planner)
-    # Planning context: skip build details, include architecture, learnings
     CONTEXT_SCOPE="plan"
     ;;
   *)
@@ -66,9 +65,7 @@ case "$HAT" in
     ;;
 esac
 
-# Get workflow hats array as string
-WORKFLOW_HATS=$(echo "$ITERATION_JSON" | dlc_json_get_raw "workflow")
-[ -z "$WORKFLOW_HATS" ] || [ "$WORKFLOW_HATS" = "null" ] && WORKFLOW_HATS='["planner","builder","reviewer"]'
+# Format workflow hats as arrow-separated list
 WORKFLOW_HATS_STR=$(echo "$WORKFLOW_HATS" | tr -d '[]"' | sed 's/,/ → /g')
 [ -z "$WORKFLOW_HATS_STR" ] && WORKFLOW_HATS_STR="planner → builder → reviewer"
 

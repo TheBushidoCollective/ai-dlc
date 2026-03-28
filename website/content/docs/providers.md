@@ -1,7 +1,7 @@
 ---
 title: Providers
 description: Connect AI-DLC to Jira, Notion, Figma, Slack, and other external tools
-order: 7
+order: 9
 ---
 
 # Providers

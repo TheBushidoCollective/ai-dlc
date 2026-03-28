@@ -1,7 +1,7 @@
 ---
 title: Adoption Roadmap
 description: A phased approach to adopting AI-DLC, from individual developer to organization-wide
-order: 10
+order: 14
 ---
 
 Adopting AI-DLC is a journey, not a destination. This roadmap provides a phased approach that scales from individual experimentation to organization-wide practice.

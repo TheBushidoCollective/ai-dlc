@@ -1,7 +1,7 @@
 ---
 title: Team Onboarding Checklist
 description: Step-by-step checklist for onboarding a team to AI-DLC
-order: 16
+order: 21
 ---
 
 This checklist guides you through onboarding an entire team to AI-DLC. It's designed for tech leads and engineering managers.

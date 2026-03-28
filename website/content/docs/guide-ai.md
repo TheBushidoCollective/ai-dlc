@@ -1,7 +1,7 @@
 ---
 title: AI Guide
 description: Understanding AI-DLC from Claude's perspective - why structure helps AI be more effective
-order: 14
+order: 18
 ---
 
 This guide is written from Claude's perspective, explaining why AI-DLC's structure helps AI assistants work more effectively with humans.

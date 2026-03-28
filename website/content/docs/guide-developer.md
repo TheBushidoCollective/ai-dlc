@@ -1,7 +1,7 @@
 ---
 title: Developer Guide
 description: Day-to-day guide for using AI-DLC as an individual developer
-order: 11
+order: 15
 ---
 
 This guide covers the day-to-day workflow of using AI-DLC. It assumes you've completed initial setup and are ready to be productive.

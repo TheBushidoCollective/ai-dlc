@@ -102,8 +102,13 @@ User: Great, let's create a PR
 AI: [Creates PR with summary of changes]
 ```
 
+## After Construction
+
+Once your intent is complete, manage ongoing operational tasks with `/operate`. Define scheduled jobs, reactive handlers, and human review processes as spec files in `.ai-dlc/{intent}/operations/`. See the [Operations Guide](/docs/operations-guide/) for details.
+
 ## Next Steps
 
 - [Core Concepts](/docs/concepts/) - Understand intents, units, and hats
 - [Workflows](/docs/workflows/) - Learn about TDD, adversarial, and hypothesis workflows
 - [Installation](/docs/installation/) - Detailed setup including Han CLI
+- [Operations Guide](/docs/operations-guide/) - Manage ongoing operational tasks

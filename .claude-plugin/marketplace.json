@@ -6,12 +6,12 @@
   },
   "metadata": {
     "description": "AI-DLC — the software development profile of H·AI·K·U. Iterative AI-driven development with git integration, test suites, PR workflows, CI/CD pipelines, and deployment gates.",
-    "version": "1.75.0"
+    "version": "1.75.1"
   },
   "plugins": [
     {
       "name": "ai-dlc",
-      "description": "AI-DLC methodology - iterative AI-driven development with hat-based workflows, completion criteria, and automatic context preservation. Software development profile of the H\u2022AI\u2022K\u2022U Method.",
+      "description": "AI-DLC methodology - iterative AI-driven development with hat-based workflows, completion criteria, and automatic context preservation. Software development profile of the H•AI•K•U Method.",
       "source": "./plugin",
       "category": "Pattern",
       "keywords": [

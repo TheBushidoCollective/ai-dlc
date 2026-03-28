@@ -344,7 +344,7 @@ dlc_run_visual_comparison() {
   ref_json=$(dlc_resolve_design_ref \
     --intent-slug "$intent_slug" \
     --unit-slug "$unit_slug" \
-    --intent-dir "$intent_dir" 2>&1)
+    --intent-dir "$intent_dir")
   local ref_rc=$?
 
   if [ $ref_rc -ne 0 ]; then

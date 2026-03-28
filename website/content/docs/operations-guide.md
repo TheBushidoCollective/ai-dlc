@@ -178,12 +178,14 @@ Operation status is persisted in `.ai-dlc/{intent}/state/operation-status.json`:
 
 ```json
 {
-  "rotate-secrets": {
-    "last_run": "2026-03-15T00:00:00Z",
-    "status": "on-track",
-    "last_exit_code": 0,
-    "deployed": true,
-    "deploy_target": "k8s-cronjob"
+  "operations": {
+    "rotate-secrets": {
+      "last_run": "2026-03-15T00:00:00Z",
+      "status": "on-track",
+      "last_exit_code": 0,
+      "deployed": true,
+      "deploy_target": "k8s-cronjob"
+    }
   }
 }
 ```

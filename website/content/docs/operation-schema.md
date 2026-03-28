@@ -68,14 +68,16 @@ Operation status is tracked in `.ai-dlc/{intent}/state/operation-status.json`. E
 
 ```json
 {
-  "operation-name": {
-    "last_run": "2026-03-15T00:00:00Z",
-    "last_presented": "2026-03-14T10:30:00Z",
-    "status": "on-track",
-    "last_exit_code": 0,
-    "last_output": "Rotated 3 secrets successfully",
-    "deployed": true,
-    "deploy_target": "k8s-cronjob"
+  "operations": {
+    "operation-name": {
+      "last_run": "2026-03-15T00:00:00Z",
+      "last_presented": "2026-03-14T10:30:00Z",
+      "status": "on-track",
+      "last_exit_code": 0,
+      "last_output": "Rotated 3 secrets successfully",
+      "deployed": true,
+      "deploy_target": "k8s-cronjob"
+    }
   }
 }
 ```

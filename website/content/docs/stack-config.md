@@ -17,9 +17,9 @@ Defines how infrastructure is provisioned.
 ```yaml
 stack:
   infrastructure:
-    provider: terraform  # terraform | cloudformation | pulumi
-    state_backend: s3
-    modules_path: infra/modules/
+    - provider: terraform  # terraform | cloudformation | pulumi
+      state_backend: s3
+      modules_path: infra/modules/
 ```
 
 **Providers:** `terraform`, `cloudformation`, `pulumi`
@@ -31,9 +31,9 @@ Defines where workloads run.
 ```yaml
 stack:
   compute:
-    provider: kubernetes  # kubernetes | ecs | lambda | docker-compose
-    cluster: production
-    namespace: default
+    - provider: kubernetes  # kubernetes | ecs | lambda | docker-compose
+      cluster: production
+      namespace: default
 ```
 
 **Providers:** `kubernetes`, `ecs`, `lambda`, `docker-compose`
@@ -45,8 +45,8 @@ Defines how applications are packaged for deployment.
 ```yaml
 stack:
   packaging:
-    provider: helm  # helm | kustomize | raw
-    charts_path: deploy/charts/
+    - provider: helm  # helm | kustomize | raw
+      charts_path: deploy/charts/
 ```
 
 **Providers:** `helm`, `kustomize`, `raw`
@@ -58,8 +58,8 @@ Defines CI/CD pipeline configuration.
 ```yaml
 stack:
   pipeline:
-    provider: github-actions  # github-actions | gitlab-ci | jenkins | circleci
-    workflows_path: .github/workflows/
+    - provider: github-actions  # github-actions | gitlab-ci | jenkins | circleci
+      workflows_path: .github/workflows/
 ```
 
 **Providers:** `github-actions`, `gitlab-ci`, `jenkins`, `circleci`
@@ -71,8 +71,8 @@ Defines secrets management.
 ```yaml
 stack:
   secrets:
-    provider: vault  # vault | aws-sm | gcp-sm | env
-    path: secret/data/app
+    - provider: vault  # vault | aws-sm | gcp-sm | env
+      path: secret/data/app
 ```
 
 **Providers:** `vault`, `aws-sm`, `gcp-sm`, `env`
@@ -84,8 +84,8 @@ Defines observability stack.
 ```yaml
 stack:
   monitoring:
-    provider: prometheus  # prometheus | datadog | cloudwatch | newrelic | otel
-    endpoint: http://prometheus:9090
+    - provider: prometheus  # prometheus | datadog | cloudwatch | newrelic | otel
+      endpoint: http://prometheus:9090
 ```
 
 **Providers:** `prometheus`, `datadog`, `cloudwatch`, `newrelic`, `otel`
@@ -97,8 +97,8 @@ Defines alerting and incident management.
 ```yaml
 stack:
   alerting:
-    provider: pagerduty  # pagerduty | opsgenie | datadog | alertmanager
-    service_id: P123ABC
+    - provider: pagerduty  # pagerduty | opsgenie | datadog | alertmanager
+      service_id: P123ABC
 ```
 
 **Providers:** `pagerduty`, `opsgenie`, `datadog`, `alertmanager`
@@ -112,9 +112,13 @@ stack:
   operations:
     runtime: node  # node | python | go | shell
     scheduled:
-      default_timezone: UTC
+      - name: cleanup
+        schedule: "0 3 * * *"
+        command: node scripts/cleanup.js
     reactive:
-      poll_interval: 30s
+      - name: alert-handler
+        trigger: webhook
+        command: node scripts/handle-alert.js
 ```
 
 **Runtimes:** `node`, `python`, `go`, `shell`
@@ -134,9 +138,9 @@ A minimal setup with just CI and basic monitoring:
 ```yaml
 stack:
   pipeline:
-    provider: github-actions
+    - provider: github-actions
   monitoring:
-    provider: datadog
+    - provider: datadog
 ```
 
 ### Medium — Small Team
@@ -146,22 +150,24 @@ A typical team setup with container orchestration, CI, monitoring, and operation
 ```yaml
 stack:
   compute:
-    provider: kubernetes
-    cluster: staging
-    namespace: app
+    - provider: kubernetes
+      cluster: staging
+      namespace: app
   pipeline:
-    provider: github-actions
-    workflows_path: .github/workflows/
+    - provider: github-actions
+      workflows_path: .github/workflows/
   monitoring:
-    provider: prometheus
-    endpoint: http://prometheus:9090
+    - provider: prometheus
+      endpoint: http://prometheus:9090
   alerting:
-    provider: pagerduty
-    service_id: P456DEF
+    - provider: pagerduty
+      service_id: P456DEF
   operations:
     runtime: node
     scheduled:
-      default_timezone: America/New_York
+      - name: cleanup
+        schedule: "0 3 * * *"
+        command: node scripts/cleanup.js
 ```
 
 ### Complex — Enterprise
@@ -171,34 +177,38 @@ A fully populated stack for a large-scale production environment:
 ```yaml
 stack:
   infrastructure:
-    provider: terraform
-    state_backend: s3
-    modules_path: infra/modules/
+    - provider: terraform
+      state_backend: s3
+      modules_path: infra/modules/
   compute:
-    provider: kubernetes
-    cluster: prod-us-east-1
-    namespace: platform
+    - provider: kubernetes
+      cluster: prod-us-east-1
+      namespace: platform
   packaging:
-    provider: helm
-    charts_path: deploy/charts/
+    - provider: helm
+      charts_path: deploy/charts/
   pipeline:
-    provider: github-actions
-    workflows_path: .github/workflows/
+    - provider: github-actions
+      workflows_path: .github/workflows/
   secrets:
-    provider: vault
-    path: secret/data/platform
+    - provider: vault
+      path: secret/data/platform
   monitoring:
-    provider: otel
-    endpoint: http://otel-collector:4317
+    - provider: otel
+      endpoint: http://otel-collector:4317
   alerting:
-    provider: pagerduty
-    service_id: P789GHI
+    - provider: pagerduty
+      service_id: P789GHI
   operations:
     runtime: node
     scheduled:
-      default_timezone: UTC
+      - name: cleanup
+        schedule: "0 3 * * *"
+        command: node scripts/cleanup.js
     reactive:
-      poll_interval: 15s
+      - name: alert-handler
+        trigger: webhook
+        command: node scripts/handle-alert.js
 ```
 
 ## Next Steps

@@ -409,7 +409,7 @@ STATE='{"iteration":1,"hat":"'"${FIRST_HAT}"'","workflowName":"'"${WORKFLOW_NAME
 dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
 ```
 
-If status is "complete":
+If status is "completed":
 ```
 Task already complete! Run /reset to start a new task.
 ```
@@ -1060,7 +1060,7 @@ fi
 Mark intent complete:
 
 ```bash
-STATE=$(echo "$STATE" | dlc_json_set "status" "complete")
+STATE=$(echo "$STATE" | dlc_json_set "status" "completed")
 dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
 ```
 

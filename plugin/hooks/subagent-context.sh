@@ -43,7 +43,7 @@ eval "$(echo "$ITERATION_JSON" | jq -r '@sh "
 "')"
 
 # Skip if no active task
-if [ "$STATUS" = "complete" ] || [ -z "$HAT" ]; then
+if [ "$STATUS" = "completed" ] || [ -z "$HAT" ]; then
   exit 0
 fi
 

@@ -124,6 +124,41 @@ yaml_get_simple() {
   _yaml_get_simple "$@"
 }
 
+# POST-MERGE RECONCILIATION: Fix stale statuses on default branch
+# When an intent PR merges to main with status: active, fix it automatically
+DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@.*/@@' || echo "main")
+if [ "$CURRENT_BRANCH" = "$DEFAULT_BRANCH" ]; then
+  REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+  for reconcile_intent_file in "$REPO_ROOT"/.ai-dlc/*/intent.md; do
+    [ -f "$reconcile_intent_file" ] || continue
+    reconcile_dir=$(dirname "$reconcile_intent_file")
+    reconcile_status=$(_state_yaml_get_simple "status" "pending" < "$reconcile_intent_file")
+
+    # Only reconcile active intents
+    [ "$reconcile_status" = "active" ] || continue
+
+    # Check if all units are completed
+    reconcile_all_done=true
+    reconcile_has_units=false
+    for reconcile_unit_file in "$reconcile_dir"/unit-*.md; do
+      [ -f "$reconcile_unit_file" ] || continue
+      reconcile_has_units=true
+      reconcile_unit_status=$(_state_yaml_get_simple "status" "pending" < "$reconcile_unit_file")
+      if [ "$reconcile_unit_status" != "completed" ]; then
+        reconcile_all_done=false
+        break
+      fi
+    done
+
+    # If has units and all completed, mark intent as completed
+    if [ "$reconcile_has_units" = "true" ] && [ "$reconcile_all_done" = "true" ]; then
+      dlc_frontmatter_set "status" "completed" "$reconcile_intent_file"
+      git add "$reconcile_intent_file" 2>/dev/null || true
+      git commit -m "status: reconcile $(basename "$reconcile_dir") after merge" 2>/dev/null || true
+    fi
+  done
+fi
+
 # Check for AI-DLC state
 # Load iteration state from filesystem
 INTENT_DIR=$(dlc_find_active_intent)
@@ -375,7 +410,7 @@ WORKFLOW_HATS_STR=$(echo "$WORKFLOW_HATS" | tr -d '[]"' | sed 's/,/ → /g')
 [ -z "$WORKFLOW_HATS_STR" ] && WORKFLOW_HATS_STR="planner → builder → reviewer"
 
 # If task is complete, just show completion message
-if [ "$STATUS" = "complete" ]; then
+if [ "$STATUS" = "complete" ] || [ "$STATUS" = "completed" ]; then
   echo "## AI-DLC: Task Complete"
   echo ""
   echo "Previous task was completed. Run \`/reset\` to start a new task."

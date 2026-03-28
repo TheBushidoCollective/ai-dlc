@@ -61,7 +61,7 @@ eval "$(echo "$ITERATION_JSON" | jq -r '@sh "
 "')"
 
 # If task is already complete, don't enforce iteration
-if [ "$STATUS" = "complete" ]; then
+if [ "$STATUS" = "complete" ] || [ "$STATUS" = "completed" ]; then
   exit 0
 fi
 
@@ -126,11 +126,24 @@ echo ""
 
 # Determine action based on DAG state
 if [ "$ALL_COMPLETE" = "true" ]; then
-  # All done - intent should be marked complete
+  # Auto-reconcile: if all units complete but intent not marked completed, fix it now
+  if [ -n "$INTENT_DIR" ] && [ -f "${INTENT_DIR}/intent.md" ]; then
+    source "${PLUGIN_ROOT}/lib/parse.sh"
+    INTENT_STATUS=$(dlc_frontmatter_get "status" "${INTENT_DIR}/intent.md" 2>/dev/null || echo "")
+    if [ "$INTENT_STATUS" = "active" ]; then
+      dlc_frontmatter_set "status" "completed" "${INTENT_DIR}/intent.md"
+      # Also update iteration.json status
+      if [ -n "$ITERATION_JSON" ]; then
+        UPDATED_STATE=$(echo "$ITERATION_JSON" | jq -c '.status = "completed"')
+        dlc_state_save "$INTENT_DIR" "iteration.json" "$UPDATED_STATE"
+      fi
+      git add "${INTENT_DIR}/intent.md" "${INTENT_DIR}/state/iteration.json" 2>/dev/null || true
+      git commit -m "status: mark $(basename "$INTENT_DIR") as completed (auto-reconciled)" 2>/dev/null || true
+    fi
+  fi
   echo "## AI-DLC: All Units Complete"
   echo ""
-  echo "All units have been completed. If the intent isn't marked complete,"
-  echo "call \`/advance\` to finalize."
+  echo "All units have been completed. Intent has been marked as completed."
   echo ""
 elif [ "$READY_COUNT" -gt 0 ] || [ "$IN_PROGRESS_COUNT" -gt 0 ]; then
   # Work remains - instruct agent to continue

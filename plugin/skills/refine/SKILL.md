@@ -39,7 +39,7 @@ If no state exists:
 No AI-DLC state found. Run /elaborate to start a new task.
 ```
 
-If status is "complete":
+If status is "completed":
 ```
 Intent is already complete. Run /elaborate to start a new task.
 ```

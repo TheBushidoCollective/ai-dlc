@@ -246,14 +246,22 @@ fi
 ```
 
 ```bash
-# Get DAG summary
+# Check if all units are complete using DAG library
+source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
+if is_dag_complete "$INTENT_DIR"; then
+  ALL_COMPLETE=true
+else
+  ALL_COMPLETE=false
+fi
+
+# Parse ready count from DAG summary (format: "pending:N in_progress:N completed:N blocked:N ready:N")
 DAG_SUMMARY=$(get_dag_summary "$INTENT_DIR")
-ALL_COMPLETE=$(echo "$DAG_SUMMARY" | dlc_json_get "allComplete")
-READY_COUNT=$(echo "$DAG_SUMMARY" | dlc_json_get "readyCount")
+READY_COUNT=$(echo "$DAG_SUMMARY" | sed -n 's/.*ready:\([0-9]*\).*/\1/p')
+READY_COUNT=${READY_COUNT:-0}
 ```
 
 ```javascript
-if (dagSummary.allComplete) {
+if (ALL_COMPLETE) {
   // ALL UNITS COMPLETE - Check if integration validation should run
   // Skip integration for:
   //   - Single-unit intents (reviewer already validated it)
@@ -283,15 +291,15 @@ SKIP_INTEGRATOR=false
     return runIntegration();
   }
   // Integration passed or skipped - Mark intent as done
-  state.status = "complete";
+  state.status = "completed";
   // dlc_state_save "$INTENT_DIR" "iteration.json" '<updated JSON>'
 ```
 
 ```bash
 # Update intent.md frontmatter status so it persists in git
-dlc_frontmatter_set "status" "complete" "$INTENT_DIR/intent.md"
+dlc_frontmatter_set "status" "completed" "$INTENT_DIR/intent.md"
 git add "$INTENT_DIR/intent.md"
-git commit -m "status: mark intent ${INTENT_SLUG} as complete"
+git commit -m "status: mark intent ${INTENT_SLUG} as completed"
 ```
 
 ```javascript
@@ -299,19 +307,19 @@ git commit -m "status: mark intent ${INTENT_SLUG} as complete"
   return completionSummary;
 }
 
-if (dagSummary.readyCount > 0) {
+if (READY_COUNT > 0) {
   // MORE UNITS READY - Loop back to builder
   state.hat = workflow[2] || "builder";  // Reset to builder (index 2 in default workflow)
   state.currentUnit = null;  // Will be set by /execute when it picks next unit
   // dlc_state_save "$INTENT_DIR" "iteration.json" '<updated JSON>'
-  return `Unit completed. ${dagSummary.readyCount} more unit(s) ready. Continuing construction...`;
+  return `Unit completed. ${READY_COUNT} more unit(s) ready. Continuing construction...`;
 }
 
 // BLOCKED - No ready units, human must intervene
 return `All remaining units are blocked. Human intervention required.
 
 Blocked units:
-${dagSummary.blockedUnits.join('\n')}
+${BLOCKED_UNITS}
 
 Review blockers and unblock units to continue.`;
 ```
@@ -324,7 +332,7 @@ When `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is enabled and completing a unit unb
 AGENT_TEAMS_ENABLED="${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}"
 ```
 
-If `AGENT_TEAMS_ENABLED` is set and `readyCount > 0` after completing a unit:
+If `AGENT_TEAMS_ENABLED` is set and `READY_COUNT > 0` after completing a unit:
 
 1. Read `teamName` from `iteration.json`
 2. For each newly ready unit:
@@ -340,7 +348,7 @@ This replaces the sequential "loop back to builder" behavior when Agent Teams is
 
 ### Step 2f: Integration Validation (When All Units Complete)
 
-When `dagSummary.allComplete` is true and `state.integratorComplete` is not true, run integration validation instead of marking the intent complete.
+When `ALL_COMPLETE` is true and `state.integratorComplete` is not true, run integration validation instead of marking the intent completed.
 
 **Integration is NOT a per-unit hat** — it does not appear in the workflow sequence. It runs once on the merged intent branch after all units pass their per-unit workflows. It is implemented as the internal `/integrate` skill (see `plugin/skills/integrate/SKILL.md`).
 
@@ -385,13 +393,13 @@ Task({
 
 **If ACCEPT:**
 ```bash
-STATE=$(echo "$STATE" | dlc_json_set "integratorComplete" "true" | dlc_json_set "status" "complete")
+STATE=$(echo "$STATE" | dlc_json_set "integratorComplete" "true" | dlc_json_set "status" "completed")
 dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
 
 # Update intent.md frontmatter status so it persists in git
-dlc_frontmatter_set "status" "complete" "$INTENT_DIR/intent.md"
+dlc_frontmatter_set "status" "completed" "$INTENT_DIR/intent.md"
 git add "$INTENT_DIR/intent.md"
-git commit -m "status: mark intent ${INTENT_SLUG} as complete"
+git commit -m "status: mark intent ${INTENT_SLUG} as completed"
 
 # Proceed to Step 5 (completion summary)
 ```
@@ -525,6 +533,40 @@ git commit -m "announce: generate completion announcements for ${INTENT_SLUG}"
 ```
 
 Skip this step if `announcements` is empty or `[]`.
+
+### Pre-Delivery Status Validation
+
+Before delivery, verify all statuses are correct. This guard catches cases where earlier steps in the advance flow didn't fire correctly:
+
+```bash
+# PRE-DELIVERY VALIDATION: Ensure all statuses are correctly set before delivery
+source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
+source "${CLAUDE_PLUGIN_ROOT}/lib/parse.sh"
+
+# Verify all units are marked completed
+for unit_file in "$INTENT_DIR"/unit-*.md; do
+  [ -f "$unit_file" ] || continue
+  UNIT_STATUS=$(parse_unit_status "$unit_file")
+  if [ "$UNIT_STATUS" != "completed" ]; then
+    echo "Fixing: $(basename "$unit_file" .md) status '$UNIT_STATUS' → 'completed'"
+    update_unit_status "$unit_file" "completed"
+    git add "$unit_file"
+  fi
+done
+
+# Verify intent is marked completed
+INTENT_STATUS=$(dlc_frontmatter_get "status" "$INTENT_DIR/intent.md")
+if [ "$INTENT_STATUS" != "completed" ]; then
+  echo "Fixing: intent status '$INTENT_STATUS' → 'completed'"
+  dlc_frontmatter_set "status" "completed" "$INTENT_DIR/intent.md"
+  git add "$INTENT_DIR/intent.md"
+fi
+
+# Commit any status fixes
+if ! git diff --cached --quiet 2>/dev/null; then
+  git commit -m "status: reconcile intent and unit statuses before delivery"
+fi
+```
 
 **Gate on change strategy.** The delivery prompt only applies to intent-level strategy. With unit strategy, each unit already has its own PR.
 

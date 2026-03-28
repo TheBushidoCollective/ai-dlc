@@ -217,7 +217,7 @@ Write the reflection artifact to `.ai-dlc/{intent-slug}/reflection.md`:
 intent: {intent-slug}
 version: 1
 created: {ISO date}
-status: complete
+status: completed
 ---
 
 # Reflection: {Intent Title}
@@ -336,7 +336,7 @@ dlc_state_save "$INTENT_DIR" "reflection-status.json" "$REFLECTION_STATE"
 
 After user validates:
 ```bash
-REFLECTION_STATE=$(echo "$REFLECTION_STATE" | jq '.reflectionStatus = "complete"')
+REFLECTION_STATE=$(echo "$REFLECTION_STATE" | jq '.reflectionStatus = "completed"')
 dlc_state_save "$INTENT_DIR" "reflection-status.json" "$REFLECTION_STATE"
 ```
 

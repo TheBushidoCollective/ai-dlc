@@ -66,7 +66,7 @@ Read `operations.md` and parse its frontmatter and task sections:
 **Frontmatter fields:**
 - `intent` - Intent slug
 - `created` - ISO date when plan was created
-- `status` - One of: `active`, `paused`, `complete`
+- `status` - One of: `active`, `paused`, `completed`
 
 **Task sections** (parsed from markdown body):
 

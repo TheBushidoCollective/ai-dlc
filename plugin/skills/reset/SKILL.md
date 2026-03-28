@@ -51,7 +51,7 @@ If the task is not complete, warn:
 # Intent-level state is on current branch (intent branch)
 STATE=$(dlc_state_load "$INTENT_DIR" "iteration.json" 2>/dev/null || echo "{}")
 
-# If status is not "complete", warn the user
+# If status is not "completed", warn the user
 # "Warning: Task is not complete. Current hat: $HAT"
 # "Are you sure you want to clear all state?"
 ```

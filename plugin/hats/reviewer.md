@@ -29,9 +29,9 @@ The Reviewer verifies that the Builder's implementation satisfies the Unit's Com
 - Test results available
 - Completion Criteria loaded
 
-### Two-Stage Review
+### Multi-Stage Review
 
-Run review in two distinct passes. Combining them into one pass leads to either spec compliance being sacrificed for code quality concerns or vice versa.
+Run review in distinct passes. Combining them into one pass leads to either spec compliance being sacrificed for code quality concerns or vice versa.
 
 **Stage 1: Spec Compliance** — Does the implementation satisfy the unit's completion criteria?
 - Test coverage and quality (tests are the evidence for spec compliance)
@@ -44,7 +44,16 @@ Run review in two distinct passes. Combining them into one pass leads to either 
 - Adherence to project conventions
 - Result: Findings scored by confidence
 
-**Key rule:** Stage 1 failures block approval regardless of Stage 2 results. Stage 2 findings are improvement suggestions, not blockers (unless high-confidence security/correctness issues).
+**Stage 3: Operational Readiness** *(conditional)* — Are deployment artifacts, monitoring, and operations scripts production-ready?
+- **Activates only** when the unit has `deployment:`, `monitoring:`, or `operations:` frontmatter blocks
+- **Also activates** when unit `discipline:` is `infrastructure` or `observability` (regardless of frontmatter)
+- Delegates to specialized ops review agents (Deployment Safety, Observability Completeness, Infrastructure Correctness)
+- Each agent scores findings by confidence: **High** blocks, **Medium** warns, **Low** suggests
+- Full agent specs and verification commands are in `reviewer-reference.md`
+- Result: Findings scored by confidence, per agent
+- **When no ops blocks are present and discipline is not infrastructure/observability, Stage 3 is skipped entirely** — review behavior is identical to before
+
+**Key rule:** Stage 1 failures block approval regardless of later stages. Stage 2 findings are improvement suggestions, not blockers (unless high-confidence security/correctness issues). Stage 3 high-confidence findings block approval.
 
 ## Steps
 
@@ -147,6 +156,14 @@ For each criterion being reviewed, apply the CoVe pattern:
 
 **Why:** Initial assessments based on code reading alone have a ~20% false positive rate (claiming PASS when the code actually fails). CoVe forces verification with evidence.
 
+**Operational artifact examples** (Stage 3):
+- "If the Dockerfile builds correctly, what should `docker build --check .` output?"
+- "If health checks are configured, what endpoint should respond to `/healthz`?"
+- "If metrics are instrumented, what should `grep -r 'counter\|histogram\|gauge' src/` find?"
+- "If alert rules reference the correct metric names, do the metric names in alert YAML match the instrumented metric names in code?"
+- "If the IaC is idempotent, what should `terraform plan` show on a second run with no changes?"
+- "If operation scripts support dry-run, what should `./script.sh --dry-run` exit code be?"
+
 ### Review Delegation
 
 The reviewer hat acts as a **coordinator**, not a solo reviewer. For non-trivial units it delegates to specialized review agents and consolidates findings.
@@ -163,6 +180,9 @@ Reviewer (Master)
   ├── Accessibility Review Agent
   ├── Responsive Review Agent
   ├── Visual Fidelity Review Agent
+  ├── Deployment Safety Agent          ← ops (Stage 3)
+  ├── Observability Completeness Agent ← ops (Stage 3)
+  ├── Infrastructure Correctness Agent ← ops (Stage 3)
   └── {domain-specific agents from review_agents config}
 ```
 
@@ -184,8 +204,11 @@ Reviewer (Master)
 | **Accessibility** | Semantic HTML, keyboard nav, contrast, focus management | Frontend units |
 | **Responsive** | Breakpoint behavior, horizontal scroll | Frontend units |
 | **Visual Fidelity** | Design reference comparison via AI vision | Units where `detect-visual-gate.sh` returns true |
+| **Deployment Safety** | Artifact builds, no secrets, health check, graceful shutdown, resource limits, pipeline updated | Unit has `deployment:` block, or `discipline: infrastructure` |
+| **Observability Completeness** | Metrics instrumented, dashboards valid, alert rules correct, SLOs achievable | Unit has `monitoring:` block, or `discipline: observability` |
+| **Infrastructure Correctness** | IaC best practices, least privilege, idempotent, state backend | Unit has `deployment:` block with IaC, or `discipline: infrastructure` |
 
-Additional domain-specific agents (Data Integrity, Schema Drift, Deployment Safety, etc.) are defined in `reviewer-reference.md` and activate based on changed file patterns.
+Additional domain-specific agents (Data Integrity, Schema Drift, etc.) are defined in `reviewer-reference.md` and activate based on changed file patterns.
 
 **Visual Fidelity agent process:**
 1. Run `run-visual-comparison.sh` to prepare screenshot pairs and comparison context
@@ -201,7 +224,13 @@ Additional domain-specific agents (Data Integrity, Schema Drift, Deployment Safe
 - The visual gate is NEVER silently skipped when it should be active
 
 **How to delegate:**
-1. Read the unit, identify which agents to spawn based on changed files, unit discipline (frontend → accessibility + responsive), `review_agents` config, and `high_stakes` frontmatter
+1. Read the unit, identify which agents to spawn based on:
+   - Changed files and file patterns
+   - Unit discipline: `frontend` → Accessibility + Responsive; `infrastructure` → Deployment Safety + Infrastructure Correctness; `observability` → Observability Completeness + Deployment Safety
+   - Ops frontmatter: `deployment:` → Deployment Safety + Infrastructure Correctness; `monitoring:` → Observability Completeness; `operations:` → all three ops agents
+   - `review_agents` config in `settings.yml` (can disable optional agents)
+   - `high_stakes` frontmatter
+   - **Force-activation rule:** `discipline: infrastructure` or `discipline: observability` units ALWAYS get their ops agents regardless of `review_agents` settings — settings can only disable these agents for non-discipline units
 2. Launch all applicable agents in parallel — each gets a focused prompt for its perspective only and scores findings as high/medium/low confidence
 3. Collect findings from all agents
 4. De-duplicate identical findings across agents
@@ -304,6 +333,8 @@ Anti-rationalization tables, red flags, and parallel review setup details are in
 - You're tempted to approve quickly (check anti-rationalization table)
 - Setting up parallel review subagents (check perspective templates)
 - Unsure whether to block on a finding (check red flags)
+- Running Stage 3 ops review (full agent specs, checks, verification commands)
+- Determining ops agent activation rules and settings interaction
 
 ## Related Hats
 

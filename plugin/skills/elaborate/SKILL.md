@@ -198,7 +198,7 @@ INTENT_SLUG="{slug}"
 
 # Check if intent.md exists and has iterates_on
 if [ -f ".ai-dlc/${INTENT_SLUG}/intent.md" ]; then
-  ITERATES_ON=$(han parse yaml iterates_on -r --default "" < ".ai-dlc/${INTENT_SLUG}/intent.md")
+  ITERATES_ON=$(dlc_frontmatter_get "iterates_on" ".ai-dlc/${INTENT_SLUG}/intent.md" 2>/dev/null || echo "")
 fi
 ```
 
@@ -261,10 +261,10 @@ This intent iterates on **{previous title}** (`{previous-slug}`).
 {Key findings from discovery.md if available}
 ```
 
-**Store this context** — it will be referenced in Phase 2, Phase 2.5, and Phase 5. Use `han keep save` to persist:
+**Store this context** — it will be referenced in Phase 2, Phase 2.5, and Phase 5. Save to state:
 
 ```bash
-han keep save previous-intent-context "{JSON summary of previous intent}"
+dlc_state_save "$INTENT_DIR" "previous-intent-context" "{JSON summary of previous intent}"
 ```
 
 **When `iterates_on` is set, the following phases are modified:**
@@ -410,7 +410,7 @@ git commit -m "elaborate(${INTENT_SLUG}): initialize discovery log"
 This ensures:
 - Main working directory stays on `main` for other work
 - All discovery findings are written directly on the intent branch
-- All subsequent `han keep` operations use the intent branch's storage
+- All subsequent state operations use the intent branch's `.ai-dlc/{slug}/state/` directory
 - Multiple intents can run in parallel in separate worktrees
 - Clean separation between main and AI-DLC orchestration state
 - Subagents spawn from the intent worktree, not the original repo
@@ -570,15 +570,15 @@ This is most useful during:
 
 ### Step 1: Discover Available Hats
 
-Use `han parse yaml` to read all available hat definitions dynamically:
+Use `dlc_frontmatter_get` to read all available hat definitions dynamically:
 
 ```bash
 # List all hats from plugin directory
 for hat_file in "${CLAUDE_PLUGIN_ROOT}/hats/"*.md; do
   [ -f "$hat_file" ] || continue
   slug=$(basename "$hat_file" .md)
-  name=$(han parse yaml name -r < "$hat_file" 2>/dev/null)
-  desc=$(han parse yaml description -r < "$hat_file" 2>/dev/null)
+  name=$(dlc_frontmatter_get "name" "$hat_file" 2>/dev/null)
+  desc=$(dlc_frontmatter_get "description" "$hat_file" 2>/dev/null)
   echo "- **${name:-$slug}** (\`$slug\`): $desc"
 done
 
@@ -586,8 +586,8 @@ done
 for hat_file in .ai-dlc/hats/*.md; do
   [ -f "$hat_file" ] || continue
   slug=$(basename "$hat_file" .md)
-  name=$(han parse yaml name -r < "$hat_file" 2>/dev/null)
-  desc=$(han parse yaml description -r < "$hat_file" 2>/dev/null)
+  name=$(dlc_frontmatter_get "name" "$hat_file" 2>/dev/null)
+  desc=$(dlc_frontmatter_get "description" "$hat_file" 2>/dev/null)
   echo "- **${name:-$slug}** (\`$slug\`): $desc [project override]"
 done
 ```
@@ -837,7 +837,7 @@ Clicking an intent navigates to the Intent Detail view which shows:
 Data sources:
 - Intent metadata: Read `.ai-dlc/{slug}/intent.md` frontmatter via filesystem API
 - Unit metadata: Read `.ai-dlc/{slug}/unit-*.md` frontmatter
-- Live state: Query `han keep load iteration.json` for current hat and unitStates
+- Live state: Query `dlc_state_load "$INTENT_DIR" "iteration.json"` for current hat and unitStates
 
 This unit does NOT handle: hat visualization (unit-03), live monitoring (unit-04),
 or timeline replay (unit-05). It only renders the structural hierarchy.
@@ -1417,18 +1417,15 @@ fi
   Re-display the full updated contents and re-ask for approval. Loop until approved.
 - **Rethink unit**: Discuss the scope or approach, potentially split/merge/redesign the unit, rewrite the file. **Commit with the user's reasoning** as above, then re-present for approval.
 
-### 4. Save intent slug to han keep:
+### 4. Intent slug is directory-based
 
-```bash
-# Intent-level identifier -> current branch (intent branch)
-han keep save intent-slug "{intent-slug}"
-```
+The intent slug is derived from the `.ai-dlc/{intent-slug}/` directory path — no separate state save is needed.
 
-**Note:** Do NOT save `iteration.json` here. Construction state (hat, iteration count, workflow, status) is initialized by `/execute` when the build loop starts. Elaboration only writes the spec artifacts and the intent slug.
+**Note:** Do NOT save `iteration.json` here. Construction state (hat, iteration count, workflow, status) is initialized by `/execute` when the build loop starts. Elaboration only writes the spec artifacts.
 
 ### 5. Commit any remaining artifacts on intent branch:
 
-Intent and unit files were committed individually during steps 2 and 3. This catch-all commit picks up any remaining artifacts (briefs, han keep state, etc.):
+Intent and unit files were committed individually during steps 2 and 3. This catch-all commit picks up any remaining artifacts (briefs, state files, etc.):
 
 ```bash
 git add .ai-dlc/

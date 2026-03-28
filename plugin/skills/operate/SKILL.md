@@ -30,8 +30,9 @@ The operate skill reads the operational plan from `.ai-dlc/{intent-slug}/operati
 ### Step 0: Load State
 
 ```bash
-# Load AI-DLC state using han keep (git-first storage)
-INTENT_SLUG="${1:-$(han keep load intent-slug --quiet 2>/dev/null || echo "")}"
+# Load AI-DLC state (file-based storage)
+# Intent slug is derived from .ai-dlc directory structure
+INTENT_SLUG="${1:-$(basename "$(find .ai-dlc -maxdepth 2 -name 'intent.md' -exec dirname {} \; | head -1)" 2>/dev/null || echo "")}"
 ```
 
 If no intent slug found:
@@ -165,11 +166,11 @@ For tasks where `owner: human`:
 
 ### Step 6: Track Operational Status
 
-Update operation status in intent state using han keep:
+Update operation status in intent state:
 
 ```bash
 # Load or initialize operation status
-OP_STATUS=$(han keep load operation-status.json --quiet 2>/dev/null || echo "")
+OP_STATUS=$(dlc_state_load "$INTENT_DIR" "operation-status.json" 2>/dev/null || echo "")
 
 if [ -z "$OP_STATUS" ]; then
   OP_STATUS='{"phase":"operation","operationStatus":"active","operationalTasks":{}}'
@@ -179,7 +180,7 @@ fi
 UPDATED=$(echo "$OP_STATUS" | jq --arg name "$TASK_NAME" --arg time "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   '.operationalTasks[$name] = {"lastRun": $time, "status": "on-track"}')
 
-han keep save operation-status.json "$UPDATED"
+dlc_state_save "$INTENT_DIR" "operation-status.json" "$UPDATED"
 ```
 
 **State schema:**

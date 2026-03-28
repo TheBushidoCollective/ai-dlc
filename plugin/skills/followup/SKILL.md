@@ -75,8 +75,8 @@ for intent_file in .ai-dlc/*/intent.md; do
   [ -f "$intent_file" ] || continue
   dir=$(dirname "$intent_file")
   slug=$(basename "$dir")
-  status=$(han parse yaml status -r --default active < "$intent_file")
-  title=$(han parse yaml title -r --default "$slug" < "$intent_file")
+  status=$(dlc_frontmatter_get "status" "$intent_file" 2>/dev/null || echo "active")
+  title=$(dlc_frontmatter_get "title" "$intent_file" 2>/dev/null || echo "$slug")
   echo "$slug|$status|$title"
 done
 ```

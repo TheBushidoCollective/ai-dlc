@@ -57,7 +57,7 @@ for intent_file in .ai-dlc/*/intent.md; do
   [ -f "$intent_file" ] || continue
   dir=$(dirname "$intent_file")
   slug=$(basename "$dir")
-  status=$(han parse yaml status -r --default active < "$intent_file")
+  status=$(dlc_frontmatter_get "status" "$intent_file" 2>/dev/null || echo "active")
   [ "$status" = "active" ] && echo "$slug"
 done
 ```
@@ -138,14 +138,13 @@ cd "$INTENT_WORKTREE"
 
 ### Step 5: Initialize State
 
-Save to han keep storage (intent-level state goes to current branch, which is now the intent branch):
+Save to file-based state (intent-level state goes to the intent directory):
 
 ```bash
-# Save intent slug (intent-level state -> current branch / intent branch)
-han keep save intent-slug "$SLUG"
+# Intent slug is directory-based: .ai-dlc/{slug}/ — no separate save needed
 
-# Save iteration state (intent-level state -> current branch / intent branch)
-han keep save iteration.json "{\"iteration\":1,\"hat\":\"$STARTING_HAT\",\"workflowName\":\"$WORKFLOW\",\"workflow\":$WORKFLOW_HATS_JSON,\"status\":\"active\"}"
+# Save iteration state to intent directory
+dlc_state_save "$INTENT_DIR" "iteration.json" "{\"iteration\":1,\"hat\":\"$STARTING_HAT\",\"workflowName\":\"$WORKFLOW\",\"workflow\":$WORKFLOW_HATS_JSON,\"status\":\"active\"}"
 ```
 
 ### Step 5b: Restore Team (Agent Teams)
@@ -225,7 +224,7 @@ reason: "{why session ended: context_limit | user_stop | bolt_complete}"
 {Decisions made, approaches tried and abandoned, key learnings from this session}
 ```
 
-**On resume:** `/resume` reads `handoff.md` (if it exists) to restore context before starting the next bolt. This is more structured than relying on `han keep` alone — it captures the narrative of where things stand.
+**On resume:** `/resume` reads `handoff.md` (if it exists) to restore context before starting the next bolt. This is more structured than relying on state files alone — it captures the narrative of where things stand.
 
 After reading handoff.md on resume, rename it to `handoff-{date}.md` to archive it.
 

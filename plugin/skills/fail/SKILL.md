@@ -29,7 +29,7 @@ If already at the first hat (planner by default), this command is blocked.
 
 ```bash
 # Intent-level state is stored on current branch (intent branch)
-STATE=$(han keep load iteration.json --quiet)
+STATE=$(dlc_state_load "$INTENT_DIR" "iteration.json")
 ```
 
 ### Step 2: Determine Previous Hat
@@ -58,12 +58,12 @@ Before updating state, save the reason for failing:
 ```bash
 # Append to blockers (unit-level state - saved to current branch)
 REASON="Reviewer found issues: [describe issues]"
-han keep save blockers.md "$REASON"
+dlc_state_save "$INTENT_DIR" "blockers.md" "$REASON"
 ```
 
 ### Step 3a: Commit Blocker Documentation
 
-If any blocker documentation was written to the working tree (not han keep), commit immediately:
+If any blocker documentation was written to the working tree (not state files), commit immediately:
 
 ```bash
 if [ -n "$(git status --porcelain)" ]; then
@@ -78,7 +78,7 @@ fi
 # Update hat to previous hat
 # Intent-level state saved to current branch (intent branch)
 # state.hat = prevHat
-han keep save iteration.json '<updated JSON with hat set to previous>'
+dlc_state_save "$INTENT_DIR" "iteration.json" '<updated JSON with hat set to previous>'
 ```
 
 ### Step 4b: Re-spawn Teammate (Agent Teams)

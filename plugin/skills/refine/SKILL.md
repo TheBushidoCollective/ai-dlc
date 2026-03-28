@@ -27,8 +27,10 @@ If `CLAUDE_CODE_IS_COWORK=1`, stop immediately with the message above. Do NOT pr
 
 ```bash
 # Intent-level state is stored on current branch (intent branch)
-STATE=$(han keep load iteration.json --quiet)
-INTENT_SLUG=$(han keep load intent-slug --quiet)
+# Intent slug is derived from .ai-dlc directory structure
+INTENT_SLUG=$(basename "$(find .ai-dlc -maxdepth 2 -name 'intent.md' -exec dirname {} \; | head -1)")
+INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
+STATE=$(dlc_state_load "$INTENT_DIR" "iteration.json")
 INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
 ```
 
@@ -71,7 +73,7 @@ If "Specific unit" is selected, list available units and ask which one:
 for unit_file in "$INTENT_DIR"/unit-*.md; do
   [ -f "$unit_file" ] || continue
   unit_name=$(basename "$unit_file" .md)
-  status=$(han parse yaml status -r --default "pending" < "$unit_file" 2>/dev/null || echo "pending")
+  status=$(dlc_frontmatter_get "status" "$unit_file" 2>/dev/null || echo "pending")
   echo "- **${unit_name}** (${status})"
 done
 ```
@@ -182,13 +184,13 @@ for unit_file in $AFFECTED_UNITS; do
 done
 
 # Reset hat tracking in iteration.json
-WORKFLOW_HATS=$(echo "$STATE" | han parse json workflow)
+WORKFLOW_HATS=$(echo "$STATE" | dlc_json_get "workflow")
 FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '.[0]')
 
 # For teams mode: reset unitStates entries
 # For sequential mode: clear currentUnit
-STATE=$(echo "$STATE" | han parse json --set "currentUnit=")
-han keep save iteration.json "$STATE"
+STATE=$(echo "$STATE" | dlc_json_set "currentUnit" "")
+dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
 
 git add "$INTENT_DIR/"
 git commit -m "refine: re-queue affected units for ${INTENT_SLUG}"
@@ -205,16 +207,16 @@ source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
 update_unit_status "$INTENT_DIR/${UNIT_NAME}.md" "pending"
 
 # Reset hat tracking
-WORKFLOW_HATS=$(echo "$STATE" | han parse json workflow)
+WORKFLOW_HATS=$(echo "$STATE" | dlc_json_get "workflow")
 FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '.[0]')
 
 # For teams mode: reset this unit's hat in unitStates
 # For sequential mode: clear currentUnit if it matches
-CURRENT_UNIT=$(echo "$STATE" | han parse json currentUnit -r --default "")
+CURRENT_UNIT=$(echo "$STATE" | dlc_json_get "currentUnit" "")
 if [ "$CURRENT_UNIT" = "$UNIT_NAME" ]; then
-  STATE=$(echo "$STATE" | han parse json --set "currentUnit=")
+  STATE=$(echo "$STATE" | dlc_json_set "currentUnit" "")
 fi
-han keep save iteration.json "$STATE"
+dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
 
 git add "$INTENT_DIR/"
 git commit -m "refine: re-queue ${UNIT_NAME} for ${INTENT_SLUG}"
@@ -225,8 +227,8 @@ git commit -m "refine: re-queue ${UNIT_NAME} for ${INTENT_SLUG}"
 If `integratorComplete` was set to `true` in `iteration.json`, reset it to `false` since the spec has changed:
 
 ```bash
-STATE=$(echo "$STATE" | han parse json --set "integratorComplete=false")
-han keep save iteration.json "$STATE"
+STATE=$(echo "$STATE" | dlc_json_set "integratorComplete" "false")
+dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
 ```
 
 ---

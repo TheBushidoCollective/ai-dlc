@@ -31,8 +31,10 @@ Advances to the next hat in the workflow sequence. For example, in the default w
 ### Step 1: Load Current State
 
 ```bash
-# Intent-level state is stored on current branch (intent branch)
-STATE=$(han keep load iteration.json --quiet)
+# Intent-level state is stored in .ai-dlc/{slug}/state/
+INTENT_DIR=$(find .ai-dlc -maxdepth 2 -name "intent.md" -exec dirname {} \; | head -1)
+INTENT_SLUG=$(basename "$INTENT_DIR")
+STATE=$(dlc_state_load "$INTENT_DIR" "iteration.json")
 ```
 
 ### Step 2: Verify Hard Gate and Determine Next Hat (or Handle Completion)
@@ -41,16 +43,16 @@ Before advancing, check the hard gate for the current transition:
 
 ```bash
 # Hard gate verification — block advancement if gate conditions are not met
-CURRENT_HAT=$(echo "$STATE" | han parse json hat -r)
+CURRENT_HAT=$(echo "$STATE" | dlc_json_get "hat")
 
 case "$CURRENT_HAT" in
   planner)
     # PLAN_APPROVED gate: plan must exist and cover all criteria
-    PLAN=$(han keep load plan.md --quiet 2>/dev/null || echo "")
+    PLAN=$(dlc_state_load "$INTENT_DIR" "plan.md" 2>/dev/null || echo "")
     if [ -z "$PLAN" ]; then
       echo "## HARD GATE: PLAN_APPROVED"
       echo ""
-      echo "Cannot advance to builder — no plan found in han keep."
+      echo "Cannot advance to builder — no plan found in state."
       echo "The planner must save a plan before advancement."
       exit 1
     fi
@@ -82,9 +84,9 @@ case "$CURRENT_HAT" in
     # CRITERIA_MET gate: each criterion must have PASS with evidence
     # This is verified by the reviewer hat itself — if the reviewer calls /advance,
     # it means criteria were evaluated. The structured completion marker is checked here.
-    REVIEW_RESULT=$(han keep load review-result.json --quiet 2>/dev/null || echo "")
+    REVIEW_RESULT=$(dlc_state_load "$INTENT_DIR" "review-result.json" 2>/dev/null || echo "")
     if [ -n "$REVIEW_RESULT" ]; then
-      ALL_PASS=$(echo "$REVIEW_RESULT" | han parse json allPass -r --default "false" 2>/dev/null || echo "false")
+      ALL_PASS=$(echo "$REVIEW_RESULT" | dlc_json_get "allPass" "false" 2>/dev/null || echo "false")
       if [ "$ALL_PASS" != "true" ]; then
         echo "## HARD GATE: CRITERIA_MET"
         echo ""
@@ -125,11 +127,10 @@ When at the last hat (typically reviewer), check the DAG to determine next actio
 source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
 
 # Get intent directory
-INTENT_SLUG=$(han keep load intent-slug --quiet)
-INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
+# INTENT_DIR and INTENT_SLUG already set in Step 1
 
 # Mark current unit as completed
-CURRENT_UNIT=$(echo "$ITERATION_JSON" | han parse json currentUnit -r --default "")
+CURRENT_UNIT=$(echo "$ITERATION_JSON" | dlc_json_get "currentUnit" "")
 if [ -n "$CURRENT_UNIT" ] && [ -f "$INTENT_DIR/${CURRENT_UNIT}.md" ]; then
   update_unit_status "$INTENT_DIR/${CURRENT_UNIT}.md" "completed"
   # Commit the status change so it persists across sessions
@@ -143,11 +144,11 @@ fi
 When `targetUnit` is set in state and matches the just-completed unit, handle early exit:
 
 ```bash
-TARGET_UNIT=$(echo "$STATE" | han parse json targetUnit -r --default "")
+TARGET_UNIT=$(echo "$STATE" | dlc_json_get "targetUnit" "")
 if [ -n "$TARGET_UNIT" ] && [ "$TARGET_UNIT" = "$CURRENT_UNIT" ]; then
   # Clear targetUnit from state
-  STATE=$(echo "$STATE" | han parse json --set "targetUnit=")
-  han keep save iteration.json "$STATE"
+  STATE=$(echo "$STATE" | dlc_json_set "targetUnit" "")
+  dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
 
   echo "## Targeted Unit Complete: ${CURRENT_UNIT}"
   echo ""
@@ -191,7 +192,7 @@ if [ "$CHANGE_STRATEGY" = "unit" ]; then
   git push -u origin "$UNIT_BRANCH" 2>/dev/null || true
 
   # Get this unit's ticket reference (if any) for the PR body
-  UNIT_TICKET=$(han parse yaml ticket -r --default "" < "$INTENT_DIR/${CURRENT_UNIT}.md" 2>/dev/null || echo "")
+  UNIT_TICKET=$(dlc_frontmatter_get "ticket" "$INTENT_DIR/${CURRENT_UNIT}.md" 2>/dev/null || echo "")
   TICKET_LINE=""
   if [ -n "$UNIT_TICKET" ]; then
     TICKET_LINE="Closes ${UNIT_TICKET}"
@@ -248,8 +249,8 @@ fi
 ```bash
 # Get DAG summary
 DAG_SUMMARY=$(get_dag_summary "$INTENT_DIR")
-ALL_COMPLETE=$(echo "$DAG_SUMMARY" | han parse json allComplete -r)
-READY_COUNT=$(echo "$DAG_SUMMARY" | han parse json readyCount -r)
+ALL_COMPLETE=$(echo "$DAG_SUMMARY" | dlc_json_get "allComplete")
+READY_COUNT=$(echo "$DAG_SUMMARY" | dlc_json_get "readyCount")
 ```
 
 ```javascript
@@ -284,12 +285,12 @@ SKIP_INTEGRATOR=false
   }
   // Integration passed or skipped - Mark intent as done
   state.status = "complete";
-  // han keep save iteration.json '<updated JSON>'
+  // dlc_state_save "$INTENT_DIR" "iteration.json" '<updated JSON>'
 ```
 
 ```bash
-# Update intent.md frontmatter status so it persists in git (not just ephemeral han keep)
-han parse yaml-set status "complete" < "$INTENT_DIR/intent.md" > "$INTENT_DIR/intent.md.tmp" && mv "$INTENT_DIR/intent.md.tmp" "$INTENT_DIR/intent.md"
+# Update intent.md frontmatter status so it persists in git
+dlc_frontmatter_set "status" "complete" "$INTENT_DIR/intent.md"
 git add "$INTENT_DIR/intent.md"
 git commit -m "status: mark intent ${INTENT_SLUG} as complete"
 ```
@@ -303,7 +304,7 @@ if (dagSummary.readyCount > 0) {
   // MORE UNITS READY - Loop back to builder
   state.hat = workflow[2] || "builder";  // Reset to builder (index 2 in default workflow)
   state.currentUnit = null;  // Will be set by /execute when it picks next unit
-  // han keep save iteration.json '<updated JSON>'
+  // dlc_state_save "$INTENT_DIR" "iteration.json" '<updated JSON>'
   return `Unit completed. ${dagSummary.readyCount} more unit(s) ready. Continuing construction...`;
 }
 
@@ -347,8 +348,8 @@ When `dagSummary.allComplete` is true and `state.integratorComplete` is not true
 1. Set state to indicate integration is running:
 
 ```bash
-STATE=$(echo "$STATE" | han parse json --set "hat=integrator")
-han keep save iteration.json "$STATE"
+STATE=$(echo "$STATE" | dlc_json_set "hat" "integrator")
+dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
 ```
 
 2. Spawn the integrate skill as a subagent on the **intent worktree** (not a unit worktree):
@@ -385,11 +386,11 @@ Task({
 
 **If ACCEPT:**
 ```bash
-STATE=$(echo "$STATE" | han parse json --set "integratorComplete=true" --set "status=complete")
-han keep save iteration.json "$STATE"
+STATE=$(echo "$STATE" | dlc_json_set "integratorComplete" "true" | dlc_json_set "status" "complete")
+dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
 
-# Update intent.md frontmatter status so it persists in git (not just ephemeral han keep)
-han parse yaml-set status "complete" < "$INTENT_DIR/intent.md" > "$INTENT_DIR/intent.md.tmp" && mv "$INTENT_DIR/intent.md.tmp" "$INTENT_DIR/intent.md"
+# Update intent.md frontmatter status so it persists in git
+dlc_frontmatter_set "status" "complete" "$INTENT_DIR/intent.md"
 git add "$INTENT_DIR/intent.md"
 git commit -m "status: mark intent ${INTENT_SLUG} as complete"
 
@@ -402,7 +403,7 @@ The integration result specifies which units need rework. For each rejected unit
 
 ```bash
 source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
-INTENT_WORKFLOW_HATS=$(echo "$STATE" | han parse json workflow)
+INTENT_WORKFLOW_HATS=$(echo "$STATE" | dlc_json_get "workflow")
 
 # Re-queue each rejected unit
 for UNIT_FILE in $REJECTED_UNITS; do
@@ -410,19 +411,18 @@ for UNIT_FILE in $REJECTED_UNITS; do
 
   # Reset hat to first hat of this unit's workflow (per-unit or intent-level fallback)
   UNIT_NAME=$(basename "$UNIT_FILE" .md)
-  UNIT_WORKFLOW=$(echo "$STATE" | han parse json "unitStates.${UNIT_NAME}.workflow" 2>/dev/null || echo "")
+  UNIT_WORKFLOW=$(echo "$STATE" | dlc_json_get "unitStates.${UNIT_NAME}.workflow" 2>/dev/null || echo "")
   [ -z "$UNIT_WORKFLOW" ] || [ "$UNIT_WORKFLOW" = "null" ] && UNIT_WORKFLOW="$INTENT_WORKFLOW_HATS"
   FIRST_HAT=$(echo "$UNIT_WORKFLOW" | jq -r '.[0]')
-  STATE=$(echo "$STATE" | han parse json \
-    --set "unitStates.${UNIT_NAME}.hat=${FIRST_HAT}" \
-    --set "unitStates.${UNIT_NAME}.retries=0" \
-    --set "unitStates.${UNIT_NAME}.workflow=${UNIT_WORKFLOW}")
+  STATE=$(echo "$STATE" | dlc_json_set "unitStates.${UNIT_NAME}.hat" "${FIRST_HAT}" \
+    | dlc_json_set "unitStates.${UNIT_NAME}.retries" "0" \
+    | dlc_json_set "unitStates.${UNIT_NAME}.workflow" "${UNIT_WORKFLOW}")
 done
 
 # Reset integration state
 GLOBAL_FIRST_HAT=$(echo "$INTENT_WORKFLOW_HATS" | jq -r '.[0]')
-STATE=$(echo "$STATE" | han parse json --set "hat=${GLOBAL_FIRST_HAT}" --set "integratorComplete=false")
-han keep save iteration.json "$STATE"
+STATE=$(echo "$STATE" | dlc_json_set "hat" "${GLOBAL_FIRST_HAT}" | dlc_json_set "integratorComplete" "false")
+dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
 
 # Output: "Integration rejected. Re-queued units: {list}. Run /execute to continue."
 ```
@@ -433,7 +433,7 @@ The re-queued units will be picked up on the next `/execute` cycle through the n
 
 ```bash
 # Increment iteration counter
-ITERATION=$(echo "$STATE" | han parse json iteration -r --default 1)
+ITERATION=$(echo "$STATE" | dlc_json_get "iteration" "1")
 ITERATION=$((ITERATION + 1))
 
 # Safety cap: prevent infinite loops
@@ -445,15 +445,15 @@ if [ "$ITERATION" -ge "$MAX_ITERATIONS" ]; then
   echo "This likely indicates poorly specified criteria or a systematic issue."
   echo ""
   echo "**Action required:** Review the intent and unit specs, then run \`/execute\` to resume."
-  STATE=$(echo "$STATE" | han parse json --set "status=blocked" --set "iteration=$ITERATION")
-  han keep save iteration.json "$STATE"
+  STATE=$(echo "$STATE" | dlc_json_set "status" "blocked" | dlc_json_set "iteration" "$ITERATION")
+  dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
   exit 0
 fi
 
 # Update hat and signal SessionStart to increment iteration
 # Intent-level state saved to current branch (intent branch)
 # state.hat = nextHat, state.iteration = ITERATION
-han keep save iteration.json '<updated JSON with hat and iteration>'
+dlc_state_save "$INTENT_DIR" "iteration.json" '<updated JSON with hat and iteration>'
 ```
 
 ### Step 4: Confirm (Normal Advancement)
@@ -505,7 +505,7 @@ Create PR: gh pr create --base ${DEFAULT_BRANCH} --head ai-dlc/{intent-slug}/mai
 If the intent has configured `announcements` in its frontmatter, generate each format:
 
 ```bash
-ANNOUNCEMENTS=$(han parse yaml announcements < "$INTENT_DIR/intent.md" 2>/dev/null || echo "[]")
+ANNOUNCEMENTS=$(dlc_frontmatter_get "announcements" "$INTENT_DIR/intent.md" 2>/dev/null || echo "[]")
 ```
 
 For each configured format, generate the announcement artifact in `.ai-dlc/{intent-slug}/`:
@@ -594,7 +594,7 @@ DEFAULT_BRANCH=$(echo "$CONFIG" | jq -r '.default_branch')
 TICKET_REFS=""
 for unit_file in "$INTENT_DIR"/unit-*.md; do
   [ -f "$unit_file" ] || continue
-  TICKET=$(han parse yaml ticket -r --default "" < "$unit_file" 2>/dev/null || echo "")
+  TICKET=$(dlc_frontmatter_get "ticket" "$unit_file" 2>/dev/null || echo "")
   if [ -n "$TICKET" ]; then
     TICKET_REFS="${TICKET_REFS}\nCloses ${TICKET}"
   fi

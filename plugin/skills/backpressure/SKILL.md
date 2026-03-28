@@ -343,10 +343,7 @@ AI remembers project patterns:
 
 ### Hook Pass Rates
 
-```bash
-# Check hook statistics
-han hook stats
-```
+Use Claude Code's built-in metrics and session analysis (via `/reflect`) to track these indicators.
 
 Good indicators:
 - First-attempt pass rate increasing over time

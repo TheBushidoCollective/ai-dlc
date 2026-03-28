@@ -152,7 +152,7 @@ User: "Add Google OAuth to the app"
 ### Step 5: Save
 
 ```bash
-han keep save completion-criteria.md "$CRITERIA_MARKDOWN"
+dlc_state_save "$INTENT_DIR" "completion-criteria.md" "$CRITERIA_MARKDOWN"
 ```
 
 ## Criteria Categories

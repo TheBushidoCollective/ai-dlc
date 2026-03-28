@@ -98,7 +98,7 @@ AI-DLC stores state in files:
 
 These files are:
 - Injected at session start (via hooks)
-- Updated during work (via `han keep`)
+- Updated during work (via `dlc_state_save`/`dlc_state_load`)
 - Preserved across `/clear` commands
 
 ## The Iteration Loop
@@ -106,7 +106,7 @@ These files are:
 ```
 ┌────────────────────────────────────────────────┐
 │  SessionStart Hook                              │
-│  - Load state from han keep                     │
+│  - Load state from .ai-dlc/{slug}/state/         │
 │  - Inject context (hat, intent, criteria)       │
 │  - Display previous learnings                   │
 └────────────────────────────────────────────────┘
@@ -116,7 +116,7 @@ These files are:
 │  Work Phase                                     │
 │  - AI operates with injected context            │
 │  - Backpressure guides quality                  │
-│  - Progress saved to han keep                   │
+│  - Progress saved to .ai-dlc/{slug}/state/      │
 └────────────────────────────────────────────────┘
                       │
                       ▼
@@ -194,13 +194,13 @@ Gather context, explore options, document findings.
 
 ### Scoped Storage
 
-AI-DLC uses `han keep` for state persistence:
+AI-DLC uses file-based state persistence in `.ai-dlc/{slug}/state/`:
 
-| Scope | Use Case |
+| Scope | Location |
 |-------|----------|
-| `--branch` | Per-branch iteration state (default) |
-| `--repo` | Cross-branch project knowledge |
-| `--global` | User preferences |
+| Intent state | `.ai-dlc/{slug}/state/` — iteration state, blockers, plans |
+| Intent artifacts | `.ai-dlc/{slug}/` — intent.md, unit files, discovery.md |
+| Project config | `.ai-dlc/settings.yml` — project-level settings |
 
 ### State Keys
 
@@ -220,7 +220,7 @@ AI-DLC uses `han keep` for state persistence:
 
 AI-DLC uses Han's hook system:
 
-- **SessionStart** - Inject context from han keep
+- **SessionStart** - Inject context from state files
 - **Stop** - Enforce iteration pattern, prompt for /clear
 
 ### Commands
@@ -236,12 +236,12 @@ AI-DLC provides slash commands:
 
 ### CLI Commands
 
-State is managed via han keep CLI commands:
+State is managed via foundation library functions:
 
-- `han keep save <key> <content>` - Persist state
-- `han keep load <key> --quiet` - Retrieve state
-- `han keep list` - List keys
-- `han keep delete <key>` - Remove key
+- `dlc_state_save "$INTENT_DIR" "<key>" "<content>"` - Persist state
+- `dlc_state_load "$INTENT_DIR" "<key>"` - Retrieve state
+- `dlc_state_list "$INTENT_DIR"` - List keys
+- `dlc_state_delete "$INTENT_DIR" "<key>"` - Remove key
 
 ## Best Practices
 

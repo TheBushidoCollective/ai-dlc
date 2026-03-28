@@ -1,7 +1,7 @@
 #!/bin/bash
 # inject-context.sh - SessionStart hook for AI-DLC
 #
-# Injects iteration context from han keep storage:
+# Injects iteration context from filesystem state:
 # - Current hat and instructions (from hats/ directory)
 # - Intent and completion criteria
 # - Previous scratchpad/blockers
@@ -19,38 +19,37 @@ else
   SOURCE="startup"
 fi
 
-# Check for han CLI (only dependency needed)
-if ! command -v han &> /dev/null; then
-  echo "Warning: han CLI is required for AI-DLC but not installed. Skipping context injection." >&2
-  exit 0
-fi
+# Source foundation libraries
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
+source "${PLUGIN_ROOT}/lib/state.sh"
+dlc_check_deps || exit 0
 
 # Cache git branch (used multiple times)
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 
 # Source DAG library if available
-DAG_LIB="${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
+DAG_LIB="${PLUGIN_ROOT}/lib/dag.sh"
 if [ -f "$DAG_LIB" ]; then
   # shellcheck source=/dev/null
   source "$DAG_LIB"
 fi
 
 # Source config library once (used for providers, maturity detection, etc.)
-CONFIG_LIB="${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+CONFIG_LIB="${PLUGIN_ROOT}/lib/config.sh"
 if [ -f "$CONFIG_LIB" ]; then
   # shellcheck source=/dev/null
   source "$CONFIG_LIB"
 fi
 
 # Source H•AI•K•U workspace integration (opt-in org memory)
-HAIKU_LIB="${CLAUDE_PLUGIN_ROOT}/lib/haiku.sh"
+HAIKU_LIB="${PLUGIN_ROOT}/lib/haiku.sh"
 if [ -f "$HAIKU_LIB" ]; then
   # shellcheck source=/dev/null
   source "$HAIKU_LIB"
 fi
 
 # Source telemetry library (non-blocking, no-op when disabled)
-TELEMETRY_LIB="${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+TELEMETRY_LIB="${PLUGIN_ROOT}/lib/telemetry.sh"
 if [ -f "$TELEMETRY_LIB" ]; then
   # shellcheck source=/dev/null
   source "$TELEMETRY_LIB"
@@ -65,29 +64,22 @@ fi
 
 # Load workflows from plugin (defaults) and project (overrides)
 # Project workflows merge with plugin workflows (project takes precedence)
-PLUGIN_WORKFLOWS="${CLAUDE_PLUGIN_ROOT}/workflows.yml"
+PLUGIN_WORKFLOWS="${PLUGIN_ROOT}/workflows.yml"
 PROJECT_WORKFLOWS=".ai-dlc/workflows.yml"
 
-# Parse workflows using a single han call per file (much faster than per-workflow)
+# Parse workflows from YAML file
 # Output format: name|description|hat1,hat2,hat3
 parse_all_workflows() {
   local file="$1"
   [ -f "$file" ] || return
-  # Convert YAML to JSON once, then extract all workflows
-  han parse yaml-to-json < "$file" 2>/dev/null | han parse json -r 2>/dev/null | while IFS= read -r line; do
-    # This approach still spawns processes; use native extraction instead
-    :
-  done
-  # Fallback: Extract workflow names and parse each (but batch the file read)
   local content
   content=$(cat "$file" 2>/dev/null) || return
   local names
   names=$(echo "$content" | grep -E '^[a-z][a-z0-9_-]*:' | sed 's/:.*//')
   for name in $names; do
-    # Use han to parse but pass content via variable to avoid re-reading file
     local desc hats
-    desc=$(echo "$content" | han parse yaml "${name}.description" -r 2>/dev/null || echo "")
-    hats=$(echo "$content" | han parse yaml "${name}.hats" 2>/dev/null | sed 's/^- //' | tr '\n' '|' | sed 's/|$//; s/|/ → /g' || echo "")
+    desc=$(echo "$content" | dlc_yaml_get "${name}.description")
+    hats=$(echo "$content" | yq ".${name}.hats[]" 2>/dev/null | tr '\n' '|' | sed 's/|$//; s/|/ → /g' || echo "")
     [ -n "$desc" ] && [ -n "$hats" ] && echo "$name|$desc|$hats"
   done
 }
@@ -133,21 +125,13 @@ yaml_get_simple() {
 }
 
 # Check for AI-DLC state
-# Intent-level state is stored on the current branch (intent branch for orchestrator, unit branch for subagents)
-# If we're on a unit branch (ai-dlc/intent/unit), we need to check the parent intent branch
-# Note: CURRENT_BRANCH already cached above
+# Load iteration state from filesystem
+INTENT_DIR=$(dlc_find_active_intent)
 ITERATION_JSON=""
-
-# Try current branch first
-ITERATION_JSON=$(han keep load iteration.json --quiet 2>/dev/null || echo "")
-
-# If not found and we're on a unit branch, try the parent intent branch
-# Unit branches: ai-dlc/{slug}/{unit-slug} (where unit-slug != "main")
-# Intent branches: ai-dlc/{slug}/main
-if [ -z "$ITERATION_JSON" ] && [[ "$CURRENT_BRANCH" == ai-dlc/*/* ]] && [[ "$CURRENT_BRANCH" != ai-dlc/*/main ]]; then
-  # Extract intent branch: ai-dlc/intent-slug/unit-slug -> ai-dlc/intent-slug/main
-  INTENT_BRANCH=$(echo "$CURRENT_BRANCH" | sed 's|^\(ai-dlc/[^/]*\)/.*|\1/main|')
-  ITERATION_JSON=$(han keep load --branch "$INTENT_BRANCH" iteration.json --quiet 2>/dev/null || echo "")
+IS_UNIT_BRANCH=false
+[[ "$CURRENT_BRANCH" == ai-dlc/*/* ]] && [[ "$CURRENT_BRANCH" != ai-dlc/*/main ]] && IS_UNIT_BRANCH=true
+if [ -n "$INTENT_DIR" ]; then
+  ITERATION_JSON=$(dlc_state_load "$INTENT_DIR" "iteration.json")
 fi
 
 if [ -z "$ITERATION_JSON" ]; then
@@ -312,30 +296,24 @@ if [ -z "$ITERATION_JSON" ]; then
   exit 0
 fi
 
-# Validate JSON and schema using han parse
-if ! echo "$ITERATION_JSON" | han parse json-validate \
-  --schema '{"iteration":"number","hat":"string","status":"string"}' \
-  --quiet 2>/dev/null; then
+# Validate JSON syntax
+if ! echo "$ITERATION_JSON" | dlc_json_validate; then
   echo "Warning: Invalid iteration.json format. Run /reset to clear state." >&2
   exit 0
 fi
 
 # State migration: add 'phase' field if missing (backward compat with pre-H•AI•K•U state)
-PHASE=$(echo "$ITERATION_JSON" | han parse json phase -r --default "" 2>/dev/null || echo "")
+PHASE=$(echo "$ITERATION_JSON" | dlc_json_get "phase")
 if [ -z "$PHASE" ]; then
   # Infer phase from current hat
-  HAT_FOR_PHASE=$(echo "$ITERATION_JSON" | han parse json hat -r --default "builder" 2>/dev/null || echo "builder")
+  HAT_FOR_PHASE=$(echo "$ITERATION_JSON" | dlc_json_get "hat" "builder")
   case "$HAT_FOR_PHASE" in
     planner) PHASE="elaboration" ;;
     *) PHASE="execution" ;;
   esac
-  ITERATION_JSON=$(echo "$ITERATION_JSON" | han parse json-set phase "$PHASE" 2>/dev/null || echo "$ITERATION_JSON")
+  ITERATION_JSON=$(echo "$ITERATION_JSON" | dlc_json_set "phase" "$PHASE" || echo "$ITERATION_JSON")
   # Save migrated state
-  if [ -n "$INTENT_BRANCH" ]; then
-    han keep save --branch "$INTENT_BRANCH" iteration.json "$ITERATION_JSON" 2>/dev/null || true
-  else
-    han keep save iteration.json "$ITERATION_JSON" 2>/dev/null || true
-  fi
+  [ -n "$INTENT_DIR" ] && dlc_state_save "$INTENT_DIR" "iteration.json" "$ITERATION_JSON" 2>/dev/null || true
 fi
 
 # Check for needsAdvance flag (set by Stop hook to signal iteration should increment)
@@ -349,33 +327,29 @@ fi
 # Note: This read-modify-write pattern is safe because Claude Code serializes
 # hook execution within a session. Cross-session race conditions are possible
 # but unlikely in practice since iterations are scoped to a branch/intent.
-NEEDS_ADVANCE=$(echo "$ITERATION_JSON" | han parse json needsAdvance -r --default false 2>/dev/null || echo "false")
+NEEDS_ADVANCE=$(echo "$ITERATION_JSON" | dlc_json_get "needsAdvance" "false")
 if [ "$NEEDS_ADVANCE" = "true" ] && [ "$SOURCE" != "compact" ]; then
   # Increment iteration and clear the flag
-  CURRENT_ITER=$(echo "$ITERATION_JSON" | han parse json iteration -r --default 1)
+  CURRENT_ITER=$(echo "$ITERATION_JSON" | dlc_json_get "iteration" "1")
   NEW_ITER=$((CURRENT_ITER + 1))
-  ITERATION_JSON=$(echo "$ITERATION_JSON" | han parse json-set iteration "$NEW_ITER" 2>/dev/null)
-  ITERATION_JSON=$(echo "$ITERATION_JSON" | han parse json-set needsAdvance false 2>/dev/null)
-  # Intent-level state saved to current branch (or intent branch if on unit branch)
-  if [ -n "$INTENT_BRANCH" ]; then
-    han keep save --branch "$INTENT_BRANCH" iteration.json "$ITERATION_JSON" 2>/dev/null || true
-  else
-    han keep save iteration.json "$ITERATION_JSON" 2>/dev/null || true
-  fi
+  ITERATION_JSON=$(echo "$ITERATION_JSON" | dlc_json_set "iteration" "$NEW_ITER")
+  ITERATION_JSON=$(echo "$ITERATION_JSON" | dlc_json_set "needsAdvance" "false")
+  # Save updated state
+  [ -n "$INTENT_DIR" ] && dlc_state_save "$INTENT_DIR" "iteration.json" "$ITERATION_JSON" 2>/dev/null || true
 
   # Emit telemetry for bolt iteration advance
   if type aidlc_log_event &>/dev/null; then
-    _ADVANCE_INTENT_SLUG=$(echo "$ITERATION_JSON" | han parse json intentSlug -r --default "" 2>/dev/null || echo "")
-    _ADVANCE_UNIT_SLUG=$(echo "$ITERATION_JSON" | han parse json targetUnit -r --default "" 2>/dev/null || echo "")
+    _ADVANCE_INTENT_SLUG=$(echo "$ITERATION_JSON" | dlc_json_get "intentSlug")
+    _ADVANCE_UNIT_SLUG=$(echo "$ITERATION_JSON" | dlc_json_get "targetUnit")
     aidlc_record_bolt_iteration "$_ADVANCE_INTENT_SLUG" "$_ADVANCE_UNIT_SLUG" "$NEW_ITER" "advanced"
   fi
 fi
 
-# Parse iteration state using han parse (no jq needed)
-ITERATION=$(echo "$ITERATION_JSON" | han parse json iteration -r --default 1)
-HAT=$(echo "$ITERATION_JSON" | han parse json hat -r --default planner)
-STATUS=$(echo "$ITERATION_JSON" | han parse json status -r --default active)
-WORKFLOW_NAME=$(echo "$ITERATION_JSON" | han parse json workflowName -r --default default)
+# Parse iteration state
+ITERATION=$(echo "$ITERATION_JSON" | dlc_json_get "iteration" "1")
+HAT=$(echo "$ITERATION_JSON" | dlc_json_get "hat" "planner")
+STATUS=$(echo "$ITERATION_JSON" | dlc_json_get "status" "active")
+WORKFLOW_NAME=$(echo "$ITERATION_JSON" | dlc_json_get "workflowName" "default")
 
 # Validate workflow name against known workflows (loaded above from workflows.yml files)
 if ! echo "$KNOWN_WORKFLOWS" | grep -qw "$WORKFLOW_NAME"; then
@@ -384,7 +358,8 @@ if ! echo "$KNOWN_WORKFLOWS" | grep -qw "$WORKFLOW_NAME"; then
 fi
 
 # Get workflow hats array as string
-WORKFLOW_HATS=$(echo "$ITERATION_JSON" | han parse json workflow 2>/dev/null || echo '["planner","builder","reviewer"]')
+WORKFLOW_HATS=$(echo "$ITERATION_JSON" | dlc_json_get_raw "workflow")
+[ -z "$WORKFLOW_HATS" ] || [ "$WORKFLOW_HATS" = "null" ] && WORKFLOW_HATS='["planner","builder","reviewer"]'
 # Format as arrow-separated list
 WORKFLOW_HATS_STR=$(echo "$WORKFLOW_HATS" | tr -d '[]"' | sed 's/,/ → /g')
 [ -z "$WORKFLOW_HATS_STR" ] && WORKFLOW_HATS_STR="planner → builder → reviewer"
@@ -427,35 +402,29 @@ if [ -d "$LEARNINGS_DIR" ]; then
   fi
 fi
 
-# Batch load all han keep values at once (single subprocess call)
-# This is much faster than 5+ separate han keep load calls
-load_all_keep_values() {
-  local branch_flag=""
-  [ -n "$INTENT_BRANCH" ] && branch_flag="--branch $INTENT_BRANCH"
+# Batch load all state values from filesystem
+load_all_state_values() {
+  declare -gA STATE_VALUES
 
-  # Get list of keys and load each (still multiple calls, but we can optimize further)
-  # For now, load the keys we need in parallel using subshells
-  declare -gA KEEP_VALUES
+  if [ -z "$INTENT_DIR" ]; then
+    return
+  fi
 
-  # Load intent-level keys (from intent branch if applicable)
-  KEEP_VALUES[intent-slug]=$(han keep load $branch_flag intent-slug --quiet 2>/dev/null || echo "")
-  KEEP_VALUES[current-plan.md]=$(han keep load $branch_flag current-plan.md --quiet 2>/dev/null || echo "")
+  # Load intent-level keys
+  STATE_VALUES[current-plan.md]=$(dlc_state_load "$INTENT_DIR" "current-plan.md")
 
-  # Load unit-level keys (always from current branch)
-  KEEP_VALUES[blockers.md]=$(han keep load blockers.md --quiet 2>/dev/null || echo "")
-  KEEP_VALUES[scratchpad.md]=$(han keep load scratchpad.md --quiet 2>/dev/null || echo "")
-  KEEP_VALUES[next-prompt.md]=$(han keep load next-prompt.md --quiet 2>/dev/null || echo "")
+  # Load unit-level keys
+  STATE_VALUES[blockers.md]=$(dlc_state_load "$INTENT_DIR" "blockers.md")
+  STATE_VALUES[scratchpad.md]=$(dlc_state_load "$INTENT_DIR" "scratchpad.md")
+  STATE_VALUES[next-prompt.md]=$(dlc_state_load "$INTENT_DIR" "next-prompt.md")
 }
 
-# Load all keep values in batch
-load_all_keep_values
+# Derive intent slug from directory
+INTENT_SLUG=""
+[ -n "$INTENT_DIR" ] && INTENT_SLUG=$(basename "$INTENT_DIR")
 
-# Get intent-slug from cached values
-INTENT_SLUG="${KEEP_VALUES[intent-slug]}"
-INTENT_DIR=""
-if [ -n "$INTENT_SLUG" ]; then
-  INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
-fi
+# Load all state values in batch
+load_all_state_values
 
 # Load and display intent from filesystem (source of truth)
 if [ -n "$INTENT_DIR" ] && [ -f "${INTENT_DIR}/intent.md" ]; then
@@ -485,7 +454,7 @@ if [ -n "$INTENT_DIR" ] && [ -f "${INTENT_DIR}/discovery.md" ]; then
 fi
 
 # Load and display current plan (from cached values)
-PLAN="${KEEP_VALUES[current-plan.md]}"
+PLAN="${STATE_VALUES[current-plan.md]}"
 if [ -n "$PLAN" ]; then
   echo "### Current Plan"
   echo ""
@@ -494,7 +463,7 @@ if [ -n "$PLAN" ]; then
 fi
 
 # Load and display blockers (from cached values)
-BLOCKERS="${KEEP_VALUES[blockers.md]}"
+BLOCKERS="${STATE_VALUES[blockers.md]}"
 if [ -n "$BLOCKERS" ]; then
   echo "### Previous Blockers"
   echo ""
@@ -503,7 +472,7 @@ if [ -n "$BLOCKERS" ]; then
 fi
 
 # Load and display scratchpad (from cached values)
-SCRATCHPAD="${KEEP_VALUES[scratchpad.md]}"
+SCRATCHPAD="${STATE_VALUES[scratchpad.md]}"
 if [ -n "$SCRATCHPAD" ]; then
   echo "### Learnings from Previous Iteration"
   echo ""
@@ -512,7 +481,7 @@ if [ -n "$SCRATCHPAD" ]; then
 fi
 
 # Load and display next prompt (from cached values)
-NEXT_PROMPT="${KEEP_VALUES[next-prompt.md]}"
+NEXT_PROMPT="${STATE_VALUES[next-prompt.md]}"
 if [ -n "$NEXT_PROMPT" ]; then
   echo "### Continue With"
   echo ""
@@ -569,7 +538,8 @@ if [ -n "$INTENT_DIR" ] && [ -d "$INTENT_DIR" ] && ls "$INTENT_DIR"/unit-*.md 1>
       for unit_file in "$INTENT_DIR"/unit-*.md; do
         [ -f "$unit_file" ] || continue
         NAME=$(basename "$unit_file" .md)
-        STATUS=$(han parse yaml status -r --default pending < "$unit_file" 2>/dev/null || echo "pending")
+        STATUS=$(dlc_frontmatter_get "status" "$unit_file")
+        [ -z "$STATUS" ] && STATUS="pending"
         echo "| $NAME | $STATUS |"
       done
       echo ""
@@ -598,17 +568,17 @@ HAT_CONTENT=""
 if [ -f ".ai-dlc/hats/${HAT}.md" ]; then
   HAT_FILE=".ai-dlc/hats/${HAT}.md"
 # Then check plugin directory
-elif [ -n "$CLAUDE_PLUGIN_ROOT" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/hats/${HAT}.md" ]; then
-  HAT_FILE="${CLAUDE_PLUGIN_ROOT}/hats/${HAT}.md"
+elif [ -n "$PLUGIN_ROOT" ] && [ -f "${PLUGIN_ROOT}/hats/${HAT}.md" ]; then
+  HAT_FILE="${PLUGIN_ROOT}/hats/${HAT}.md"
 fi
 
 echo "### Current Hat Instructions"
 echo ""
 
 if [ -n "$HAT_FILE" ] && [ -f "$HAT_FILE" ]; then
-  # Parse frontmatter directly (han parse yaml auto-extracts it)
-  NAME=$(han parse yaml name -r --default "" < "$HAT_FILE" 2>/dev/null || echo "")
-  DESC=$(han parse yaml description -r --default "" < "$HAT_FILE" 2>/dev/null || echo "")
+  # Parse frontmatter
+  NAME=$(dlc_frontmatter_get "name" "$HAT_FILE")
+  DESC=$(dlc_frontmatter_get "description" "$HAT_FILE")
 
   # Get content after frontmatter (skip until second ---)
   HAT_CONTENT=$(cat "$HAT_FILE")
@@ -683,8 +653,8 @@ echo ""
 echo "Before every stop, you MUST:"
 echo ""
 echo "1. **Commit working changes**: \`git add -A && git commit\`"
-echo "2. **Save scratchpad**: \`han keep save scratchpad.md \"...\"\`"
-echo "3. **Write next prompt**: \`han keep save next-prompt.md \"...\"\`"
+echo "2. **Save scratchpad**: save to \`.ai-dlc/{intent-slug}/state/scratchpad.md\`"
+echo "3. **Write next prompt**: save to \`.ai-dlc/{intent-slug}/state/next-prompt.md\`"
 echo ""
 echo "The next-prompt.md should contain what to continue with in the next iteration."
 echo "Without this, progress may be lost if the session ends."
@@ -693,7 +663,7 @@ echo "### Never Stop Arbitrarily"
 echo ""
 echo "- You MUST NOT stop mid-bolt without saving state"
 echo "- If you need user input, use \`AskUserQuestion\` tool"
-echo "- If blocked, document in \`han keep save blockers.md\`"
+echo "- If blocked, document in \`.ai-dlc/{intent-slug}/state/blockers.md\`"
 echo ""
 
 # Check branch naming convention (informational only)

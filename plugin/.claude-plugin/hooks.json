@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "han hook wrap-subagent-context --context-command 'bash \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-context.sh\"'",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-context.sh\"",
             "timeout": 30
           }
         ]

@@ -15,40 +15,29 @@
 
 set -e
 
-# Check for han CLI
-if ! command -v han &> /dev/null; then
-  exit 0
-fi
+# Source foundation libraries
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
+source "${PLUGIN_ROOT}/lib/state.sh"
+dlc_check_deps || exit 0
 
 # Check for AI-DLC state
-# Intent-level state is stored on the intent branch
-# If we're on a unit branch (ai-dlc/intent/unit), we need to check the parent intent branch
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
-INTENT_BRANCH=""
-ITERATION_JSON=""
+INTENT_DIR=$(dlc_find_active_intent)
+[ -z "$INTENT_DIR" ] && exit 0
+INTENT_SLUG=$(basename "$INTENT_DIR")
+ITERATION_JSON=$(dlc_state_load "$INTENT_DIR" "iteration.json")
+[ -z "$ITERATION_JSON" ] && exit 0
 
-# Try current branch first
-ITERATION_JSON=$(han keep load iteration.json --quiet 2>/dev/null || echo "")
-
-# If not found and we're on a unit branch, try the parent intent branch
-# Unit branches: ai-dlc/{slug}/{unit-slug} (where unit-slug != "main")
-# Intent branches: ai-dlc/{slug}/main
-if [ -z "$ITERATION_JSON" ] && [[ "$CURRENT_BRANCH" == ai-dlc/*/* ]] && [[ "$CURRENT_BRANCH" != ai-dlc/*/main ]]; then
-  # Extract intent branch: ai-dlc/intent-slug/unit-slug -> ai-dlc/intent-slug/main
-  INTENT_BRANCH=$(echo "$CURRENT_BRANCH" | sed 's|^\(ai-dlc/[^/]*\)/.*|\1/main|')
-  ITERATION_JSON=$(han keep load --branch "$INTENT_BRANCH" iteration.json --quiet 2>/dev/null || echo "")
-fi
-
-if [ -z "$ITERATION_JSON" ]; then
-  # No AI-DLC state - nothing to inject
-  exit 0
+IS_UNIT_BRANCH=false
+if [[ "$CURRENT_BRANCH" == ai-dlc/*/* ]] && [[ "$CURRENT_BRANCH" != ai-dlc/*/main ]]; then
+  IS_UNIT_BRANCH=true
 fi
 
 # Parse iteration state
-ITERATION=$(echo "$ITERATION_JSON" | han parse json iteration -r --default 1 2>/dev/null || echo "1")
-HAT=$(echo "$ITERATION_JSON" | han parse json hat -r --default "" 2>/dev/null || echo "")
-STATUS=$(echo "$ITERATION_JSON" | han parse json status -r --default active 2>/dev/null || echo "active")
-WORKFLOW_NAME=$(echo "$ITERATION_JSON" | han parse json workflowName -r --default default 2>/dev/null || echo "default")
+ITERATION=$(echo "$ITERATION_JSON" | dlc_json_get "iteration" "1")
+HAT=$(echo "$ITERATION_JSON" | dlc_json_get "hat")
+STATUS=$(echo "$ITERATION_JSON" | dlc_json_get "status" "active")
+WORKFLOW_NAME=$(echo "$ITERATION_JSON" | dlc_json_get "workflowName" "default")
 
 # Skip if no active task
 if [ "$STATUS" = "complete" ] || [ -z "$HAT" ]; then
@@ -78,28 +67,12 @@ case "$HAT" in
 esac
 
 # Get workflow hats array as string
-WORKFLOW_HATS=$(echo "$ITERATION_JSON" | han parse json workflow 2>/dev/null || echo '["planner","builder","reviewer"]')
+WORKFLOW_HATS=$(echo "$ITERATION_JSON" | dlc_json_get_raw "workflow")
+[ -z "$WORKFLOW_HATS" ] || [ "$WORKFLOW_HATS" = "null" ] && WORKFLOW_HATS='["planner","builder","reviewer"]'
 WORKFLOW_HATS_STR=$(echo "$WORKFLOW_HATS" | tr -d '[]"' | sed 's/,/ → /g')
 [ -z "$WORKFLOW_HATS_STR" ] && WORKFLOW_HATS_STR="planner → builder → reviewer"
 
-# Get intent-slug from han keep (pointer only, not content)
-load_keep_value() {
-  local key="$1"
-  if [ -n "$INTENT_BRANCH" ]; then
-    han keep load --branch "$INTENT_BRANCH" "$key" --quiet 2>/dev/null || echo ""
-  else
-    han keep load "$key" --quiet 2>/dev/null || echo ""
-  fi
-}
-
-INTENT_SLUG=$(load_keep_value intent-slug)
-if [ -z "$INTENT_SLUG" ]; then
-  # No active intent - nothing to inject
-  exit 0
-fi
-
 # Read content from filesystem (source of truth)
-INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
 INTENT_FILE="${INTENT_DIR}/intent.md"
 
 if [ ! -f "$INTENT_FILE" ]; then
@@ -200,8 +173,10 @@ if [ -d "$INTENT_DIR" ] && ls "$INTENT_DIR"/unit-*.md 1>/dev/null 2>&1; then
     for unit_file in "$INTENT_DIR"/unit-*.md; do
       [ -f "$unit_file" ] || continue
       NAME=$(basename "$unit_file" .md)
-      UNIT_STATUS=$(han parse yaml status -r --default pending < "$unit_file" 2>/dev/null || echo "pending")
-      DISCIPLINE=$(han parse yaml discipline -r --default "-" < "$unit_file" 2>/dev/null || echo "-")
+      UNIT_STATUS=$(dlc_frontmatter_get "status" "$unit_file")
+      [ -z "$UNIT_STATUS" ] && UNIT_STATUS="pending"
+      DISCIPLINE=$(dlc_frontmatter_get "discipline" "$unit_file")
+      [ -z "$DISCIPLINE" ] && DISCIPLINE="-"
       echo "| $NAME | $UNIT_STATUS | $DISCIPLINE |"
     done
     echo ""
@@ -224,7 +199,7 @@ if [ -z "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" ]; then
 
   if [ -n "$HAT_FILE" ] && [ -f "$HAT_FILE" ]; then
     # Parse frontmatter
-    NAME=$(han parse yaml name -r --default "" < "$HAT_FILE" 2>/dev/null || echo "")
+    NAME=$(dlc_frontmatter_get "name" "$HAT_FILE")
 
     # Get content after frontmatter
     INSTRUCTIONS=$(cat "$HAT_FILE" | sed '1,/^---$/d' | sed '1,/^---$/d')
@@ -270,7 +245,7 @@ if [ "$CONTEXT_SCOPE" != "review" ]; then
   echo ""
   echo "To access intent-level state from a unit branch:"
   echo "\`\`\`bash"
-  echo "han keep load --branch \"ai-dlc/${INTENT_SLUG}/main\" <key>"
+  echo "cat .ai-dlc/${INTENT_SLUG}/state/<key>"
   echo "\`\`\`"
   echo ""
 fi
@@ -283,11 +258,11 @@ if [ "$CONTEXT_SCOPE" = "build" ] || [ "$CONTEXT_SCOPE" = "full" ]; then
   echo "After entering your unit worktree, load unit-scoped state:"
   echo ""
   echo "\`\`\`bash"
-  echo "# Load previous context from your unit branch"
-  echo "han keep load current-plan.md --quiet 2>/dev/null || true"
-  echo "han keep load scratchpad.md --quiet 2>/dev/null || true"
-  echo "han keep load blockers.md --quiet 2>/dev/null || true"
-  echo "han keep load next-prompt.md --quiet 2>/dev/null || true"
+  echo "# Load previous context from state files"
+  echo "cat .ai-dlc/${INTENT_SLUG}/state/current-plan.md 2>/dev/null || true"
+  echo "cat .ai-dlc/${INTENT_SLUG}/state/scratchpad.md 2>/dev/null || true"
+  echo "cat .ai-dlc/${INTENT_SLUG}/state/blockers.md 2>/dev/null || true"
+  echo "cat .ai-dlc/${INTENT_SLUG}/state/next-prompt.md 2>/dev/null || true"
   echo "\`\`\`"
   echo ""
   echo "These are scoped to YOUR branch. Read them to understand prior work on this unit."
@@ -310,10 +285,10 @@ if [ "$CONTEXT_SCOPE" = "build" ] || [ "$CONTEXT_SCOPE" = "full" ]; then
   echo "### Before Stopping"
   echo ""
   echo "1. **Commit changes**: \`git add -A && git commit\`"
-  echo "2. **Save scratchpad** (unit-scoped - your branch): \`han keep save scratchpad.md \"...\"\`"
-  echo "3. **Write next prompt** (unit-scoped - your branch): \`han keep save next-prompt.md \"...\"\`"
+  echo "2. **Save scratchpad** (unit-scoped): save to \`.ai-dlc/${INTENT_SLUG}/state/scratchpad.md\`"
+  echo "3. **Write next prompt** (unit-scoped): save to \`.ai-dlc/${INTENT_SLUG}/state/next-prompt.md\`"
   echo ""
-  echo "**Note:** Unit-level state (scratchpad.md, next-prompt.md, blockers.md) is saved to YOUR branch."
+  echo "**Note:** Unit-level state (scratchpad.md, next-prompt.md, blockers.md) is saved to \`.ai-dlc/${INTENT_SLUG}/state/\`."
   echo "Intent-level state (iteration.json, intent.md, etc.) is managed by the orchestrator on main."
   echo ""
   echo "### Resilience (CRITICAL)"
@@ -338,7 +313,7 @@ echo "- \`🛑 Blocked:\` When genuinely stuck after rescue attempts"
 echo "- \`❓ Decision needed:\` Use \`AskUserQuestion\` for user input"
 echo ""
 echo "Output status messages directly - users see them in real-time."
-echo "Document blockers in \`han keep save blockers.md\` for persistence (unit-scoped)."
+echo "Document blockers in \`.ai-dlc/${INTENT_SLUG}/state/blockers.md\` for persistence (unit-scoped)."
 echo ""
 
 # Team communication instructions (Agent Teams mode)

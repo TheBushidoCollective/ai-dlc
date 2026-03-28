@@ -9,31 +9,18 @@
 # last_updated: 2026-03-26T19:30:00Z  # ISO 8601 UTC timestamp of last status change
 # ---
 
-# Source configuration system
+# Source configuration system and foundation libraries
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=config.sh
 source "$SCRIPT_DIR/config.sh"
+# shellcheck source=state.sh
+source "$SCRIPT_DIR/state.sh"
 
 # Fast YAML extraction for simple scalar values (avoids subprocess)
+# Delegates to _state_yaml_get_simple from state.sh
 # Usage: _yaml_get_simple "field" "default" < file
-# Only works for simple "field: value" lines in frontmatter
 _yaml_get_simple() {
-  local field="$1" default="$2"
-  local in_frontmatter=false value=""
-  while IFS= read -r line; do
-    [[ "$line" == "---" ]] && { $in_frontmatter && break || in_frontmatter=true; continue; }
-    $in_frontmatter || continue
-    if [[ "$line" =~ ^${field}:\ *(.*)$ ]]; then
-      value="${BASH_REMATCH[1]}"
-      # Remove quotes if present
-      value="${value#\"}"
-      value="${value%\"}"
-      value="${value#\'}"
-      value="${value%\'}"
-      break
-    fi
-  done
-  echo "${value:-$default}"
+  _state_yaml_get_simple "$@"
 }
 
 # Fast extraction of YAML array values (for depends_on)
@@ -483,11 +470,11 @@ update_unit_status() {
   local old_status
   old_status=$(parse_unit_status "$unit_file")
 
-  # Update status in frontmatter using han parse yaml-set
-  han parse yaml-set status "$new_status" < "$unit_file" > "$unit_file.tmp" && mv "$unit_file.tmp" "$unit_file"
+  # Update status in frontmatter
+  dlc_frontmatter_set "status" "$new_status" "$unit_file"
 
   # Update last_updated timestamp
-  han parse yaml-set last_updated "$(date -u +%Y-%m-%dT%H:%M:%SZ)" < "$unit_file" > "$unit_file.tmp" && mv "$unit_file.tmp" "$unit_file"
+  dlc_frontmatter_set "last_updated" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$unit_file"
 
   # Emit telemetry for unit status change (non-blocking)
   if [ -z "${_AIDLC_TELEMETRY_INIT:-}" ]; then
@@ -592,7 +579,7 @@ get_recommended_hat() {
   # Get workflow hats from workflows.yml
   local hats_file="${CLAUDE_PLUGIN_ROOT}/workflows.yml"
   local hats
-  hats=$(han parse yaml "${workflow_name}.hats" < "$hats_file" 2>/dev/null | sed 's/^- //' | tr '\n' ' ')
+  hats=$(yq ".${workflow_name}.hats[]" "$hats_file" 2>/dev/null | tr '\n' ' ')
 
   # Default hats if parse fails
   [ -z "$hats" ] && hats="planner builder reviewer"
@@ -726,10 +713,10 @@ discover_branch_intents() {
         local intent_content
         intent_content=$(git show "$branch:.ai-dlc/$slug/intent.md" 2>/dev/null) || continue
         local status
-        status=$(echo "$intent_content" | han parse yaml status -r --default active 2>/dev/null || echo "active")
+        status=$(echo "$intent_content" | _yaml_get_simple "status" "active")
         [ "$status" != "active" ] && continue
         local workflow
-        workflow=$(echo "$intent_content" | han parse yaml workflow -r --default default 2>/dev/null || echo "default")
+        workflow=$(echo "$intent_content" | _yaml_get_simple "workflow" "default")
         echo "$slug|$workflow|worktree|$branch"
         seen_slugs="$seen_slugs $slug"
       fi
@@ -748,10 +735,10 @@ discover_branch_intents() {
     local intent_content
     intent_content=$(git show "$branch:.ai-dlc/$slug/intent.md" 2>/dev/null) || continue
     local status
-    status=$(echo "$intent_content" | han parse yaml status -r --default active 2>/dev/null || echo "active")
+    status=$(echo "$intent_content" | _yaml_get_simple "status" "active")
     [ "$status" != "active" ] && continue
     local workflow
-    workflow=$(echo "$intent_content" | han parse yaml workflow -r --default default 2>/dev/null || echo "default")
+    workflow=$(echo "$intent_content" | _yaml_get_simple "workflow" "default")
     echo "$slug|$workflow|local|$branch"
     seen_slugs="$seen_slugs $slug"
   done < <(git for-each-ref --format='%(refname:short)' 'refs/heads/ai-dlc/*/main' 2>/dev/null)
@@ -769,10 +756,10 @@ discover_branch_intents() {
       local intent_content
       intent_content=$(git show "$branch:.ai-dlc/$slug/intent.md" 2>/dev/null) || continue
       local status
-      status=$(echo "$intent_content" | han parse yaml status -r --default active 2>/dev/null || echo "active")
+      status=$(echo "$intent_content" | _yaml_get_simple "status" "active")
       [ "$status" != "active" ] && continue
       local workflow
-      workflow=$(echo "$intent_content" | han parse yaml workflow -r --default default 2>/dev/null || echo "default")
+      workflow=$(echo "$intent_content" | _yaml_get_simple "workflow" "default")
       echo "$slug|$workflow|remote|$branch"
       seen_slugs="$seen_slugs $slug"
     done < <(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/ai-dlc/*/main' 2>/dev/null)

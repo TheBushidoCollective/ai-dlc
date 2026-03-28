@@ -14,32 +14,26 @@
 
 set -e
 
-# Check for han CLI (only dependency needed)
-if ! command -v han &> /dev/null; then
-  # han not installed - skip silently
-  exit 0
-fi
+# Source foundation libraries
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
+source "${PLUGIN_ROOT}/lib/state.sh"
+dlc_check_deps || exit 0
 
 # Check for AI-DLC state
-# Intent-level state is stored on the intent branch
-# If we're on a unit branch (ai-dlc/intent/unit), we need to check the parent intent branch
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
-INTENT_BRANCH=""
-ITERATION_JSON=""
-
-# Try current branch first
-ITERATION_JSON=$(han keep load iteration.json --quiet 2>/dev/null || echo "")
-
-# If not found and we're on a unit branch, try the parent intent branch
-if [ -z "$ITERATION_JSON" ] && [[ "$CURRENT_BRANCH" == ai-dlc/*/* ]] && [[ "$CURRENT_BRANCH" != ai-dlc/*/main ]]; then
-  # Extract intent branch: ai-dlc/intent-slug/unit-slug -> ai-dlc/intent-slug/main
-  INTENT_BRANCH=$(echo "$CURRENT_BRANCH" | sed 's|^\(ai-dlc/[^/]*\)/.*|\1/main|')
-  ITERATION_JSON=$(han keep load --branch "$INTENT_BRANCH" iteration.json --quiet 2>/dev/null || echo "")
+IS_UNIT_BRANCH=false
+if [[ "$CURRENT_BRANCH" == ai-dlc/*/* ]] && [[ "$CURRENT_BRANCH" != ai-dlc/*/main ]]; then
+  IS_UNIT_BRANCH=true
 fi
+
+# Load iteration state from filesystem
+INTENT_DIR=$(dlc_find_active_intent)
+ITERATION_JSON=""
+[ -n "$INTENT_DIR" ] && ITERATION_JSON=$(dlc_state_load "$INTENT_DIR" "iteration.json")
 
 # Unit-branch sessions (teammates or subagents) should NOT be told to /construct
 # The orchestrator on the intent branch manages the construction loop
-if [ -n "$INTENT_BRANCH" ]; then
+if [ "$IS_UNIT_BRANCH" = "true" ]; then
   echo "## AI-DLC: Unit Session Ending"
   echo ""
   echo "Ensure you committed changes and saved progress."
@@ -51,14 +45,14 @@ if [ -z "$ITERATION_JSON" ]; then
   exit 0
 fi
 
-# Validate JSON using han parse
-if ! echo "$ITERATION_JSON" | han parse json-validate --quiet 2>/dev/null; then
+# Validate JSON
+if ! echo "$ITERATION_JSON" | dlc_json_validate; then
   # Invalid JSON - skip silently
   exit 0
 fi
 
-# Parse state using han parse (no jq needed)
-STATUS=$(echo "$ITERATION_JSON" | han parse json status -r --default active)
+# Parse state
+STATUS=$(echo "$ITERATION_JSON" | dlc_json_get "status" "active")
 
 # If task is already complete, don't enforce iteration
 if [ "$STATUS" = "complete" ]; then
@@ -66,11 +60,11 @@ if [ "$STATUS" = "complete" ]; then
 fi
 
 # Get current iteration and hat
-CURRENT_ITERATION=$(echo "$ITERATION_JSON" | han parse json iteration -r --default 1)
-HAT=$(echo "$ITERATION_JSON" | han parse json hat -r --default builder)
+CURRENT_ITERATION=$(echo "$ITERATION_JSON" | dlc_json_get "iteration" "1")
+HAT=$(echo "$ITERATION_JSON" | dlc_json_get "hat" "builder")
 
 # Get iteration limit (0 or null = unlimited)
-MAX_ITERATIONS=$(echo "$ITERATION_JSON" | han parse json maxIterations -r --default 0 2>/dev/null || echo "0")
+MAX_ITERATIONS=$(echo "$ITERATION_JSON" | dlc_json_get "maxIterations" "0")
 
 # Check if iteration limit exceeded
 if [ "$MAX_ITERATIONS" -gt 0 ] && [ "$CURRENT_ITERATION" -ge "$MAX_ITERATIONS" ]; then
@@ -87,23 +81,21 @@ if [ "$MAX_ITERATIONS" -gt 0 ] && [ "$CURRENT_ITERATION" -ge "$MAX_ITERATIONS" ]
   echo ""
   echo "**Options:**"
   echo "1. Review progress and decide if work is complete"
-  echo "2. Increase limit: \`han keep save iteration.json '{...\"maxIterations\": 100}'\`"
+  echo "2. Increase limit: edit \`.ai-dlc/{intent-slug}/state/iteration.json\` and set maxIterations"
   echo "3. Reset iteration count: \`/reset\` and start fresh"
   echo ""
-  echo "Progress preserved in han keep storage."
+  echo "Progress preserved in \`.ai-dlc/{intent-slug}/state/\`."
   exit 0
 fi
 
 # Get intent slug and check DAG status
-INTENT_SLUG=$(han keep load intent-slug --quiet 2>/dev/null || echo "")
-INTENT_DIR=""
+INTENT_SLUG=""
+[ -n "$INTENT_DIR" ] && INTENT_SLUG=$(basename "$INTENT_DIR")
 READY_COUNT=0
 IN_PROGRESS_COUNT=0
 ALL_COMPLETE="false"
 
-if [ -n "$INTENT_SLUG" ]; then
-  INTENT_DIR=".ai-dlc/${INTENT_SLUG}"
-
+if [ -n "$INTENT_SLUG" ] && [ -n "$INTENT_DIR" ]; then
   # Check if DAG library is available and intent dir exists
   DAG_LIB="${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
   if [ -f "$DAG_LIB" ] && [ -d "$INTENT_DIR" ]; then
@@ -150,7 +142,7 @@ elif [ "$READY_COUNT" -gt 0 ] || [ "$IN_PROGRESS_COUNT" -gt 0 ]; then
   echo ""
   echo "### ACTION REQUIRED"
   echo ""
-  TARGET_UNIT=$(echo "$ITERATION_JSON" | han parse json targetUnit -r --default "" 2>/dev/null || echo "")
+  TARGET_UNIT=$(echo "$ITERATION_JSON" | dlc_json_get "targetUnit")
   if [ -n "$TARGET_UNIT" ]; then
     echo "Call \`/execute ${INTENT_SLUG} ${TARGET_UNIT}\` to continue targeted execution."
   else
@@ -168,10 +160,10 @@ else
   echo "No units are ready to work on. All remaining units are blocked."
   echo ""
   echo "**User action required:**"
-  echo "1. Review blockers: \`han keep load blockers.md\`"
+  echo "1. Review blockers: read \`.ai-dlc/${INTENT_SLUG}/state/blockers.md\`"
   echo "2. Unblock units or resolve dependencies"
   echo "3. Run \`/execute\` to resume"
   echo ""
 fi
 
-echo "Progress preserved in han keep storage."
+echo "Progress preserved in \`.ai-dlc/${INTENT_SLUG}/state/\`."

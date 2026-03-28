@@ -328,6 +328,65 @@ Focus your questions on understanding:
 
 Continue asking until you can articulate back to the user, in your own words, exactly what they want built. If you can't explain the domain entities, data flows, and user experience in concrete detail, you don't understand it yet.
 
+### Phase 2 (continued): Deployment & Operations Questions
+
+**Gate:** Skip this sub-phase entirely if the intent is a library, documentation, design-only, or pure refactor with no deployment surface. Also skip if the stack config in `.ai-dlc/settings.yml` has no infrastructure/compute/monitoring/operations layers configured (check via `get_stack_layer()`).
+
+To determine if this sub-phase applies, check:
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+STACK_INFRA=$(get_stack_layer "infrastructure")
+STACK_COMPUTE=$(get_stack_layer "compute")
+STACK_MONITORING=$(get_stack_layer "monitoring")
+STACK_OPS=$(get_stack_layer "operations")
+# Skip if all layers are empty arrays/objects AND intent doesn't introduce new deployable services
+HAS_STACK=$([ "$STACK_INFRA" != "[]" ] || [ "$STACK_COMPUTE" != "[]" ] || [ "$STACK_MONITORING" != "[]" ] || [ "$STACK_OPS" != "{}" ] && echo "true" || echo "false")
+```
+
+If the intent involves a new deployable service, API, worker, or infrastructure change — OR if stack config layers are populated — ask targeted deployment and operations questions using `AskUserQuestion`:
+
+```json
+{
+  "questions": [
+    {
+      "question": "Where will this be deployed?",
+      "header": "Deployment Target",
+      "options": [
+        {"label": "Containers (Kubernetes/ECS)", "description": "Orchestrated container deployment"},
+        {"label": "Serverless (Lambda/Cloud Functions)", "description": "Function-as-a-service"},
+        {"label": "Bare metal / VMs", "description": "Traditional server deployment"},
+        {"label": "Existing infrastructure", "description": "Deploys into current infra — no new provisioning needed"}
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "What monitoring and observability do you need?",
+      "header": "Monitoring Needs",
+      "options": [
+        {"label": "Use existing monitoring stack", "description": "Integrate with what's already in place"},
+        {"label": "New monitoring required", "description": "Need to set up dashboards, alerts, or SLOs for this"},
+        {"label": "Minimal / none", "description": "Internal tool or low-risk — basic health checks only"}
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Are there operational concerns to address?",
+      "header": "Operational Needs",
+      "options": [
+        {"label": "Needs runbooks and alerting", "description": "Production service requiring on-call procedures"},
+        {"label": "Standard ops", "description": "Follow existing operational patterns — nothing special"},
+        {"label": "No operational needs", "description": "No runtime operational requirements"}
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+```
+
+Pre-populate option descriptions using stack config data when available (e.g., if Kubernetes is already configured in the infrastructure layer, highlight it as the existing deployment target).
+
+Store the user's answers — they feed into Phase 5 (auto-creation of infrastructure/observability units) and Phase 6 (unit frontmatter ops blocks).
+
 ---
 
 ## Phase 2.25: Intent Worktree & Discovery Initialization

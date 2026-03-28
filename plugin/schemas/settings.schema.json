@@ -56,9 +56,16 @@
 				"schema_drift": { "type": "boolean", "default": false },
 				"accessibility": { "type": "boolean", "default": false },
 				"api_contract": { "type": "boolean", "default": false },
-				"design_system": { "type": "boolean", "default": false }
+				"design_system": { "type": "boolean", "default": false },
+				"deployment_safety": { "type": "boolean", "default": false },
+				"observability_completeness": { "type": "boolean", "default": false },
+				"infrastructure_correctness": { "type": "boolean", "default": false }
 			},
 			"default": {}
+		},
+		"stack": {
+			"$ref": "#/definitions/stackConfig",
+			"description": "Infrastructure stack configuration describing the deployment and operations layers"
 		},
 		"model_profiles": {
 			"type": "object",
@@ -276,6 +283,18 @@
 				"build": {
 					"$ref": "#/definitions/qualityGateEntry",
 					"description": "Build command (e.g., 'bun run build', 'cargo build')"
+				},
+				"deploy_validate": {
+					"$ref": "#/definitions/qualityGateEntry",
+					"description": "Deployment artifact validation command"
+				},
+				"container_build": {
+					"$ref": "#/definitions/qualityGateEntry",
+					"description": "Container image build command (e.g., 'docker build .')"
+				},
+				"manifest_validate": {
+					"$ref": "#/definitions/qualityGateEntry",
+					"description": "Deployment manifest validation command (e.g., 'kubectl --dry-run=client', 'helm template | kubeval')"
 				}
 			},
 			"additionalProperties": {
@@ -341,6 +360,52 @@
 				"auto_squash": {
 					"type": "boolean",
 					"description": "Whether to squash commits when merging. Only applies when auto_merge is enabled."
+				}
+			},
+			"additionalProperties": false
+		},
+		"stackConfig": {
+			"type": "object",
+			"description": "Infrastructure stack configuration. Each layer is optional. An empty stack ({}) is valid.",
+			"properties": {
+				"infrastructure": {
+					"type": "array",
+					"description": "Infrastructure-as-code providers (Terraform, CloudFormation, Pulumi)",
+					"items": { "$ref": "providers/stack-infrastructure.schema.json" }
+				},
+				"compute": {
+					"type": "array",
+					"description": "Compute platform providers (Kubernetes, ECS, Lambda, Docker Compose)",
+					"items": { "$ref": "providers/stack-compute.schema.json" }
+				},
+				"packaging": {
+					"type": "array",
+					"description": "Packaging/manifest providers (Helm, Kustomize, raw manifests)",
+					"items": { "$ref": "providers/stack-packaging.schema.json" }
+				},
+				"pipeline": {
+					"type": "array",
+					"description": "CI/CD pipeline providers (GitHub Actions, GitLab CI, Jenkins, CircleCI)",
+					"items": { "$ref": "providers/stack-pipeline.schema.json" }
+				},
+				"secrets": {
+					"type": "array",
+					"description": "Secrets management providers (Vault, AWS SM, GCP SM, env)",
+					"items": { "$ref": "providers/stack-secrets.schema.json" }
+				},
+				"monitoring": {
+					"type": "array",
+					"description": "Monitoring providers (Prometheus, Datadog, CloudWatch, New Relic, OTel)",
+					"items": { "$ref": "providers/stack-monitoring.schema.json" }
+				},
+				"alerting": {
+					"type": "array",
+					"description": "Alerting/on-call providers (PagerDuty, Opsgenie, Datadog, Alertmanager)",
+					"items": { "$ref": "providers/stack-alerting.schema.json" }
+				},
+				"operations": {
+					"$ref": "providers/stack-operations.schema.json",
+					"description": "Operations runtime configuration (runtime, scheduled tasks, reactive handlers)"
 				}
 			},
 			"additionalProperties": false

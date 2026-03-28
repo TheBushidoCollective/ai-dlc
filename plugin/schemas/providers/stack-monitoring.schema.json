@@ -1,0 +1,28 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://han.guru/schemas/providers/stack-monitoring.schema.json",
+	"title": "Stack Monitoring Provider Entry",
+	"description": "Monitoring provider configuration for the stack monitoring layer",
+	"type": "object",
+	"properties": {
+		"provider": {
+			"type": "string",
+			"enum": ["prometheus", "datadog", "cloudwatch", "newrelic", "otel", "none"],
+			"description": "Monitoring provider"
+		},
+		"dashboards": {
+			"type": "string",
+			"description": "Path or identifier for dashboard definitions"
+		},
+		"alerts": {
+			"type": "string",
+			"description": "Path or identifier for alert rule definitions"
+		},
+		"slos": {
+			"type": "string",
+			"description": "Path or identifier for SLO definitions"
+		}
+	},
+	"required": ["provider"],
+	"additionalProperties": true
+}

@@ -283,7 +283,7 @@ For `owner: agent` operations:
    ```bash
    OPS_DIR="$REPO_ROOT/.ai-dlc/${INTENT_SLUG}/operations"
    SCRIPT=""
-   for ext in sh ts py; do
+   for ext in sh ts py go; do
      if [ -f "$OPS_DIR/${OPERATION_NAME}.$ext" ]; then
        SCRIPT="$OPS_DIR/${OPERATION_NAME}.$ext"
        break
@@ -294,7 +294,7 @@ For `owner: agent` operations:
    If no script found:
    ```
    Error: No companion script found for agent operation: {operation-name}
-   Expected one of: {operation-name}.sh, {operation-name}.ts, {operation-name}.py
+   Expected one of: {operation-name}.sh, {operation-name}.ts, {operation-name}.py, {operation-name}.go
    in .ai-dlc/{intent}/operations/
    ```
 

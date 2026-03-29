@@ -398,7 +398,7 @@ This means a single intent can have some units flowing through Planner → Desig
 
 ## Operation and Reflection
 
-Operation and reflection are not workflow selections -- they are separate lifecycle phases that run after construction completes. Use `/operate` to enter the Operation phase and `/reflect` to enter the Reflection phase. These phases have their own hat sequences and are invoked independently of whichever workflow was used during execution. See the [Lifecycle](/docs/lifecycle/) documentation for details.
+Operation and reflection are not workflow selections -- they are separate lifecycle phases that run after construction completes. Use `/operate` to enter the Operation phase and `/reflect` to enter the Reflection phase. These phases have their own hat sequences and are invoked independently of whichever workflow was used during execution. See the [Operations Guide](/docs/operations-guide/) for details on defining and managing operational tasks.
 
 ## Custom Workflows
 

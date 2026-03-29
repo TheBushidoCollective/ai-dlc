@@ -84,6 +84,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- add operations guide, stack config reference, and operation file schema docs pages
+- update 2026 paper Operations section with implementation details, example scenario, and glossary entries
 - add foundation libraries replacing han CLI dependency ([94e045b](../../commit/94e045b))
 
 ### Fixed

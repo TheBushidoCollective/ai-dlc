@@ -328,6 +328,70 @@ Focus your questions on understanding:
 
 Continue asking until you can articulate back to the user, in your own words, exactly what they want built. If you can't explain the domain entities, data flows, and user experience in concrete detail, you don't understand it yet.
 
+### Phase 2 (continued): Deployment & Operations Questions
+
+**Gate:** Skip this sub-phase entirely if the intent is a library, documentation, design-only, or pure refactor with no deployment surface. Also skip if the stack config in `.ai-dlc/settings.yml` has no infrastructure/compute/monitoring/operations layers configured (check via `get_stack_layer()`).
+
+To determine if this sub-phase applies, check:
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+STACK_INFRA=$(get_stack_layer "infrastructure")
+STACK_COMPUTE=$(get_stack_layer "compute")
+STACK_MONITORING=$(get_stack_layer "monitoring")
+STACK_OPS=$(get_stack_layer "operations")
+# Skip if all layers are empty arrays/objects AND intent doesn't introduce new deployable services
+if [ "$STACK_INFRA" != "[]" ] || [ "$STACK_COMPUTE" != "[]" ] || \
+   [ "$STACK_MONITORING" != "[]" ] || [ "$STACK_OPS" != "{}" ]; then
+  HAS_STACK=true
+else
+  HAS_STACK=false
+fi
+```
+
+If the intent involves a new deployable service, API, worker, or infrastructure change — OR if stack config layers are populated — ask targeted deployment and operations questions using `AskUserQuestion`:
+
+```json
+{
+  "questions": [
+    {
+      "question": "Where will this be deployed?",
+      "header": "Deployment Target",
+      "options": [
+        {"label": "Containers (Kubernetes/ECS)", "description": "Orchestrated container deployment"},
+        {"label": "Serverless (Lambda/Cloud Functions)", "description": "Function-as-a-service"},
+        {"label": "Bare metal / VMs", "description": "Traditional server deployment"},
+        {"label": "Existing infrastructure", "description": "Deploys into current infra — no new provisioning needed"}
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "What monitoring and observability do you need?",
+      "header": "Monitoring Needs",
+      "options": [
+        {"label": "Use existing monitoring stack", "description": "Integrate with what's already in place"},
+        {"label": "New monitoring required", "description": "Need to set up dashboards, alerts, or SLOs for this"},
+        {"label": "Minimal / none", "description": "Internal tool or low-risk — basic health checks only"}
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Are there operational concerns to address?",
+      "header": "Operational Needs",
+      "options": [
+        {"label": "Needs runbooks and alerting", "description": "Production service requiring on-call procedures"},
+        {"label": "Standard ops", "description": "Follow existing operational patterns — nothing special"},
+        {"label": "No operational needs", "description": "No runtime operational requirements"}
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+```
+
+Pre-populate option descriptions using stack config data when available (e.g., if Kubernetes is already configured in the infrastructure layer, highlight it as the existing deployment target).
+
+Store the user's answers — they feed into Phase 5 (auto-creation of infrastructure/observability units) and Phase 6 (unit frontmatter ops blocks).
+
 ---
 
 ## Phase 2.25: Intent Worktree & Discovery Initialization
@@ -796,13 +860,17 @@ Do NOT ask the user whether to decompose. Assess the complexity from the domain 
 |---|---|---|
 | `backend`, `api`, `devops`, `documentation` | `default` (planner → builder → reviewer) | Standard implementation cycle |
 | `design` | `design` (planner → designer → reviewer) | Design artifacts need design hat, not builder |
+| `infrastructure` | `default` (planner → builder → reviewer) | IaC provisioning follows standard plan-build-review |
+| `observability` | `default` (planner → builder → reviewer) | Monitoring/alerting setup follows standard plan-build-review |
 | Security-sensitive units | `adversarial` (planner → builder → red-team → blue-team → reviewer) | Adversarial testing for auth, crypto, data handling |
 | Test-driven units | `tdd` (test-writer → implementer → refactorer → reviewer) | Red-Green-Refactor cycle for high-correctness code |
 | Units without a clear workflow need | (omit `workflow:` field) | Inherits the intent-level workflow |
 
 Set the `workflow:` frontmatter field on units that need a non-default workflow. Omit it (or leave empty) for units that should use the intent-level workflow.
 
-**Auto-routing rule:** When generating a unit with `discipline: design`, automatically set `workflow: design` in the frontmatter. Do not require the user to specify this manually. This ensures design units always route through the design workflow (`planner → designer → reviewer`) instead of accidentally inheriting the intent-level workflow.
+**Auto-routing rules:**
+- When generating a unit with `discipline: design`, automatically set `workflow: design` in the frontmatter. This ensures design units always route through the design workflow (`planner → designer → reviewer`) instead of accidentally inheriting the intent-level workflow.
+- When generating a unit with `discipline: infrastructure` or `discipline: observability`, the default workflow applies — no `workflow:` override is needed (omit or leave empty). Do not require the user to specify this manually.
 
 Define each unit with **enough detail that a builder with zero prior context builds the right thing**:
 
@@ -842,6 +910,52 @@ Data sources:
 This unit does NOT handle: hat visualization (unit-03), live monitoring (unit-04),
 or timeline replay (unit-05). It only renders the structural hierarchy.
 ```
+
+### Phase 5 (continued): Operations-Aware Unit Creation
+
+**Gate:** Skip this sub-phase entirely if the intent has no deployment surface. An intent has no deployment surface when:
+- It is a library, documentation, design-only, or pure refactor intent
+- Phase 2 ops questions were skipped (no deployment/monitoring/operations answers)
+- No stack config layers are populated in `.ai-dlc/settings.yml`
+
+When the intent DOES have a deployment surface, apply these rules to determine whether to create dedicated ops units or fold ops concerns into feature units:
+
+#### Step 1: Detect deployment surface
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+STACK_INFRA=$(get_stack_layer "infrastructure")
+STACK_MONITORING=$(get_stack_layer "monitoring")
+STACK_COMPUTE=$(get_stack_layer "compute")
+
+# Check: does the intent introduce NEW deployable services?
+# (Determined from clarification answers and domain model)
+INTRODUCES_NEW_SERVICES=false  # set true if intent adds new services/APIs/workers
+
+# Check: does the intent require NEW monitoring?
+# (Determined from Phase 2 ops answers)
+REQUIRES_NEW_MONITORING=false  # set true if user indicated new monitoring needed
+```
+
+#### Step 2: Apply auto-creation rules
+
+**Large intents (>2 units) with new deployable services:**
+- **Auto-create a dedicated infrastructure unit** (`discipline: infrastructure`) for IaC, Dockerfiles, Helm charts, Terraform manifests, CI/CD pipeline config. This unit has no `depends_on` — it is foundational. Feature units that deploy should `depends_on` the infrastructure unit.
+- **Auto-create a dedicated observability unit** (`discipline: observability`) for dashboards, alert rules, SLOs, logging config, tracing setup. This unit `depends_on` feature units (it needs to know what to monitor).
+
+**Small intents (1-2 units):**
+- Do NOT create separate infrastructure or observability units — this would be over-engineering for the scope.
+- Instead, **fold ops concerns into existing feature units**: add deployment/monitoring sections to existing unit specs and include deployable/observable success criteria in those units.
+
+**No deployment surface:**
+- Skip entirely. No ops units, no ops frontmatter blocks, no ops criteria. The elaboration flow is 100% unchanged.
+
+#### Step 3: Dependency wiring for auto-created ops units
+
+When infrastructure and observability units are auto-created:
+- Infrastructure unit: `depends_on: []` (foundational — no dependencies)
+- Feature units that deploy: add the infrastructure unit to their `depends_on` list
+- Observability unit: `depends_on` all feature units that emit metrics or logs (needs to know what to monitor)
 
 Present the full unit breakdown to the user and confirm before proceeding.
 
@@ -1248,6 +1362,20 @@ design_ref: ""  # Optional: path to external design file (PNG/JPG/HTML) or direc
 views: []  # Optional: list of views/routes this unit produces (e.g., ["/", "/about"]). Used for screenshot capture targeting.
 # git:                         # Optional: per-unit VCS override (only include when unit has an override)
 #   change_strategy: ""        # Overrides intent-level strategy for this unit (e.g., "unit" for foundational units)
+# --- Operations frontmatter (OPTIONAL — only include when unit has deployment surface) ---
+# deployment:
+#   target: ""          # e.g., kubernetes, ecs, lambda, docker-compose
+#   artifacts: []       # e.g., [Dockerfile, helm-chart, terraform]
+#   environments: []    # e.g., [staging, production]
+# monitoring:
+#   metrics: []         # key metrics this unit should emit
+#   dashboards: []      # dashboard definitions or references
+#   alerts: []          # alert rules for this unit
+#   slos: []            # SLO definitions
+# operations:
+#   runbooks: []        # operational runbook references
+#   rollback: ""        # rollback procedure
+#   scaling: ""         # scaling strategy
 ---
 
 # unit-NN-{slug}
@@ -1284,6 +1412,20 @@ misinterpret what to build.}
 ## Notes
 {Implementation hints, context, pitfalls to avoid}
 ```
+
+**Operations frontmatter blocks** (`deployment:`, `monitoring:`, `operations:`) are **optional** — only include them when the unit has a deployment surface. To determine applicability, check the unit's discipline against config.sh helpers:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+# Include deployment: block when deployable category is applicable
+is_category_applicable "$DISCIPLINE" "deployable" && INCLUDE_DEPLOYMENT=true
+# Include monitoring: block when observable category is applicable
+is_category_applicable "$DISCIPLINE" "observable" && INCLUDE_MONITORING=true
+# Include operations: block when operable category is applicable
+is_category_applicable "$DISCIPLINE" "operable" && INCLUDE_OPERATIONS=true
+```
+
+For `discipline: infrastructure` or `discipline: observability` units, always populate the relevant ops blocks. For other disciplines, only include blocks where the category is applicable per `get_discipline_categories()`. When included, uncomment the relevant block(s) in the frontmatter and populate with values from Phase 2 ops answers.
 
 > **Template selection by discipline:** For `discipline: design` units, use the design template below (Design Deliverables, States to Cover, Constraints, Design Tokens Reference). For all other disciplines (`frontend`, `backend`, `api`, `documentation`, `devops`, etc.), use the standard template above (Domain Entities, Data Sources, Technical Specification).
 
@@ -1356,6 +1498,8 @@ design - This unit will be executed by design-focused agents.
 - `api` → API development agents
 - `documentation` → `do-technical-documentation` agents
 - `devops` → infrastructure/deployment agents
+- `infrastructure` → general-purpose agents with IaC/provisioning context
+- `observability` → general-purpose agents with monitoring/alerting context
 - `design` → design-focused agents
 
 #### Per-unit review loop:
@@ -1370,6 +1514,25 @@ For each unit (in dependency order — units with no `depends_on` first):
 git add .ai-dlc/${INTENT_SLUG}/unit-NN-{slug}.md
 git commit -m "elaborate(${INTENT_SLUG}): draft unit-NN-{slug}"
 ```
+
+**Step A.2 — Validate criteria categories by discipline.** After writing each unit, check that its success criteria cover all required categories for its discipline:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+UNIT_DISCIPLINE="{discipline from unit frontmatter}"
+CATEGORIES_JSON=$(get_discipline_categories "$UNIT_DISCIPLINE")
+# Returns e.g.: {"functional":"required","deployable":"required","observable":"required","operable":"required"}
+```
+
+For each category where the value is `"required"`, scan the unit's success criteria to verify at least one criterion addresses that category:
+- **functional**: criteria about correct behavior, expected outputs, user-visible features
+- **deployable**: criteria about deployment, provisioning, artifacts, environment configuration
+- **observable**: criteria about metrics, logging, dashboards, alerts, tracing
+- **operable**: criteria about runbooks, rollback procedures, scaling, operational readiness
+
+If a required category has zero criteria, add at least one criterion for that category before presenting the unit for review. For categories with value `"optional"`, note the gap but do not require criteria — include them only if relevant to the unit's scope. For categories with value `null`, the category does not apply — skip it entirely.
+
+This enforcement ensures that, for example, a `backend` unit always has deployable/observable/operable criteria, while a `backend-library` unit only requires functional criteria.
 
 **Step B — Present the full unit for review.** Read the file you just wrote and display its **complete contents** — every single line including frontmatter, description, technical specification, success criteria, risks, boundaries, and notes. Do NOT summarize, truncate, or show only the title. The user must see exactly what will be committed. Use a fenced code block:
 

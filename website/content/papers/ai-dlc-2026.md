@@ -1115,55 +1115,60 @@ For complex systems requiring multiple Units built in parallel:
 
 #### Operations Phase
 
-The Operations Phase centers on deployment, observability, and maintenance of systems, leveraging AI for operational efficiency.
+The Operations Phase manages ongoing operational tasks after construction completes. Rather than treating operations as an external concern, AI-DLC models operational work as file-based specs that live alongside the code they support.
 
-**Deployment:**
+**Operations as Specs:**
 
-1. AI packages modules into Deployment Units (containers, functions, IaC)
-2. Developers review deployment configuration
-3. AI executes deployment to staging environment
-4. Validation tests run against staging
-5. Human approves promotion to production
-6. AI deploys to production with rollback capability
+Operations are defined as Markdown files with YAML frontmatter in `.ai-dlc/{intent}/operations/`. Each operation spec declares its type, ownership model, and execution parameters:
 
-**Observability and Monitoring:**
+```markdown
+---
+name: scale-on-load
+type: reactive
+owner: agent
+trigger: "p99_latency > 200ms for 5m"
+runtime: node
+---
 
-AI actively analyzes telemetry data:
+Scale API replicas when latency exceeds threshold.
 
-- **Metrics:** CPU, memory, latency, error rates, business KPIs
-- **Logs:** Error patterns, warning trends, anomaly detection
-- **Traces:** Request flow analysis, bottleneck identification
-
-**Anomaly Response:**
-
-For well-defined operational scenarios with runbook coverage, AI operates autonomously (AHOTL for operations). Humans monitor dashboards, receive alerts for novel situations, and intervene for edge cases outside runbook coverage.
-
-**Autonomous Operations Boundaries Example:**
-
-```yaml
-autonomous_actions:
-  allowed:
-    - name: scale_horizontally
-      trigger: "cpu > 80% for 5m"
-      max_replicas: 10
-      cooldown: 10m
-
-    - name: restart_unhealthy
-      trigger: "health_check_failures > 3"
-      max_restarts: 3
-      cooldown: 10m
-
-    - name: rollback_deployment
-      trigger: "error_rate > 5% for 10m"
-      automatic: true
-
-  requires_human_approval:
-    - scale_vertically
-    - database_migration
-    - security_configuration_change
-    - delete_any_resource
-    - modify_network_rules
+Check current replica count, compute target based on
+request rate, and apply scaling via kubectl.
 ```
+
+**Operation Types:**
+
+- **Scheduled** — Cron-driven tasks (secret rotation, cache warming, report generation)
+- **Reactive** — Trigger-driven responses (auto-scaling, rollback on error spike, certificate renewal)
+- **Process** — Human-cadence work (quarterly security reviews, capacity planning, compliance audits)
+
+**Ownership Models:**
+
+- **Agent-owned** — Automated scripts with companion files (`.ts`, `.py`, `.sh`). AI executes these autonomously within defined boundaries.
+- **Human-owned** — Checklist-based runbooks. AI presents the checklist and tracks completion, but humans perform the work.
+
+**The `/operate` Command:**
+
+A unified interface manages all operational tasks:
+
+- `/operate` — List all operations across intents
+- `/operate {intent}` — Status table for one intent's operations
+- `/operate {intent} {operation}` — Execute an agent script or display a human checklist
+- `/operate {intent} --deploy [target]` — Generate deployment manifests (Kubernetes CronJob, GitHub Actions, Docker Compose, systemd)
+- `/operate {intent} --status` — Health check with timestamps
+- `/operate {intent} --teardown` — Remove deployments while preserving specs
+
+**Status Persistence:**
+
+Operations track state in `.ai-dlc/{intent}/state/operation-status.json`, recording last run time, status (`on-track`, `needs-attention`, `failed`, `pending`, `torn-down`), deployment state, and target platform. This enables the Integrator to validate operational readiness across units.
+
+**Integration with Construction:**
+
+The Builder hat produces operation specs during its production phase when the work requires ongoing maintenance. The Reviewer hat validates operational readiness as part of its review. The Integration skill checks for cross-unit conflicts — schedule collisions, trigger overlaps, and shared resource references — ensuring operations compose correctly across the intent.
+
+**Stack Configuration:**
+
+Operations integrate with the project's infrastructure stack defined in `.ai-dlc/settings.yml`. The `stack.operations` layer declares the runtime environment (auto-detected from project files when not specified), scheduled task configuration, and reactive handler setup. This allows `/operate --deploy` to generate platform-appropriate manifests.
 
 ---
 
@@ -1335,31 +1340,69 @@ Rationale for autonomous mode:
 
 ### Operations Phase
 
-**Deployment:**
+During construction, the Builder created operation specs for ongoing maintenance of the recommendation engine:
 
-- AI packages API service as container image
-- Generates Kubernetes manifests with HPA configuration
-- Creates Terraform for managed Redis cache
-- Human reviews and approves deployment config
-- Deploys to staging, runs integration tests
-- Promotes to production with canary rollout
+**`.ai-dlc/rec-engine/operations/scale-api.md`** — Reactive, agent-owned:
 
-**Autonomous monitoring configured:**
+```markdown
+---
+name: scale-api
+type: reactive
+owner: agent
+trigger: "p99_latency > 150ms for 5m"
+runtime: node
+---
 
-```yaml
-autonomous_actions:
-  - alert: HighLatency
-    condition: p99_latency > 150ms for 5m
-    action: scale_replicas(current + 2)
-    max_replicas: 10
+Scale API replicas when latency exceeds threshold.
+Check current load, compute target replicas, apply via kubectl.
+```
 
-  - alert: HighErrorRate
-    condition: error_rate > 2% for 5m
-    action: rollback_to_previous_version
+**`.ai-dlc/rec-engine/operations/rollback-deployment.md`** — Reactive, agent-owned:
 
-  - alert: RecommendationQualityDrop
-    condition: click_through_rate < baseline - 15%
-    action: notify_team  # Requires human analysis
+```markdown
+---
+name: rollback-deployment
+type: reactive
+owner: agent
+trigger: "error_rate > 2% for 5m"
+---
+
+Roll back to previous deployment version.
+Capture current version, kubectl rollout undo, verify health.
+```
+
+**`.ai-dlc/rec-engine/operations/review-recommendation-quality.md`** — Process, human-owned:
+
+```markdown
+---
+name: review-recommendation-quality
+type: process
+owner: human
+frequency: quarterly
+---
+
+- [ ] Pull click-through rate trends from analytics dashboard
+- [ ] Compare against baseline (established at launch)
+- [ ] Review model drift metrics
+- [ ] Decide: retrain, adjust weights, or no action
+- [ ] Document decision in ADR
+```
+
+**Managing operations with `/operate`:**
+
+```
+$ /operate rec-engine
+┌─────────────────────────────────┬──────────┬───────┬────────────┐
+│ Operation                       │ Type     │ Owner │ Status     │
+├─────────────────────────────────┼──────────┼───────┼────────────┤
+│ scale-api                       │ reactive │ agent │ on-track   │
+│ rollback-deployment             │ reactive │ agent │ on-track   │
+│ review-recommendation-quality   │ process  │ human │ pending    │
+└─────────────────────────────────┴──────────┴───────┴────────────┘
+
+$ /operate rec-engine --deploy k8s-deployment
+Generated: .ai-dlc/rec-engine/operations/scale-api.deploy.yaml
+Generated: .ai-dlc/rec-engine/operations/rollback-deployment.deploy.yaml
 ```
 
 ---
@@ -1520,12 +1563,14 @@ For detailed runbooks with system prompts, entry/exit criteria, and failure mode
 | **Integrator** | Final validation hat that runs conditionally based on VCS strategy; validates auto-merged state (trunk) or creates single PR (intent); skipped for unit/bolt strategies |
 | **Intent** | High-level statement of purpose with completion criteria that serves as starting point for decomposition |
 | **Memory Provider** | Source of persistent context (files, git, tickets, ADRs, runbooks) accessible to AI agents |
-| **Mob Elaboration** | Collaborative ritual where humans and AI decompose Intent into Units with Completion Criteria |
 | **Mob Construction** | Collaborative ritual where multiple teams build Units in parallel with AI assistance |
+| **Mob Elaboration** | Collaborative ritual where humans and AI decompose Intent into Units with Completion Criteria |
 | **OHOTL** | Observed Human-on-the-Loop: human watches AI work in real-time with ability to intervene; synchronous awareness with asynchronous control; used for creative, subjective, or training scenarios |
+| **Operation** | A file-based operational task spec (`.md` with YAML frontmatter) defining scheduled, reactive, or process-type work with agent or human ownership; stored in `.ai-dlc/{intent}/operations/` |
 | **Pass** | A typed iteration through the standard AI-DLC loop (elaborate, units, construct, review) that refines an Intent through a specific disciplinary lens (design, product, dev); passes are optional and configurable; output of one pass becomes input to the next |
 | **Quality Gate** | Automated check (tests, types, lint, security) that provides pass/fail feedback |
 | **Ralph Wiggum Pattern** | Autonomous loop methodology: try, fail, learn, iterate until success criteria met |
+| **Stack Config** | Infrastructure stack configuration in `.ai-dlc/settings.yml` describing deployment, compute, monitoring, alerting, and operations layers |
 | **Unit** | Cohesive, independently deployable work element derived from an Intent; named with numerical prefix + slug (e.g., `unit-01-setup-auth`); can declare dependencies via `depends_on` forming a DAG |
 | **Unit DAG** | Directed Acyclic Graph of unit dependencies enabling parallel execution (fan-out) and convergence (fan-in) |
 

@@ -1,7 +1,7 @@
 ---
 title: Designer Guide
 description: Guide for UX/UI designers collaborating on AI-DLC projects
-order: 15
+order: 20
 ---
 
 This guide covers how designers can work effectively within the AI-DLC methodology. Whether you're creating design specs, reviewing implementations, or collaborating with AI-assisted development, AI-DLC provides structure that benefits the entire team.

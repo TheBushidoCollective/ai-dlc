@@ -1,7 +1,7 @@
 ---
 title: "Example: Feature Implementation"
 description: A complete walkthrough of implementing a real feature using AI-DLC
-order: 7
+order: 10
 ---
 
 This is a complete, realistic example of using AI-DLC to implement a feature. Follow along to see the methodology in action.
@@ -448,6 +448,16 @@ Total: ~2.5 hours for a complete notification system with 24 tests.
 3. Planned each implementation
 4. Wrote all code and tests
 5. Verified completion criteria
+
+## After Construction: Operations
+
+With the notification system complete, the Builder defined operations for ongoing maintenance:
+
+- **`clear-expired-notifications`** — A scheduled agent operation running nightly to purge notifications older than 90 days
+- **`monitor-delivery-latency`** — A reactive agent operation that alerts when notification delivery exceeds 5 seconds
+- **`review-notification-metrics`** — A monthly human process to review delivery rates, open rates, and preference trends
+
+These operation specs live in `.ai-dlc/notifications/operations/` and are managed with `/operate notifications`. See the [Operations Guide](/docs/operations-guide/) for details.
 
 ## Next Steps
 

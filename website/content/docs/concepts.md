@@ -368,8 +368,15 @@ Design Pass → Product Pass → Dev Pass
 
 When dev discovers a technical constraint that changes the product spec, the intent moves back to the product pass. When product finds a design gap, it moves back to the design pass. This is normal iteration.
 
+## Operations Phase
+
+After construction and integration complete, many features require ongoing maintenance — scheduled jobs, reactive responses to production events, or periodic human reviews. The operations phase provides a structured way to define and manage these tasks using `/operate`. Operations are defined as spec files alongside the code and tracked through the same state system as the rest of AI-DLC.
+
+See the [Operations Guide](/docs/operations-guide/) for a full walkthrough.
+
 ## Next Steps
 
 - **[Workflows](/docs/workflows/)** - Learn the four named workflows
 - **[Hats](/docs/hats/)** - Understand each hat's responsibilities
 - **[Example: Feature Implementation](/docs/example-feature/)** - See concepts in action
+- **[Operations Guide](/docs/operations-guide/)** - Manage ongoing operational tasks

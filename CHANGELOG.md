@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.79.0] - 2026-03-29
+
+### Added
+
+- add cross-unit ops validation steps to integration skill ([27739de](../../commit/27739de))
+- add Stage 3 Operational Readiness review with ops agents ([dc4de93](../../commit/dc4de93))
+- add conditional operations phases for deployment, monitoring, and operations ([13a4f29](../../commit/13a4f29))
+- rewrite skill with multi-mode CLI interface ([1f17be1](../../commit/1f17be1))
+- add infrastructure/observability discipline routing ([b731c63](../../commit/b731c63))
+- enforce criteria categories by discipline in Phase 6 ([b340615](../../commit/b340615))
+- auto-create infrastructure/observability units in Phase 5 ([d4b92c1](../../commit/d4b92c1))
+- add optional ops blocks to unit frontmatter template ([830766e](../../commit/830766e))
+- add deployment & operations questions in Phase 2 ([85c8d63](../../commit/85c8d63))
+- add infrastructure/observability to workflow routing ([95c6469](../../commit/95c6469))
+- add ops-aware discovery areas ([b909f8a](../../commit/b909f8a))
+- add stack helpers and discipline-to-criteria mapping ([4d0a7c2](../../commit/4d0a7c2))
+- add stack config with 8 layers, new review agents, and quality gates ([b268f72](../../commit/b268f72))
+
+### Fixed
+
+- add .go to companion script search in operate step 4 ([5cc7020](../../commit/5cc7020))
+- align builder manifest paths with operate deploy layout ([ea20a22](../../commit/ea20a22))
+- cron glob pattern, deploy notes, and legacy coexistence docs ([276483b](../../commit/276483b))
+- address round-3 review findings — manifest paths, migrate flag, exit codes ([1bab878](../../commit/1bab878))
+- address round-2 review findings on operate, config, and schema ([303efd1](../../commit/303efd1))
+- address 4 code review bugs in operations phase ([f793760](../../commit/f793760))
+- use has_stack_provider helper instead of broken .name jq selects ([7221cb9](../../commit/7221cb9))
+
+### Other
+
+- Merge pull request #104 from TheBushidoCollective/ai-dlc/operations-phase/main ([fe3b05b](../../commit/fe3b05b))
+- mark operations-phase intent as completed ([6fa22ac](../../commit/6fa22ac))
+- add CHANGELOG entries for operations documentation ([44a9dd7](../../commit/44a9dd7))
+- mark unit-07-docs-paper as completed ([3f556ca](../../commit/3f556ca))
+- mark unit-07-docs-paper as in_progress ([7be0a50](../../commit/7be0a50))
+- mark unit-05-integration-ops as completed ([9340e0f](../../commit/9340e0f))
+- mark unit-05-integration-ops as in_progress ([3fce0d1](../../commit/3fce0d1))
+- mark unit-04-reviewer-ops as completed ([fd1faf4](../../commit/fd1faf4))
+- mark unit-04-reviewer-ops as in_progress ([45e9247](../../commit/45e9247))
+- mark unit-03-builder-ops as completed ([deffb8b](../../commit/deffb8b))
+- mark unit-06-operate-rewrite as completed ([72036a0](../../commit/72036a0))
+- mark unit-02-elaboration-ops as completed ([5ea112e](../../commit/5ea112e))
+- mark unit-02, unit-03, unit-06 as in_progress ([4259c78](../../commit/4259c78))
+- add stack config, quality gates, and review agents examples ([6e3332b](../../commit/6e3332b))
+- mark unit-01-stack-schema as completed ([c7e86de](../../commit/c7e86de))
+- mark unit-01-stack-schema as in_progress ([ed4a343](../../commit/ed4a343))
+- define intent ([4db2229](../../commit/4db2229))
+- draft units 05-07 (integration, operate, docs) ([9cc38c0](../../commit/9cc38c0))
+- draft unit-04-reviewer-ops ([e8608de](../../commit/e8608de))
+- draft unit-03-builder-ops ([a034c09](../../commit/a034c09))
+- draft unit-02-elaboration-ops ([19d5191](../../commit/19d5191))
+- draft unit-01-stack-schema ([4387704](../../commit/4387704))
+- complete domain discovery ([cfb6e0d](../../commit/cfb6e0d))
+- write discovery brief ([10d837b](../../commit/10d837b))
+- initialize discovery log ([9df8788](../../commit/9df8788))
+
 ## [1.78.1] - 2026-03-29
 
 ### Fixed

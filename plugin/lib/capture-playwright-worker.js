@@ -55,8 +55,11 @@ async function main() {
     waitFor,
   } = args;
 
-  const routes = routesStr.split(",").map((r) => r.trim());
-  const breakpoints = breakpointsStr.split(",").map((b) => parseInt(b.trim()));
+  // In static mode (single file), routes are irrelevant — always capture one view per breakpoint.
+  // Iterating multiple routes against a static file produces duplicate screenshots with misleading names.
+  const allRoutes = routesStr.split(",").map((r) => r.trim());
+  const routes = staticPath && !fs.statSync(staticPath).isDirectory() ? ["/"] : allRoutes;
+  const breakpoints = breakpointsStr.split(",").map((b) => parseInt(b.trim(), 10));
   const screenshots = [];
 
   let browser;

@@ -236,6 +236,7 @@ _resolve_iteration_screenshots() {
           _RESOLVED_FIDELITY="medium"
           _RESOLVED_SOURCE="$tmp_dir/$unit_slug"
           _RESOLVED_FORMAT="directory"
+          _RESOLVED_TMP_DIR="$tmp_dir"  # caller is responsible for cleanup
           return 0
         fi
         # Fall back to first available directory
@@ -245,6 +246,7 @@ _resolve_iteration_screenshots() {
           _RESOLVED_FIDELITY="medium"
           _RESOLVED_SOURCE="${d%/}"
           _RESOLVED_FORMAT="directory"
+          _RESOLVED_TMP_DIR="$tmp_dir"  # caller is responsible for cleanup
           return 0
         done
       fi
@@ -322,7 +324,12 @@ dlc_generate_ref_screenshots() {
       if [ -f "$source_path" ] && [ -d "$input_dir" ]; then
         rm -rf "$input_dir"
       fi
-      return $rc
+      [ $rc -ne 0 ] && return $rc
+      # Rename manifest to ref-manifest so it doesn't collide with built-output manifest
+      if [ -f "$output_dir/manifest.json" ]; then
+        mv "$output_dir/manifest.json" "$output_dir/ref-manifest.json"
+      fi
+      return 0
       ;;
     html)
       # Use Playwright provider in --static mode with ref- prefix
@@ -331,7 +338,13 @@ dlc_generate_ref_screenshots() {
         --output-dir "$output_dir" \
         --prefix "ref-" \
         --static "$source_path"
-      return $?
+      local rc=$?
+      [ $rc -ne 0 ] && return $rc
+      # Rename manifest to ref-manifest so it doesn't collide with built-output manifest
+      if [ -f "$output_dir/manifest.json" ]; then
+        mv "$output_dir/manifest.json" "$output_dir/ref-manifest.json"
+      fi
+      return 0
       ;;
     *)
       echo "ai-dlc: resolve-design-ref: unsupported format for screenshot generation: $source_format" >&2
@@ -417,6 +430,7 @@ dlc_resolve_design_ref() {
   _RESOLVED_FIDELITY=""
   _RESOLVED_SOURCE=""
   _RESOLVED_FORMAT=""
+  _RESOLVED_TMP_DIR=""
 
   # 3-level priority resolution
   if ! _resolve_design_ref_field "$unit_file" "$repo_root"; then
@@ -435,7 +449,20 @@ dlc_resolve_design_ref() {
 
   # Generate reference screenshots
   local output_dir="$repo_root/.ai-dlc/$intent_slug/screenshots/$unit_slug"
-  dlc_generate_ref_screenshots "$_RESOLVED_SOURCE" "$_RESOLVED_FORMAT" "$output_dir" >&2
+  if ! dlc_generate_ref_screenshots "$_RESOLVED_SOURCE" "$_RESOLVED_FORMAT" "$output_dir" >&2; then
+    echo "ai-dlc: resolve-design-ref: failed to generate reference screenshots from $_RESOLVED_SOURCE" >&2
+    # Clean up any temp dir created by the git branch fallback
+    if [ -n "$_RESOLVED_TMP_DIR" ]; then
+      rm -rf "$_RESOLVED_TMP_DIR"
+    fi
+    return 1
+  fi
+
+  # Clean up temp dir created by git branch fallback (files have been copied out)
+  if [ -n "$_RESOLVED_TMP_DIR" ]; then
+    rm -rf "$_RESOLVED_TMP_DIR"
+    _RESOLVED_TMP_DIR=""
+  fi
 
   # Output JSON metadata
   jq -n \

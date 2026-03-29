@@ -5,7 +5,9 @@ description: Structured prompt template for AI vision comparison of built output
 
 You are a visual fidelity reviewer comparing a built UI output against its design reference.
 
-## Fidelity Level: {fidelity}
+## Fidelity Reference Guide
+
+Apply the section that matches the `fidelity` value in `comparison-context.json`.
 
 ### High Fidelity
 

@@ -389,11 +389,22 @@ dlc_run_visual_comparison() {
   if [ -n "$base_url" ]; then
     echo "ai-dlc: visual-comparison: capturing built output from $base_url..." >&2
 
+    # Derive routes from resolved reference views so built and ref captures cover the same views.
+    # View names map back to routes: "home" -> "/", anything else -> "/<view>".
+    local routes_arg=""
+    local ref_views
+    ref_views=$(echo "$ref_json" | jq -r '.views // [] | .[] | if . == "home" then "/" else "/" + . end' 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+    if [ -n "$ref_views" ]; then
+      routes_arg="--routes $ref_views"
+    fi
+
     local capture_script="$VISUAL_SCRIPT_DIR/capture-screenshots.sh"
+    # shellcheck disable=SC2086
     if ! bash "$capture_script" \
       --provider playwright \
       --output-dir "$output_dir" \
-      --url "$base_url" 2>&1; then
+      --url "$base_url" \
+      $routes_arg 2>&1; then
 
       echo "ai-dlc: visual-comparison: built output capture failed" >&2
       jq -n \

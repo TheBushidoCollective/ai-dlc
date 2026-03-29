@@ -32,10 +32,10 @@ source "$DETECT_SCRIPT_DIR/deps.sh"
 source "$DETECT_SCRIPT_DIR/parse.sh"
 
 # UI file extensions that trigger the visual gate
-_VISUAL_GATE_UI_EXTENSIONS="tsx jsx vue svelte html css scss"
+readonly _VISUAL_GATE_UI_EXTENSIONS="tsx jsx vue svelte html css scss"
 
 # UI terms in spec body that trigger the visual gate (case-insensitive word boundaries)
-_VISUAL_GATE_UI_TERMS="page|view|screen|component|layout|dashboard|form"
+readonly _VISUAL_GATE_UI_TERMS="page|view|screen|component|layout|dashboard|form"
 
 # ============================================================================
 # Heuristic Functions

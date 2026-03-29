@@ -79,12 +79,22 @@ This creates intrinsic motivation for quality, not extrinsic compliance.
 
 ### 1. Test Backpressure
 
-```yaml
-# han-plugin.yml
-hooks:
-  test:
-    command: bun test
-    event: Stop
+```json
+// .claude/settings.json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun test"
+          }
+        ]
+      }
+    ]
+  }
+}
 ```
 
 **Effect:** AI cannot complete work if tests fail.
@@ -194,26 +204,33 @@ Visual fidelity backpressure uses AI vision to compare built output against desi
 
 ## Implementing Backpressure
 
-### In Han Plugins
+### In Claude Code Hooks
 
-Create a `han-plugin.yml`:
+Add hooks to `.claude/settings.json` or `.claude-plugin/hooks.json`:
 
-```yaml
-hooks:
-  test:
-    command: bun test
-    event: Stop
-    if_changed:
-      - "**/*.ts"
-      - "**/*.tsx"
-
-  lint:
-    command: biome check
-    event: Stop
-    if_changed:
-      - "**/*.ts"
-      - "**/*.tsx"
-      - "**/*.json"
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun test"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "biome check"
+          }
+        ]
+      }
+    ]
+  }
+}
 ```
 
 ### In Project Configuration
@@ -239,18 +256,7 @@ Add to `.claude/settings.json`:
 
 ### Smart Caching
 
-Han caches hook results to avoid redundant runs:
-
-```yaml
-hooks:
-  test:
-    command: bun test
-    if_changed:
-      - "src/**/*.ts"
-      - "test/**/*.ts"
-```
-
-Hook only runs if matching files changed since last successful run.
+The hook system caches results to avoid redundant runs. Claude Code tracks which files changed since the last successful hook execution and only re-runs hooks when relevant files are modified.
 
 ## Backpressure Strategies
 

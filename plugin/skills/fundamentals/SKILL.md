@@ -214,11 +214,11 @@ AI-DLC uses file-based state persistence in `.ai-dlc/{slug}/state/`:
 | `scratchpad.md` | Learnings and notes | AI during work |
 | `blockers.md` | What's blocking progress | AI when stuck |
 
-## Integration with Han
+## Integration with Claude Code
 
 ### Hooks
 
-AI-DLC uses Han's hook system:
+AI-DLC uses Claude Code's native hook system:
 
 - **SessionStart** - Inject context from state files
 - **Stop** - Enforce iteration pattern, prompt for /clear

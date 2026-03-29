@@ -155,7 +155,7 @@ Agent({
 2. **MCP tools for domain knowledge**: Use `ToolSearch` to discover available MCP tools, then use read-only MCP tools for domain research. Examples:
    - Repository documentation (DeepWiki): `mcp__*__read_wiki*`, `mcp__*__ask_question`
    - Library docs (Context7): `mcp__*__resolve*`, `mcp__*__query*`
-   - Project memory (han): `mcp__*__memory`
+   - Project memory: `mcp__*__memory`
    - Any other MCP servers available in the environment
    - Provider MCP tools: If providers are configured, use their MCP tools for research (e.g., `mcp__*jira*__search*` for Jira tickets, `mcp__*notion*__search*` for Notion pages)
 

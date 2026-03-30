@@ -700,6 +700,9 @@ Use `dlc_frontmatter_set` to ensure frontmatter is correctly written:
 ```bash
 dlc_frontmatter_set "status" "completed" "$INTENT_DIR/intent.md"
 dlc_frontmatter_set "created" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$INTENT_DIR/intent.md"
+
+# Extract the intent title from the H1 heading for use in Phase 7 handoff
+INTENT_TITLE=$(grep -m1 '^# ' "$INTENT_DIR/intent.md" | sed 's/^# //')
 ```
 
 ### Write Unit Files
@@ -858,9 +861,12 @@ git commit -m "adopt(${SLUG}): reverse-engineer existing feature into AI-DLC art
 
 ### Record Telemetry
 
-After committing, emit telemetry so intent creation and completion are visible to dashboards:
+After committing, derive counts from the approved artifacts and emit telemetry so intent creation and completion are visible to dashboards:
 
 ```bash
+# Count unit files written in this phase
+UNIT_COUNT=$(find "$INTENT_DIR" -maxdepth 1 -name "unit-*.md" | wc -l | tr -d ' ')
+
 source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
 aidlc_telemetry_init
 aidlc_record_intent_created "${SLUG}" "adopt"
@@ -869,12 +875,7 @@ aidlc_record_intent_completed "${SLUG}" "${UNIT_COUNT}"
 
 ### Save State
 
-Derive counts from the approved artifacts before saving state:
-
 ```bash
-# Count unit files written in this phase
-UNIT_COUNT=$(find "$INTENT_DIR" -maxdepth 1 -name "unit-*.md" | wc -l | tr -d ' ')
-
 # OP_COUNT is already set from the Phase 5 synthesis step (0 if operations were skipped)
 dlc_state_save "$INTENT_DIR" "adopt-metadata.json" "{
   \"adopted_on\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",

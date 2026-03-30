@@ -259,6 +259,12 @@ This intent iterates on **{previous title}** (`{previous-slug}`).
 
 **Do NOT create units yet.** The elaboration phase handles unit decomposition.
 
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_followup_created "${INTENT_SLUG}" "${PREVIOUS_SLUG}"
+```
+
 ### Step 5: Transition to Elaboration
 
 After creating the intent scaffold, invoke `/elaborate {new-slug}` to let the user flesh out the new intent. The elaborate skill will detect the `iterates_on` field and automatically load context from the previous intent.

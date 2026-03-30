@@ -162,6 +162,12 @@ Operations validity: PASS (or SKIPPED — no operations blocks)
 Full-stack dry-run: PASS (or SKIPPED — no stack config)
 ```
 
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_integration_result "${INTENT_SLUG}" "true" "0"
+```
+
 ### On REJECT
 
 ```
@@ -188,6 +194,12 @@ Operations conflicts:
 
 Dry-run failures:
 - {terraform plan failure, helm template error, etc.}
+```
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_integration_result "${INTENT_SLUG}" "false" "${ISSUE_COUNT}"
 ```
 
 ---

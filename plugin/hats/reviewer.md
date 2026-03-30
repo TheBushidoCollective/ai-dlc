@@ -261,6 +261,12 @@ When the review is complete, emit exactly one of the following markers as the fi
 - [x] {observable truth 1} — verified via {evidence}
 ```
 
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_review_decision "${INTENT_SLUG}" "${UNIT_SLUG}" "approved" "${FINDING_COUNT}"
+```
+
 ### REQUEST CHANGES
 
 ```markdown
@@ -283,6 +289,12 @@ When the review is complete, emit exactly one of the following markers as the fi
 
 ### Failed Truths
 - [ ] {observable truth} — {why it failed}
+```
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_review_decision "${INTENT_SLUG}" "${UNIT_SLUG}" "rejected" "${ISSUE_COUNT}"
 ```
 
 ## Success Criteria

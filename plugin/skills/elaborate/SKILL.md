@@ -1361,6 +1361,7 @@ If no candidates were found in discovery, inform the user:
 **Step C — Update intent.md frontmatter.** Write the confirmed gates to intent.md using `yq`:
 
 ```bash
+# yq accepts JSON-style objects in expressions; output is always clean YAML (keys unquoted, no JSON braces).
 # For selected gates (example with two gates):
 yq -i '.quality_gates = [{"name": "tests", "command": "npm test"}, {"name": "lint", "command": "npm run lint"}]' .ai-dlc/${INTENT_SLUG}/intent.md
 

@@ -863,7 +863,10 @@ ${TICKET_LINE}
 *Built with [AI-DLC](https://ai-dlc.dev)*" 2>/dev/null || echo "PR may already exist for $UNIT_BRANCH"
 
   WORKTREE_PATH="${REPO_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}-${UNIT_SLUG}"
-  [ -d "$WORKTREE_PATH" ] && git worktree remove "$WORKTREE_PATH"
+  if [ -d "$WORKTREE_PATH" ]; then
+    git worktree remove "$WORKTREE_PATH" 2>/dev/null || echo "Warning: failed to remove worktree at $WORKTREE_PATH"
+  fi
+  git worktree prune
 
 elif [ "$AUTO_MERGE" = "true" ]; then
   # Intent strategy: merge unit branch into intent branch (existing behavior)
@@ -877,7 +880,10 @@ elif [ "$AUTO_MERGE" = "true" ]; then
   fi
 
   WORKTREE_PATH="${REPO_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}-${UNIT_SLUG}"
-  [ -d "$WORKTREE_PATH" ] && git worktree remove "$WORKTREE_PATH"
+  if [ -d "$WORKTREE_PATH" ]; then
+    git worktree remove "$WORKTREE_PATH" 2>/dev/null || echo "Warning: failed to remove worktree at $WORKTREE_PATH"
+  fi
+  git worktree prune
 fi
 ```
 

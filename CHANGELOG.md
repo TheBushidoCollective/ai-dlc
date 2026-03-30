@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Autonomous elaboration mode: `/elaborate` now runs non-interactively when invoked from `/autopilot`, skipping clarification questions, auto-approving domain models/units/wireframes, and only pausing on genuine ambiguity
 - Visual review & intent dashboard: browser-based review UI, `ask_user_visual_question` MCP tool, `/dashboard` skill, `@ai-dlc/shared` parser library, static dashboard generator
 - `visual_review` opt-in setting in `settings.yml` (default: `false`) gates all visual review tooling
 - MCP channel server (`claude/channel`) with `open_review`, `get_review_status`, and `ask_user_visual_question` tools

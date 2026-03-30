@@ -1417,7 +1417,7 @@ export default function Home() {
 						className="mb-6 text-gray-500 dark:text-gray-400"
 					>
 						All units are done. The code is written. The tests pass. But the
-						story isn&rsquo;t over yet. Three stages remain.
+						story isn&rsquo;t over yet. Four stages remain.
 					</motion.p>
 
 					<div className="space-y-8">
@@ -1471,8 +1471,49 @@ export default function Home() {
 							</div>
 						</FinishStage>
 
-						{/* Stage 3: Reflection */}
-						<FinishStage num={3} numColor="bg-violet-500/15 text-violet-400">
+						{/* Stage 3: Operations */}
+						<FinishStage num={3} numColor="bg-amber-500/15 text-amber-400">
+							<h3 className="text-lg font-bold text-amber-400">
+								Operations
+							</h3>
+							<p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+								The code is deployed. Now it needs to be <em>operated</em>.
+							</p>
+							<div className="mt-3 space-y-3">
+								<ChatBubble speaker="ai">
+									<div className="mb-2">
+										I found 3 operational tasks defined during execution:
+									</div>
+									<div className="space-y-1 rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs dark:border-gray-700 dark:bg-gray-950">
+										<div className="border-b border-gray-200 pb-1 dark:border-gray-700">
+											<strong className="text-amber-400">Scheduled:</strong>{" "}
+											Token cleanup job -- runs daily, removes expired sessions
+										</div>
+										<div className="border-b border-gray-200 pb-1 dark:border-gray-700">
+											<strong className="text-amber-400">Reactive:</strong>{" "}
+											Alert handler for auth failure spike -- triggers investigation playbook
+										</div>
+										<div>
+											<strong className="text-amber-400">Runbook:</strong>{" "}
+											OAuth provider rotation -- step-by-step credential rotation procedure
+										</div>
+									</div>
+								</ChatBubble>
+								<ChatBubble speaker="human">
+									Review operational specs. Deploy scheduled jobs. Verify
+									monitoring and alerts are wired up. The AI manages the
+									operational lifecycle alongside the code it built.
+								</ChatBubble>
+							</div>
+							<p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+								Operations aren&rsquo;t an afterthought -- they&rsquo;re
+								file-based specs created <em>during</em> execution, living
+								alongside the code they support.
+							</p>
+						</FinishStage>
+
+						{/* Stage 4: Reflection */}
+						<FinishStage num={4} numColor="bg-violet-500/15 text-violet-400">
 							<h3 className="text-lg font-bold text-violet-400">Reflection</h3>
 							<p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
 								This is what separates AI-DLC from &ldquo;just running an

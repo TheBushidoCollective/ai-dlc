@@ -155,3 +155,53 @@ The adversarial review should do the *pre-execution* version of some of these ch
 
 **These are spec-level analogs of what integrate does at the code level.**
 
+## External Research: Adversarial Review Patterns in AI-Assisted Development
+
+### Adversarial Code Review (ASDLC.io Pattern)
+
+A verification pattern where a distinct AI session (the "Critic Agent") reviews artifacts produced by a Builder Agent against the spec before human review. Key principles:
+
+- **Session isolation**: The Critic runs in a fresh session to prevent conversation drift and force evaluation of artifacts only, not the Builder's reasoning process
+- **Skeptical by default**: The Critic Constitution directs: "You are skeptical. Your job is to reject code that violates the Spec, even if it 'works.' Favor false positives over false negatives."
+- **Binary output**: PASS or a list of spec violations
+
+This maps directly to AI-DLC's subagent model: the adversarial review subagent runs in a forked context (`context: fork`), sees only the spec artifacts (not the elaboration conversation), and outputs findings.
+
+### Block Research: Adversarial Cooperation in Code Synthesis (2025)
+
+Introduces "dialectical autocoding" — a bounded adversarial process between two cooperating agents. Key insights:
+
+- Structured coach-player feedback loop enables substantially more progress on complex tasks
+- The adversarial process works around fundamental attention limitations
+- A moderator acts as a deduplication and prioritization layer, ensuring a unified checklist of findings
+
+**Applicable to Phase 7.5:** The adversarial review subagent is the "critic/coach," the elaborate orchestrator is the "moderator" that deduplicates and prioritizes findings before presenting to the user.
+
+### Multi-Agent Review with Confidence Scoring
+
+Research on paired agent review (e.g., Claude + GPT Codex adversarial review) shows:
+
+- When two agents independently flag the same issue, confidence auto-upgrades via majority voting
+- Confidence-based gating allows generating utility-based confidence scores for downstream processing
+- The adversarial process eliminates false positives through debate rounds
+
+**Applicable to Phase 7.5:** The confidence scoring pattern (high/medium/low) already exists in AI-DLC's reviewer hat. The adversarial review should use the same pattern, with high-confidence findings auto-applied and low-confidence findings presented as questions.
+
+### Spec-Driven Development Validation
+
+Spec-driven development (Thoughtworks, GitHub Spec Kit) emphasizes:
+
+- Clear specifications reduce LLM hallucinations and produce more robust code
+- Machine-readable specs remain essential — they serve as the contract the Critic validates against
+- Automated contradiction detection through formal logic and LLMs is an active research area
+
+**Applicable to Phase 7.5:** The unit specs ARE the machine-readable contract. The adversarial review validates them against each other and against the intent, checking for contradictions, gaps, and hidden complexity before builders consume them.
+
+### Key Design Decisions Informed by Research
+
+1. **Run in isolated context** (forked subagent) — prevents the elaboration conversation from biasing the review
+2. **Skeptical by default** — the adversarial reviewer should actively try to find problems, not confirm the spec is good
+3. **Confidence scoring** — reuse the existing high/medium/low pattern for triaging findings
+4. **Unified finding format** — each finding should include: issue description, affected units, confidence level, suggested fix, and evidence/reasoning
+5. **Auto-fix for high-confidence issues** — the orchestrator can apply fixes without user confirmation when the finding is deterministic (e.g., missing dependency edge, contradictory field references)
+

@@ -136,15 +136,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       html: "",
     });
 
-    // Scan intent mockups/ directory for HTML wireframes
+    const MOCKUP_IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".svg", ".webp", ".gif"];
+    const MOCKUP_HTML_EXTS = [".html", ".htm"];
+    const MOCKUP_ALL_EXTS = [...MOCKUP_IMAGE_EXTS, ...MOCKUP_HTML_EXTS];
+
+    // Scan intent mockups/ directory for wireframes and images
     const intentMockups: MockupInfo[] = [];
     try {
       const mockupsDir = join(input.intent_dir, "mockups");
       const entries = await readdir(mockupsDir);
       for (const entry of entries.sort()) {
-        if (entry.endsWith(".html") || entry.endsWith(".htm")) {
+        const ext = entry.substring(entry.lastIndexOf(".")).toLowerCase();
+        if (MOCKUP_ALL_EXTS.includes(ext)) {
           intentMockups.push({
-            label: entry.replace(/\.html?$/, ""),
+            label: entry.replace(/\.[^.]+$/, ""),
             url: `/mockups/${session.session_id}/${entry}`,
           });
         }
@@ -164,6 +169,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             url: `/wireframe/${session.session_id}/${wireframe}`,
           },
         ]);
+      }
+    }
+
+    // Fallback: scan mockups/ for files matching unit slug by naming convention
+    for (const unit of units) {
+      if (!unitMockups.has(unit.slug)) {
+        try {
+          const mockupsDir = join(input.intent_dir, "mockups");
+          const entries = await readdir(mockupsDir);
+          const matches = entries
+            .filter((f) => {
+              const name = f.substring(0, f.lastIndexOf("."));
+              const ext = f.substring(f.lastIndexOf(".")).toLowerCase();
+              return name === unit.slug && MOCKUP_ALL_EXTS.includes(ext);
+            })
+            .sort();
+          if (matches.length > 0) {
+            unitMockups.set(
+              unit.slug,
+              matches.map((f) => ({
+                label: `Wireframe: ${f}`,
+                url: `/mockups/${session.session_id}/${f}`,
+              })),
+            );
+          }
+        } catch {
+          // No mockups directory — skip
+        }
       }
     }
 

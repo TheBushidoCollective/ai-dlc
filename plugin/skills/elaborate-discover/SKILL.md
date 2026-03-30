@@ -140,7 +140,7 @@ Based on the intent description and clarification answers in the brief, identify
     | `package.json` | `scripts.test` exists | `{name: "tests", command: "npm test"}` |
     | `package.json` | `scripts.lint` exists | `{name: "lint", command: "npm run lint"}` |
     | `package.json` | `scripts.typecheck` or `scripts.type-check` exists | `{name: "typecheck", command: "npm run typecheck"}` (use actual key) |
-    | `bun.lockb` | exists alongside `package.json` | Replace `npm` → `bun` in all above commands |
+    | `bun.lockb` or `bun.lock` | exists alongside `package.json` | Replace `npm` → `bun` in all above commands (`bun.lockb` = binary format pre-1.1.12; `bun.lock` = text format 1.1.12+) |
     | `go.mod` | exists | `{name: "tests", command: "go test ./..."}`, `{name: "vet", command: "go vet ./..."}` |
     | `pyproject.toml` | `[tool.pytest]` or `[project.scripts]` with pytest | `{name: "tests", command: "pytest"}` |
     | `pyproject.toml` | `[tool.ruff]` | `{name: "lint", command: "ruff check ."}` |

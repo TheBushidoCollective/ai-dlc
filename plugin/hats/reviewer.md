@@ -99,6 +99,7 @@ Run review in distinct passes. Combining them into one pass leads to either spec
 
 6. Verify gate integrity (ratchet review)
    - Compare the current `quality_gates:` in intent.md and unit frontmatter against what was defined during elaboration
+   - Use git history to retrieve the elaboration-time gate definitions: `git log --oneline .ai-dlc/{intent-slug}/intent.md` to find the elaboration commit, then `git show <commit>:.ai-dlc/{intent-slug}/intent.md` to read the frontmatter as it was when gates were first written
    - Verify no gates were removed or weakened (commands changed to be more permissive)
    - If gates were added by the builder, verify they are reasonable and well-formed
    - This is the human-verified side of the ratchet: the harness prevents the builder from stopping with failing gates, but the reviewer prevents the builder from removing gates to make them pass

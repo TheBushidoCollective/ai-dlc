@@ -353,3 +353,59 @@ Phase 7.5 should follow this exact structure:
 ---
 ```
 
+## Data Source: Spec Files (Input to Adversarial Review)
+
+The adversarial review subagent needs to read these files:
+
+### Intent File
+- **Path:** `.ai-dlc/{slug}/intent.md`
+- **Contains:** YAML frontmatter (workflow, git strategy, passes, status), markdown body (Problem, Solution, Domain Model with entities/relationships/data sources/gaps, Success Criteria, Context)
+- **Key for review:** Intent-level success criteria, domain model consistency, scope definition
+
+### Unit Files
+- **Path:** `.ai-dlc/{slug}/unit-NN-{slug}.md` (glob pattern: `unit-*.md`)
+- **Contains:** YAML frontmatter (status, depends_on, branch, discipline, pass, workflow, ticket, design_ref, views, optional ops blocks), markdown body (Description, Discipline, Domain Entities, Data Sources, Technical Specification, Success Criteria, Risks, Boundaries, Notes)
+- **Key for review:** Inter-unit consistency, dependency graph validity, success criteria completeness, boundary correctness, technical specification feasibility
+
+### Discovery Log
+- **Path:** `.ai-dlc/{slug}/discovery.md`
+- **Contains:** All domain discovery findings (API schemas, codebase patterns, design analysis, data sources, domain model)
+- **Key for review:** Validating specs against discovered reality — do units reference APIs/entities that actually exist?
+
+### Wireframes (if present)
+- **Path:** `.ai-dlc/{slug}/mockups/unit-NN-{slug}-wireframe.html`
+- **Key for review:** Frontend units should have wireframes, wireframe content should match unit spec
+
+## Provider Context: GitHub (vcsHosting) and GitHub Actions (ciCd)
+
+From the brief's `provider_config`:
+- `vcsHosting: github` — The project uses GitHub for version control hosting
+- `ciCd: github-actions` — CI/CD runs via GitHub Actions
+
+The adversarial review subagent does not need VCS/CI provider access. It reads spec files locally.
+
+## Existing Implementations: Related Review Mechanisms
+
+### Phase 7 (Spec Review) — Lightweight checklist
+- Already exists inline in elaborate SKILL.md
+- PASS/WARN/FAIL output
+- Does NOT produce structured findings, does NOT suggest fixes
+
+### Reviewer Hat — Execution-time code review
+- Runs AFTER code is built (during execution, not elaboration)
+- Uses confidence scoring (high/medium/low)
+- Delegates to specialized subagents
+- Produces structured completion marker (APPROVED / REQUEST CHANGES)
+
+### Integrate Skill — Post-execution cross-unit validation
+- Runs after ALL units are merged
+- Validates cross-unit interactions at the code level
+- ACCEPT/REJECT decision
+
+### Red Team Hat — Adversarial security testing
+- Runs during execution (adversarial workflow)
+- Tests implementations, not specs
+- Documents findings with severity ratings
+
+**Key gap the adversarial review fills:** None of these mechanisms validate spec quality adversarially BEFORE execution begins. Phase 7 does basic structural checks; Phase 7.5 does deep semantic validation.
+

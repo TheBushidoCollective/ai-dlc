@@ -1987,9 +1987,10 @@ EOF
 REPO_ROOT=$(git worktree list --porcelain | head -1 | sed 's/^worktree //')
 INTENT_WORKTREE="${REPO_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}"
 if [ -d "$INTENT_WORKTREE" ]; then
-  git worktree remove "$INTENT_WORKTREE" 2>/dev/null || true
+  git worktree remove "$INTENT_WORKTREE" 2>/dev/null || echo "Warning: failed to remove worktree at $INTENT_WORKTREE"
   echo "Cleaned up elaboration worktree for ${INTENT_SLUG}"
 fi
+git worktree prune
 # Keep the branch — it backs the open spec review PR
 ```
 

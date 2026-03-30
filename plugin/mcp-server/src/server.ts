@@ -1,3 +1,5 @@
+import { readdir } from "node:fs/promises";
+import { join } from "node:path";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -14,7 +16,7 @@ import {
 } from "@ai-dlc/shared";
 import { createSession, getSession } from "./sessions.js";
 import { startHttpServer, setMcpServer, getActualPort } from "./http.js";
-import { generateReviewHtml } from "./html.js";
+import { generateReviewHtml, type MockupInfo } from "./html.js";
 
 const OpenReviewInput = z.object({
   intent_dir: z.string().describe("Path to the intent directory (e.g., .ai-dlc/my-intent)"),
@@ -125,18 +127,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       ? parseCriteria(criteriaSection.content)
       : [];
 
-    // Generate HTML
-    const html = generateReviewHtml(
-      intent,
-      units,
-      criteria,
-      input.review_type,
-      input.target ?? "",
-      "", // placeholder, will be replaced after session creation
-      mermaid
-    );
-
-    // Create session
+    // Create session first so we have the session ID for mockup URLs
     const session = createSession({
       intent_dir: input.intent_dir,
       intent_slug: intent.slug,
@@ -145,7 +136,38 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       html: "",
     });
 
-    // Re-generate HTML with real session ID
+    // Scan intent mockups/ directory for HTML wireframes
+    const intentMockups: MockupInfo[] = [];
+    try {
+      const mockupsDir = join(input.intent_dir, "mockups");
+      const entries = await readdir(mockupsDir);
+      for (const entry of entries.sort()) {
+        if (entry.endsWith(".html") || entry.endsWith(".htm")) {
+          intentMockups.push({
+            label: entry.replace(/\.html?$/, ""),
+            url: `/mockups/${session.session_id}/${entry}`,
+          });
+        }
+      }
+    } catch {
+      // No mockups directory — that's fine
+    }
+
+    // Collect unit wireframe mockups
+    const unitMockups = new Map<string, MockupInfo[]>();
+    for (const unit of units) {
+      const wireframe = unit.frontmatter.wireframe;
+      if (wireframe && typeof wireframe === "string") {
+        unitMockups.set(unit.slug, [
+          {
+            label: `Wireframe: ${wireframe}`,
+            url: `/wireframe/${session.session_id}/${wireframe}`,
+          },
+        ]);
+      }
+    }
+
+    // Generate HTML with session ID, mockups, and wireframes
     session.html = generateReviewHtml(
       intent,
       units,
@@ -153,7 +175,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       input.review_type,
       input.target ?? "",
       session.session_id,
-      mermaid
+      mermaid,
+      intentMockups,
+      unitMockups
     );
 
     // Start HTTP server (idempotent)

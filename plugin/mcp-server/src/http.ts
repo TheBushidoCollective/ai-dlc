@@ -1,3 +1,4 @@
+import { join, resolve, extname } from "node:path";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { getSession, updateSession } from "./sessions.js";
 
@@ -72,6 +73,80 @@ async function handleDecidePost(
   return Response.json({ ok: true, decision, feedback });
 }
 
+const MIME_TYPES: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+};
+
+async function handleMockupGet(
+  sessionId: string,
+  filePath: string
+): Promise<Response> {
+  const session = getSession(sessionId);
+  if (!session) {
+    return new Response("Session not found", { status: 404 });
+  }
+
+  // Resolve and validate path stays within intent dir
+  const mockupsDir = join(session.intent_dir, "mockups");
+  const resolved = resolve(mockupsDir, filePath);
+  if (!resolved.startsWith(resolve(mockupsDir))) {
+    return new Response("Forbidden", { status: 403 });
+  }
+
+  try {
+    const file = Bun.file(resolved);
+    if (!(await file.exists())) {
+      return new Response("Not found", { status: 404 });
+    }
+    const ext = extname(resolved).toLowerCase();
+    const contentType = MIME_TYPES[ext] ?? "application/octet-stream";
+    return new Response(file, {
+      headers: { "Content-Type": contentType },
+    });
+  } catch {
+    return new Response("Not found", { status: 404 });
+  }
+}
+
+async function handleWireframeGet(
+  sessionId: string,
+  filePath: string
+): Promise<Response> {
+  const session = getSession(sessionId);
+  if (!session) {
+    return new Response("Session not found", { status: 404 });
+  }
+
+  // Wireframe paths are relative to the intent dir
+  const resolved = resolve(session.intent_dir, filePath);
+  if (!resolved.startsWith(resolve(session.intent_dir))) {
+    return new Response("Forbidden", { status: 403 });
+  }
+
+  try {
+    const file = Bun.file(resolved);
+    if (!(await file.exists())) {
+      return new Response("Not found", { status: 404 });
+    }
+    const ext = extname(resolved).toLowerCase();
+    const contentType = MIME_TYPES[ext] ?? "application/octet-stream";
+    return new Response(file, {
+      headers: { "Content-Type": contentType },
+    });
+  } catch {
+    return new Response("Not found", { status: 404 });
+  }
+}
+
 function handleRequest(req: Request): Response | Promise<Response> {
   const url = new URL(req.url);
   const path = url.pathname;
@@ -86,6 +161,18 @@ function handleRequest(req: Request): Response | Promise<Response> {
   const decideMatch = path.match(/^\/review\/([^/]+)\/decide$/);
   if (decideMatch && req.method === "POST") {
     return handleDecidePost(decideMatch[1], req);
+  }
+
+  // GET /mockups/:sessionId/:path — serve files from intent mockups/ dir
+  const mockupMatch = path.match(/^\/mockups\/([^/]+)\/(.+)$/);
+  if (mockupMatch && req.method === "GET") {
+    return handleMockupGet(mockupMatch[1], mockupMatch[2]);
+  }
+
+  // GET /wireframe/:sessionId/:path — serve wireframe files from intent dir
+  const wireframeMatch = path.match(/^\/wireframe\/([^/]+)\/(.+)$/);
+  if (wireframeMatch && req.method === "GET") {
+    return handleWireframeGet(wireframeMatch[1], wireframeMatch[2]);
   }
 
   return new Response("Not Found", { status: 404 });

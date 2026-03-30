@@ -120,11 +120,11 @@ If a slug can be derived from the argument, verify it doesn't conflict with an e
 
 ```bash
 if [ -n "$FEATURE_DESCRIPTION" ]; then
-  # Generate candidate slug from description
-  CANDIDATE_SLUG=$(echo "$FEATURE_DESCRIPTION" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
+  # Generate candidate slug from description (apply same truncation as Phase 1)
+  CANDIDATE_SLUG=$(echo "$FEATURE_DESCRIPTION" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//' | cut -c1-50)
   if [ -d "$REPO_ROOT/.ai-dlc/$CANDIDATE_SLUG" ]; then
     echo "WARNING: Intent directory .ai-dlc/$CANDIDATE_SLUG already exists."
-    echo "The existing intent will not be overwritten."
+    echo "Phase 1 will prompt for how to handle this conflict."
   fi
 fi
 ```
@@ -148,7 +148,7 @@ If no argument was provided, ask the user:
 }
 ```
 
-The user will provide a free-text description via the "Other" input. If the argument was provided, use it directly.
+The user types their feature description directly into the free-text field. If the argument was provided on the command line, use it directly and skip this question.
 
 ### Ask for Code Paths
 
@@ -199,10 +199,40 @@ Validate the slug doesn't conflict with existing intents:
 
 ```bash
 if [ -d "$REPO_ROOT/.ai-dlc/$SLUG" ]; then
-  # Ask user for an alternative slug or confirm overwrite
-  # via AskUserQuestion
+  # Conflict detected — ask user how to proceed
 fi
 ```
+
+If a conflict is detected, use `AskUserQuestion` to resolve it:
+
+```json
+{
+  "questions": [{
+    "question": "An intent already exists at .ai-dlc/{SLUG}/. How would you like to proceed?",
+    "header": "Slug Conflict",
+    "options": [
+      {"label": "Enter a different slug", "description": "I'll provide an alternative name for this adoption"},
+      {"label": "Append to existing", "description": "Add units to the existing intent rather than creating a new one"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+If the user chooses "Enter a different slug", prompt for the replacement:
+
+```json
+{
+  "questions": [{
+    "question": "Enter a slug for this adoption (alphanumeric and hyphens only, max 50 characters):",
+    "header": "Custom Slug",
+    "options": [],
+    "multiSelect": false
+  }]
+}
+```
+
+Set `SLUG` to the user-provided value (sanitized: lowercase, spaces to hyphens, max 50 chars) before proceeding.
 
 ---
 
@@ -570,6 +600,39 @@ Present the proposed operations:
 
 **Wait for user confirmation.** Iterate on feedback until approved.
 
+### Synthesize Approved Operations
+
+After user approval, build the `OPERATIONS` array from the confirmed operation specs:
+
+```bash
+# Build an array of JSON objects representing each approved operation
+# Each element contains the operation name and whether it is agent-owned
+OPERATIONS=()
+for each approved_op in confirmed_operations; do
+  OPERATIONS+=("$(cat <<JSON
+{
+  "name": "${op_identifier}",
+  "type": "${op_type}",
+  "owner": "${op_owner}",
+  "schedule": "${op_schedule_or_empty}",
+  "trigger": "${op_trigger_or_empty}",
+  "frequency": "${op_frequency_or_empty}",
+  "runtime": "${op_runtime}"
+}
+JSON
+)")
+done
+
+# Counts used in Phase 6 state save
+OP_COUNT=${#OPERATIONS[@]}
+```
+
+If operations were skipped (user chose "Skip operations"), set:
+```bash
+OPERATIONS=()
+OP_COUNT=0
+```
+
 ---
 
 ## Phase 6: Write Artifacts
@@ -733,8 +796,54 @@ If operations were approved in Phase 5, write each spec to `$INTENT_DIR/operatio
 ```bash
 for op in "${OPERATIONS[@]}"; do
   OP_NAME=$(echo "$op" | dlc_json_get "name")
-  # Write the spec file
-  # Write companion script if owner is "agent"
+  OP_TYPE=$(echo "$op" | dlc_json_get "type")
+  OP_OWNER=$(echo "$op" | dlc_json_get "owner")
+  OP_RUNTIME=$(echo "$op" | dlc_json_get "runtime")
+  OP_SCHEDULE=$(echo "$op" | dlc_json_get "schedule")
+  OP_TRIGGER=$(echo "$op" | dlc_json_get "trigger")
+  OP_FREQUENCY=$(echo "$op" | dlc_json_get "frequency")
+  OP_FILE="$INTENT_DIR/operations/${OP_NAME}.md"
+
+  # Write the spec file with frontmatter and body
+  cat > "$OP_FILE" <<OPEOF
+---
+name: ${OP_NAME}
+type: ${OP_TYPE}
+owner: ${OP_OWNER}
+$([ -n "$OP_SCHEDULE" ] && echo "schedule: \"${OP_SCHEDULE}\"")
+$([ -n "$OP_TRIGGER" ] && echo "trigger: \"${OP_TRIGGER}\"")
+$([ -n "$OP_FREQUENCY" ] && echo "frequency: \"${OP_FREQUENCY}\"")
+$([ -n "$OP_RUNTIME" ] && echo "runtime: ${OP_RUNTIME}")
+---
+
+## Description
+
+Reverse-engineered operational task for \`${SLUG}\`.
+
+## Steps
+
+1. <!-- Describe the steps for this operation based on codebase analysis -->
+
+## Rollback
+
+<!-- Describe how to reverse this operation if it fails -->
+OPEOF
+
+  # Write companion script if owner is "agent" (automated operation)
+  if [ "$OP_OWNER" = "agent" ] && [ -n "$OP_RUNTIME" ]; then
+    case "$OP_RUNTIME" in
+      node)       SCRIPT_EXT="ts" ;;
+      python)     SCRIPT_EXT="py" ;;
+      go)         SCRIPT_EXT="go" ;;
+      *)          SCRIPT_EXT="sh" ;;
+    esac
+    SCRIPT_FILE="$INTENT_DIR/operations/${OP_NAME}.${SCRIPT_EXT}"
+    cat > "$SCRIPT_FILE" <<SCRIPTEOF
+#!/usr/bin/env ${OP_RUNTIME}
+# Companion script for operation: ${OP_NAME}
+# Generated by /adopt — fill in implementation from codebase analysis
+SCRIPTEOF
+  fi
 done
 ```
 
@@ -747,9 +856,26 @@ git add .ai-dlc/${SLUG}/
 git commit -m "adopt(${SLUG}): reverse-engineer existing feature into AI-DLC artifacts"
 ```
 
-### Save State
+### Record Telemetry
+
+After committing, emit telemetry so intent creation and completion are visible to dashboards:
 
 ```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_intent_created "${SLUG}" "adopt"
+aidlc_record_intent_completed "${SLUG}" "${UNIT_COUNT}"
+```
+
+### Save State
+
+Derive counts from the approved artifacts before saving state:
+
+```bash
+# Count unit files written in this phase
+UNIT_COUNT=$(find "$INTENT_DIR" -maxdepth 1 -name "unit-*.md" | wc -l | tr -d ' ')
+
+# OP_COUNT is already set from the Phase 5 synthesis step (0 if operations were skipped)
 dlc_state_save "$INTENT_DIR" "adopt-metadata.json" "{
   \"adopted_on\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
   \"feature_description\": \"${FEATURE_DESCRIPTION}\",
@@ -809,7 +935,43 @@ This intent is now compatible with:
 Execute the chosen option:
 
 - **Run /operate**: Invoke `/operate {slug}` via the Skill tool
-- **Open PR**: Create a branch, push, and open a PR with the adoption artifacts
+- **Open PR**: The adoption artifacts are already committed to the current branch. Create a dedicated adoption branch, push it, and open a PR against the default branch:
+
+  ```bash
+  # Determine default branch
+  source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+  CONFIG=$(get_ai_dlc_config "$INTENT_DIR")
+  DEFAULT_BRANCH=$(echo "$CONFIG" | jq -r '.default_branch')
+
+  # Create and push a dedicated branch for review
+  ADOPT_BRANCH="ai-dlc/${SLUG}/main"
+  git checkout -b "$ADOPT_BRANCH"
+  git push -u origin "$ADOPT_BRANCH"
+
+  gh pr create \
+    --title "[AI-DLC Adopt] ${INTENT_TITLE}" \
+    --base "$DEFAULT_BRANCH" \
+    --head "$ADOPT_BRANCH" \
+    --body "$(cat <<EOF
+  ## Adoption: ${INTENT_TITLE}
+
+  Reverse-engineered from existing codebase via \`/adopt\`.
+
+  **Slug:** \`${SLUG}\`
+  **Units:** ${UNIT_COUNT}
+  **Operations:** ${OP_COUNT}
+
+  ### Artifacts
+  - \`.ai-dlc/${SLUG}/intent.md\`
+  - \`.ai-dlc/${SLUG}/unit-NN-{name}.md\` (${UNIT_COUNT} files)
+  - \`.ai-dlc/${SLUG}/discovery.md\`
+  $([ "${OP_COUNT}" -gt 0 ] && echo "- \`.ai-dlc/${SLUG}/operations/\` (${OP_COUNT} files)")
+
+  ---
+  *Generated by \`/adopt\`. Run \`/followup ${SLUG}\` or \`/operate ${SLUG}\` after merge.*
+  EOF
+  )"
+  ```
 - **Show file paths**: List all created file paths and exit
 
 ## Examples

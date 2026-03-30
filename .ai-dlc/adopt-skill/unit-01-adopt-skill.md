@@ -112,7 +112,7 @@ The SKILL.md body must define these phases in detail:
 - Present operational plan to user for confirmation
 
 **Phase 6: Write Artifacts**
-- Create the intent worktree and branch (same pattern as elaborate Phase 2.25)
+- Write artifacts directly to `.ai-dlc/{slug}/` on the current branch (no worktree — /adopt skips worktree creation)
 - Write `intent.md` with `status: completed` and all confirmed content
 - Write each `unit-NN-{slug}.md` with `status: completed`
 - Write `discovery.md` with exploration findings

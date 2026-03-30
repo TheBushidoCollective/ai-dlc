@@ -1,6 +1,6 @@
 ---
 intent_slug: adopt-skill
-worktree_path: /Volumes/dev/src/github.com/thebushidocollective/ai-dlc/.ai-dlc/worktrees/adopt-skill
+worktree_path: .ai-dlc/worktrees/adopt-skill
 project_maturity: established
 provider_config: {"spec":null,"ticketing":null,"design":null,"comms":null,"vcsHosting":"github","ciCd":"github-actions"}
 ---
@@ -50,4 +50,4 @@ A: Yes, from tests + CI — analyze test suites and CI config to reconstruct wha
 
 ## Discovery File Path
 
-/Volumes/dev/src/github.com/thebushidocollective/ai-dlc/.ai-dlc/worktrees/adopt-skill/.ai-dlc/adopt-skill/discovery.md
+.ai-dlc/adopt-skill/discovery.md

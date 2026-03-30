@@ -1262,7 +1262,7 @@ The workflow described above assumes greenfield inception — a team starting fr
 
 All artifacts produced by adoption carry `status: completed` because the feature already exists. There is no construction phase — the code is already written, tested, and deployed. Instead, adoption analyzes the existing implementation and produces the same artifact structure that elaboration and construction would have created, enabling the feature to enter the lifecycle at the Operations phase. The user confirms the proposed decomposition at multiple gates: intent and unit breakdown, success criteria with traceable test evidence, and operational plan.
 
-This makes adoption the primary on-ramp for teams bringing existing systems under AI-DLC governance. For a concrete example of brownfield context building, see the next section.
+This makes adoption the primary on-ramp for teams bringing existing systems under AI-DLC governance. For a concrete example of brownfield context building, see the [Brownfield Development](#ai-dlc-2026-in-action-brownfield-development) section.
 
 ---
 

@@ -276,6 +276,37 @@ Prescriptive workflows create an intelligence ceiling—like consulting a board 
 
 The philosophy can be summarized as: **"Better to fail predictably than succeed unpredictably."** Each failure is data. Each iteration refines the approach. The skill shifts from directing AI step-by-step to writing criteria and tests that converge toward correct solutions.
 
+#### Harness-Enforced Quality Gates
+
+Backpressure, as described above, is a principle. AI-DLC 2026 implements it as **harness-enforced quality gates**: structured, frontmatter-driven checks that the harness runs on every Stop event. The agent cannot stop — cannot advance, cannot hand off, cannot declare work complete — until all gates pass.
+
+Gates are declared in YAML frontmatter on the intent and each unit:
+
+```yaml
+# intent.md frontmatter
+quality_gates:
+  - name: tests
+    command: bun test
+  - name: typecheck
+    command: tsc --noEmit
+  - name: lint
+    command: biome check
+```
+
+**The harness, not the agent, enforces these gates.** When a building agent attempts to stop, the `quality-gate.sh` hook fires, reads the active intent's and unit's frontmatter, executes each gate command, and emits a structured block decision if any gate fails. The agent sees the failure output and is forced to fix the issue before it can proceed. This is qualitatively different from asking an AI to "run the tests" — the agent cannot rationalize its way around a failing hook.
+
+**Four properties make this robust:**
+
+1. **Auto-detection during elaboration.** The discovery skill inspects repo tooling (`package.json`, `go.mod`, `pyproject.toml`, `Cargo.toml`, `bun.lock`) and proposes appropriate gates at elaboration time. The human confirms or adjusts before construction begins.
+
+2. **Additive merge with ratchet.** Intent-level gates and unit-level gates are merged additively — unit gates add to intent gates, never replace them. During construction, gates are add-only. The reviewer hat verifies gate integrity as part of its review: any gate removal triggers a request-changes decision. This is the ratchet effect: quality standards can only move forward.
+
+3. **Scoped enforcement.** Only building hats (builder, implementer, refactorer) are gate-enforced. Planner, reviewer, and designer hats skip enforcement silently — they have different objectives and should not be blocked by failing tests mid-review.
+
+4. **Loop prevention.** The harness provides a `stop_hook_active` flag to prevent re-entrance loops in nested subagent scenarios. The guard is deliberate: a subagent that already blocked once is allowed to stop on the second attempt, preventing deadlock.
+
+This mechanism closes the gap between "quality gates as guidelines" and "quality gates as structural constraints." The gates are not a checklist for the agent to work through — they are an exit condition the harness controls.
+
 #### Visual and Design Backpressure
 
 The backpressure principle extends beyond code quality into **design quality**. Just as tests, linters, and type checks reject non-conforming code, visual fidelity gates reject implementations that drift from design intent.

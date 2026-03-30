@@ -3,6 +3,20 @@
   "configVersion": 1,
   "workspaces": {
     "": {},
+    "cli": {
+      "name": "@ai-dlc/cli",
+      "version": "0.1.0",
+      "bin": {
+        "ai-dlc-dashboard": "./src/dashboard.ts",
+      },
+      "dependencies": {
+        "@ai-dlc/shared": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.2.0",
+        "typescript": "^5.7.0",
+      },
+    },
     "mcp-server": {
       "name": "@ai-dlc/mcp-server",
       "version": "0.1.0",
@@ -30,6 +44,8 @@
     },
   },
   "packages": {
+    "@ai-dlc/cli": ["@ai-dlc/cli@workspace:cli"],
+
     "@ai-dlc/mcp-server": ["@ai-dlc/mcp-server@workspace:mcp-server"],
 
     "@ai-dlc/shared": ["@ai-dlc/shared@workspace:shared"],

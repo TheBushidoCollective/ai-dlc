@@ -1422,7 +1422,7 @@ export default function Home() {
 						className="mb-6 text-gray-500 dark:text-gray-400"
 					>
 						All units are done. The code is written. The tests pass. But the
-						story isn&rsquo;t over yet. Four stages remain.
+						story isn&rsquo;t over yet. Five stages remain.
 					</motion.p>
 
 					<div className="space-y-8">
@@ -1444,8 +1444,27 @@ export default function Home() {
 							</p>
 						</FinishStage>
 
-						{/* Stage 2: Delivery */}
-						<FinishStage num={2} numColor="bg-green-500/15 text-green-500">
+						{/* Stage 2: Pre-Delivery Review */}
+						<FinishStage num={2} numColor="bg-rose-500/15 text-rose-400">
+							<h3 className="text-lg font-bold text-rose-400">
+								Pre-Delivery Review
+							</h3>
+							<p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+								Before creating the PR, the full composed diff of all units is
+								reviewed as a final quality gate. The per-unit reviewer catches
+								issues within each unit -- but this review catches cross-unit
+								problems that only appear in the aggregate.
+							</p>
+							<p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+								Naming inconsistencies across units. Dead code left behind by
+								refactors. Integration seams where two units touch. Security
+								concerns that span multiple files. This is a hard gate -- if
+								issues are found, they&rsquo;re fixed before the PR is created.
+							</p>
+						</FinishStage>
+
+						{/* Stage 3: Delivery */}
+						<FinishStage num={3} numColor="bg-green-500/15 text-green-500">
 							<h3 className="text-lg font-bold text-green-500">Delivery</h3>
 							<div className="mt-3 space-y-3">
 								<ChatBubble speaker="ai">
@@ -1476,8 +1495,8 @@ export default function Home() {
 							</div>
 						</FinishStage>
 
-						{/* Stage 3: Operations */}
-						<FinishStage num={3} numColor="bg-amber-500/15 text-amber-400">
+						{/* Stage 4: Operations */}
+						<FinishStage num={4} numColor="bg-amber-500/15 text-amber-400">
 							<h3 className="text-lg font-bold text-amber-400">
 								Operations
 							</h3>
@@ -1517,8 +1536,8 @@ export default function Home() {
 							</p>
 						</FinishStage>
 
-						{/* Stage 4: Reflection */}
-						<FinishStage num={4} numColor="bg-violet-500/15 text-violet-400">
+						{/* Stage 5: Reflection */}
+						<FinishStage num={5} numColor="bg-violet-500/15 text-violet-400">
 							<h3 className="text-lg font-bold text-violet-400">Reflection</h3>
 							<p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
 								This is what separates AI-DLC from &ldquo;just running an

@@ -1320,6 +1320,12 @@ git add .ai-dlc/${INTENT_SLUG}/intent.md
 git commit -m "elaborate(${INTENT_SLUG}): define intent"
 ```
 
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_intent_created "${INTENT_SLUG}" "${CHANGE_STRATEGY}"
+```
+
 ### 2.5. Confirm Quality Gates
 
 After writing intent.md and before writing units, confirm quality gates detected during discovery.
@@ -1644,6 +1650,15 @@ Intent and unit files were committed individually during steps 2 and 3. This cat
 ```bash
 git add .ai-dlc/
 git diff --cached --quiet || git commit -m "elaborate(${INTENT_SLUG}): finalize elaboration artifacts"
+```
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+UNIT_COUNT=$(ls "$INTENT_DIR"/unit-*.md 2>/dev/null | wc -l | tr -d ' ')
+HAS_WIREFRAMES="false"
+[ -d "$INTENT_DIR/mockups" ] && HAS_WIREFRAMES="true"
+aidlc_record_elaboration_complete "${INTENT_SLUG}" "${UNIT_COUNT}" "${HAS_WIREFRAMES}"
 ```
 
 ### 5b. Push artifacts to remote (cowork)
@@ -2056,9 +2071,10 @@ EOF
 REPO_ROOT=$(git worktree list --porcelain | head -1 | sed 's/^worktree //')
 INTENT_WORKTREE="${REPO_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}"
 if [ -d "$INTENT_WORKTREE" ]; then
-  git worktree remove "$INTENT_WORKTREE" 2>/dev/null || true
+  git worktree remove "$INTENT_WORKTREE" 2>/dev/null || echo "Warning: failed to remove worktree at $INTENT_WORKTREE"
   echo "Cleaned up elaboration worktree for ${INTENT_SLUG}"
 fi
+git worktree prune
 # Keep the branch — it backs the open spec review PR
 ```
 

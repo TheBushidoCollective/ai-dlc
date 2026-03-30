@@ -200,6 +200,14 @@ Before signaling completion, you MUST verify your work actually produces the exp
 
 If you cannot verify (no test exists, environment issue), document WHY verification was skipped and what manual check the reviewer should perform.
 
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_quality_gate "${INTENT_SLUG}" "${UNIT_SLUG}" "test" "${TEST_PASSED}"
+aidlc_record_quality_gate "${INTENT_SLUG}" "${UNIT_SLUG}" "lint" "${LINT_PASSED}"
+aidlc_record_quality_gate "${INTENT_SLUG}" "${UNIT_SLUG}" "typecheck" "${TYPECHECK_PASSED}"
+```
+
 ### Operations Gates (Conditional)
 
 These gates are checked alongside existing quality gates when the unit has operational frontmatter:

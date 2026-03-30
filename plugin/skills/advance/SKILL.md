@@ -202,7 +202,7 @@ if [ "$CHANGE_STRATEGY" = "unit" ]; then
     TICKET_LINE="Closes ${UNIT_TICKET}"
   fi
 
-  gh pr create \
+  PR_URL=$(gh pr create \
     --base "$DEFAULT_BRANCH" \
     --head "$UNIT_BRANCH" \
     --title "unit: ${CURRENT_UNIT}" \
@@ -216,14 +216,24 @@ ${TICKET_LINE}
 ---
 *Built with [AI-DLC](https://ai-dlc.dev)*
 EOF
-)" 2>/dev/null || echo "PR may already exist for $UNIT_BRANCH"
+)" 2>&1) || echo "PR may already exist for $UNIT_BRANCH"
+
+  if [ -n "$PR_URL" ]; then
+    source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+    aidlc_telemetry_init
+    aidlc_record_delivery_created "${INTENT_SLUG}" "${CHANGE_STRATEGY}" "${PR_URL}"
+  fi
 
   # Clean up local unit worktree after PR is pushed (work is on remote now)
   UNIT_WORKTREE="${REPO_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}-${UNIT_SLUG}"
   if [ -d "$UNIT_WORKTREE" ]; then
-    git worktree remove "$UNIT_WORKTREE" 2>/dev/null || true
+    git worktree remove "$UNIT_WORKTREE" 2>/dev/null || echo "Warning: failed to remove worktree at $UNIT_WORKTREE"
     echo "Cleaned up unit worktree for ${CURRENT_UNIT}"
+    source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+    aidlc_telemetry_init
+    aidlc_record_worktree_event "deleted" "${UNIT_WORKTREE}"
   fi
+  git worktree prune
   # Keep the branch — it backs the open PR
 
 elif [ "$AUTO_MERGE" = "true" ]; then
@@ -242,9 +252,13 @@ elif [ "$AUTO_MERGE" = "true" ]; then
   # Clean up unit worktree and branch after merge into intent
   UNIT_WORKTREE="${REPO_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}-${UNIT_SLUG}"
   if [ -d "$UNIT_WORKTREE" ]; then
-    git worktree remove "$UNIT_WORKTREE" 2>/dev/null || true
+    git worktree remove "$UNIT_WORKTREE" 2>/dev/null || echo "Warning: failed to remove worktree at $UNIT_WORKTREE"
     echo "Cleaned up unit worktree for ${CURRENT_UNIT}"
+    source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+    aidlc_telemetry_init
+    aidlc_record_worktree_event "deleted" "${UNIT_WORKTREE}"
   fi
+  git worktree prune
   git branch -d "ai-dlc/${INTENT_SLUG}/${UNIT_SLUG}" 2>/dev/null || true
   echo "Cleaned up unit branch for ${CURRENT_UNIT}"
 fi
@@ -309,6 +323,12 @@ git add "$INTENT_DIR/intent.md"
 git add "$INTENT_DIR/completion-criteria.md" 2>/dev/null || true
 git add "$INTENT_DIR/state/completion-criteria.md" 2>/dev/null || true
 git commit -m "status: mark intent ${INTENT_SLUG} as completed"
+
+# Record intent completion telemetry
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+UNIT_COUNT=$(ls "$INTENT_DIR"/unit-*.md 2>/dev/null | wc -l | tr -d ' ')
+aidlc_record_intent_completed "${INTENT_SLUG}" "${UNIT_COUNT}"
 ```
 
 ```javascript
@@ -414,6 +434,12 @@ git add "$INTENT_DIR/completion-criteria.md" 2>/dev/null || true
 git add "$INTENT_DIR/state/completion-criteria.md" 2>/dev/null || true
 git commit -m "status: mark intent ${INTENT_SLUG} as completed"
 
+# Record intent completion telemetry
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+UNIT_COUNT=$(ls "$INTENT_DIR"/unit-*.md 2>/dev/null | wc -l | tr -d ' ')
+aidlc_record_intent_completed "${INTENT_SLUG}" "${UNIT_COUNT}"
+
 # Proceed to Step 5 (completion summary)
 ```
 
@@ -475,6 +501,10 @@ fi
 # Intent-level state saved to current branch (intent branch)
 # state.hat = nextHat, state.iteration = ITERATION
 dlc_state_save "$INTENT_DIR" "iteration.json" '<updated JSON with hat and iteration>'
+
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_hat_transition "${INTENT_SLUG}" "${PREVIOUS_HAT}" "${NEXT_HAT}"
 ```
 
 ### Step 4: Confirm (Normal Advancement)
@@ -587,6 +617,92 @@ if ! git diff --cached --quiet 2>/dev/null; then
 fi
 ```
 
+### Pre-Delivery Code Review
+
+Before creating the PR, review the full composed diff to catch cross-unit issues the per-unit reviewer couldn't see. **This is a hard gate — the PR cannot be created without passing.**
+
+**Skip condition:** If `ALL_UNIT_STRATEGY=true` (determined in the next step), this review is unnecessary because each unit already has its own individually-reviewed PR. However, since we haven't computed that yet, run this review for all intent-strategy and hybrid-strategy intents.
+
+```bash
+# Determine if we need pre-delivery review (intent/hybrid strategy only)
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
+CONFIG=$(get_ai_dlc_config "$INTENT_DIR")
+CHANGE_STRATEGY=$(echo "$CONFIG" | jq -r '.change_strategy // "unit"')
+
+NEEDS_DELIVERY_REVIEW=false
+for unit_file in "$INTENT_DIR"/unit-*.md; do
+  [ -f "$unit_file" ] || continue
+  UNIT_CS=$(parse_unit_change_strategy "$unit_file")
+  EFFECTIVE_CS="${UNIT_CS:-$CHANGE_STRATEGY}"
+  [ "$EFFECTIVE_CS" != "unit" ] && { NEEDS_DELIVERY_REVIEW=true; break; }
+done
+```
+
+**If `NEEDS_DELIVERY_REVIEW=true`:** Run the pre-delivery code review.
+
+1. Compute the full diff against the default branch:
+
+```bash
+DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+FULL_DIFF=$(git diff "${DEFAULT_BRANCH}...HEAD" 2>/dev/null || git diff "${DEFAULT_BRANCH}..HEAD")
+DIFF_STAT=$(git diff --stat "${DEFAULT_BRANCH}...HEAD" 2>/dev/null || git diff --stat "${DEFAULT_BRANCH}..HEAD")
+```
+
+2. Review the full diff for these categories:
+   - **Code quality**: naming consistency, dead code, unused imports, code duplication across units
+   - **Security**: injection risks, hardcoded secrets, auth issues introduced by the composed changes
+   - **Cross-unit integration**: conflicting patterns, inconsistent error handling, incompatible interfaces
+   - **Standards**: formatting drift, convention violations visible only in the aggregate
+
+3. Produce a structured decision:
+
+```markdown
+## PRE-DELIVERY REVIEW
+
+**Diff stats:**
+{DIFF_STAT}
+
+**Decision:** APPROVED | REQUEST CHANGES
+
+### Findings (if any)
+- [HIGH] description — affected file(s)
+- [MEDIUM] description — affected file(s)
+- [LOW] description — affected file(s)
+
+### Affected Units (if REQUEST CHANGES)
+- unit-NN-name (reason)
+```
+
+4. **If Decision is APPROVED:**
+
+```bash
+# Record telemetry
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_delivery_review "${INTENT_SLUG}" "approved" "0"
+```
+
+Proceed to delivery.
+
+5. **If Decision is REQUEST CHANGES:**
+
+Only HIGH-confidence findings block delivery. MEDIUM and LOW findings are noted but do not block.
+
+```bash
+# Record telemetry
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_delivery_review "${INTENT_SLUG}" "rejected" "${ISSUE_COUNT}"
+```
+
+For each affected unit with HIGH findings:
+- Identify the unit slug from the affected file paths
+- Call `/fail` with the reason: "Pre-delivery review found issues: {description}"
+- The fail mechanism will revert the unit's hat to builder and re-enter the build loop
+
+**After calling /fail, STOP.** Do not proceed to delivery. The execution loop will resume with the builder addressing the findings.
+
 **Gate on change strategy.** The delivery prompt only applies to intent-level strategy. With unit strategy, each unit already has its own PR.
 
 ```bash
@@ -610,9 +726,13 @@ done
 # Clean up intent worktree — all unit PRs are on the remote
 INTENT_WORKTREE="${REPO_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}"
 if [ -d "$INTENT_WORKTREE" ]; then
-  git worktree remove "$INTENT_WORKTREE" 2>/dev/null || true
+  git worktree remove "$INTENT_WORKTREE" 2>/dev/null || echo "Warning: failed to remove worktree at $INTENT_WORKTREE"
   echo "Cleaned up intent worktree for ${INTENT_SLUG}"
+  source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+  aidlc_telemetry_init
+  aidlc_record_worktree_event "deleted" "${INTENT_WORKTREE}"
 fi
+git worktree prune
 ```
 
 ```
@@ -665,7 +785,7 @@ done
 3. Create PR/MR:
 
 ```bash
-gh pr create \
+PR_URL=$(gh pr create \
   --title "${INTENT_TITLE}" \
   --base "$DEFAULT_BRANCH" \
   --head "$INTENT_BRANCH" \
@@ -686,7 +806,13 @@ $(printf "%b" "${TICKET_REFS}")
 ---
 *Built with [AI-DLC](https://ai-dlc.dev)*
 EOF
-)"
+)" 2>&1)
+
+if [ -n "$PR_URL" ]; then
+  source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+  aidlc_telemetry_init
+  aidlc_record_delivery_created "${INTENT_SLUG}" "${CHANGE_STRATEGY}" "${PR_URL}"
+fi
 ```
 
 4. Clean up intent worktree after PR is pushed (work is on remote now):
@@ -695,9 +821,13 @@ EOF
 # Clean up intent worktree after PR is pushed
 INTENT_WORKTREE="${REPO_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}"
 if [ -d "$INTENT_WORKTREE" ]; then
-  git worktree remove "$INTENT_WORKTREE" 2>/dev/null || true
+  git worktree remove "$INTENT_WORKTREE" 2>/dev/null || echo "Warning: failed to remove worktree at $INTENT_WORKTREE"
   echo "Cleaned up intent worktree for ${INTENT_SLUG}"
+  source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+  aidlc_telemetry_init
+  aidlc_record_worktree_event "deleted" "${INTENT_WORKTREE}"
 fi
+git worktree prune
 # Keep the branch — it backs the open PR
 ```
 
@@ -725,8 +855,12 @@ Clean up intent worktree since all work is committed and pushed:
 # Clean up intent worktree — work is committed on the branch
 INTENT_WORKTREE="${REPO_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}"
 if [ -d "$INTENT_WORKTREE" ]; then
-  git worktree remove "$INTENT_WORKTREE" 2>/dev/null || true
+  git worktree remove "$INTENT_WORKTREE" 2>/dev/null || echo "Warning: failed to remove worktree at $INTENT_WORKTREE"
   echo "Cleaned up intent worktree for ${INTENT_SLUG}"
+  source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+  aidlc_telemetry_init
+  aidlc_record_worktree_event "deleted" "${INTENT_WORKTREE}"
 fi
+git worktree prune
 # Keep the branch — user may create a PR from it
 ```

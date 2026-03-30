@@ -262,3 +262,76 @@ aidlc_record_cleanup() {
     "orphaned_count=${orphaned_count}" \
     "merged_count=${merged_count}"
 }
+
+# Review decision (per-unit reviewer hat)
+# Usage: aidlc_record_review_decision <intent_slug> <unit_slug> <decision> <issue_count>
+aidlc_record_review_decision() {
+  local intent_slug="${1:-}" unit_slug="${2:-}" decision="${3:-}" issue_count="${4:-0}"
+  aidlc_log_event "ai_dlc.review.decision" \
+    "intent_slug=${intent_slug}" \
+    "unit_slug=${unit_slug}" \
+    "decision=${decision}" \
+    "issue_count=${issue_count}"
+}
+
+# Quality gate result (test/lint/typecheck)
+# Usage: aidlc_record_quality_gate <intent_slug> <unit_slug> <gate> <passed>
+aidlc_record_quality_gate() {
+  local intent_slug="${1:-}" unit_slug="${2:-}" gate="${3:-}" passed="${4:-}"
+  aidlc_log_event "ai_dlc.quality_gate.result" \
+    "intent_slug=${intent_slug}" \
+    "unit_slug=${unit_slug}" \
+    "gate=${gate}" \
+    "passed=${passed}"
+}
+
+# Integration validation result
+# Usage: aidlc_record_integration_result <intent_slug> <passed> <issue_count>
+aidlc_record_integration_result() {
+  local intent_slug="${1:-}" passed="${2:-}" issue_count="${3:-0}"
+  aidlc_log_event "ai_dlc.integrate.result" \
+    "intent_slug=${intent_slug}" \
+    "passed=${passed}" \
+    "issue_count=${issue_count}"
+}
+
+# Pre-delivery code review result
+# Usage: aidlc_record_delivery_review <intent_slug> <decision> <issue_count>
+aidlc_record_delivery_review() {
+  local intent_slug="${1:-}" decision="${2:-}" issue_count="${3:-0}"
+  aidlc_log_event "ai_dlc.delivery.review" \
+    "intent_slug=${intent_slug}" \
+    "decision=${decision}" \
+    "issue_count=${issue_count}"
+}
+
+# PR/MR delivery created
+# Usage: aidlc_record_delivery_created <intent_slug> <strategy> <pr_url>
+aidlc_record_delivery_created() {
+  local intent_slug="${1:-}" strategy="${2:-}" pr_url="${3:-}"
+  aidlc_log_event "ai_dlc.delivery.created" \
+    "intent_slug=${intent_slug}" \
+    "strategy=${strategy}" \
+    "pr_url=${pr_url}"
+}
+
+# Hat failure (work sent back to previous hat)
+# Usage: aidlc_record_hat_failure <intent_slug> <unit_slug> <from_hat> <to_hat> <reason>
+aidlc_record_hat_failure() {
+  local intent_slug="${1:-}" unit_slug="${2:-}" from_hat="${3:-}" to_hat="${4:-}" reason="${5:-}"
+  aidlc_log_event "ai_dlc.hat.failure" \
+    "intent_slug=${intent_slug}" \
+    "unit_slug=${unit_slug}" \
+    "from_hat=${from_hat}" \
+    "to_hat=${to_hat}" \
+    "reason=${reason}"
+}
+
+# Worktree lifecycle event
+# Usage: aidlc_record_worktree_event <event> <worktree_path>
+aidlc_record_worktree_event() {
+  local event="${1:-}" worktree_path="${2:-}"
+  aidlc_log_event "ai_dlc.worktree.event" \
+    "event=${event}" \
+    "worktree_path=${worktree_path}"
+}

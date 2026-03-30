@@ -1587,7 +1587,7 @@ depends_on: [unit-02-auth-api]
 
 **→ See the [Autonomous Bolt Runbook](./ai-dlc-2026/runbooks/construction/autonomous-bolt) for implementation templates, safety configuration, and the Many Hats orchestration pattern.**
 
-**→ See the [Han Runbook](./ai-dlc-2026/runbooks/tooling/han) for Claude Code-native implementation with the `ai-dlc` plugin.**
+**→ See the [AI-DLC Plugin](https://github.com/thebushidocollective/ai-dlc) for Claude Code-native implementation.**
 
 ---
 

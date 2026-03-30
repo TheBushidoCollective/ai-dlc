@@ -1375,6 +1375,12 @@ git add .ai-dlc/${INTENT_SLUG}/intent.md
 git commit -m "elaborate(${INTENT_SLUG}): define intent"
 ```
 
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_intent_created "${INTENT_SLUG}" "${CHANGE_STRATEGY}"
+```
+
 ### 3. Write and review each `unit-NN-{slug}.md` individually:
 
 **Process each unit one at a time.** Write the file, present it for review, iterate until approved, then move to the next unit. Do NOT batch-write all units.
@@ -1659,6 +1665,15 @@ Intent and unit files were committed individually during steps 2 and 3. This cat
 ```bash
 git add .ai-dlc/
 git diff --cached --quiet || git commit -m "elaborate(${INTENT_SLUG}): finalize elaboration artifacts"
+```
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+UNIT_COUNT=$(ls "$INTENT_DIR"/unit-*.md 2>/dev/null | wc -l | tr -d ' ')
+HAS_WIREFRAMES="false"
+[ -d "$INTENT_DIR/mockups" ] && HAS_WIREFRAMES="true"
+aidlc_record_elaboration_complete "${INTENT_SLUG}" "${UNIT_COUNT}" "${HAS_WIREFRAMES}"
 ```
 
 ### 5b. Push artifacts to remote (cowork)

@@ -213,7 +213,7 @@ if [ "$CHANGE_STRATEGY" = "unit" ]; then
     TICKET_LINE="Closes ${UNIT_TICKET}"
   fi
 
-  gh pr create \
+  PR_URL=$(gh pr create \
     --base "$DEFAULT_BRANCH" \
     --head "$UNIT_BRANCH" \
     --title "unit: ${CURRENT_UNIT}" \
@@ -227,13 +227,22 @@ ${TICKET_LINE}
 ---
 *Built with [AI-DLC](https://ai-dlc.dev)*
 EOF
-)" 2>/dev/null || echo "PR may already exist for $UNIT_BRANCH"
+)" 2>&1) || echo "PR may already exist for $UNIT_BRANCH"
+
+  if [ -n "$PR_URL" ]; then
+    source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+    aidlc_telemetry_init
+    aidlc_record_delivery_created "${INTENT_SLUG}" "${CHANGE_STRATEGY}" "${PR_URL}"
+  fi
 
   # Clean up local unit worktree after PR is pushed (work is on remote now)
   UNIT_WORKTREE="${REPO_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}-${UNIT_SLUG}"
   if [ -d "$UNIT_WORKTREE" ]; then
     git worktree remove "$UNIT_WORKTREE" 2>/dev/null || echo "Warning: failed to remove worktree at $UNIT_WORKTREE"
     echo "Cleaned up unit worktree for ${CURRENT_UNIT}"
+    source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+    aidlc_telemetry_init
+    aidlc_record_worktree_event "deleted" "${UNIT_WORKTREE}"
   fi
   git worktree prune
   # Keep the branch — it backs the open PR
@@ -256,6 +265,9 @@ elif [ "$AUTO_MERGE" = "true" ]; then
   if [ -d "$UNIT_WORKTREE" ]; then
     git worktree remove "$UNIT_WORKTREE" 2>/dev/null || echo "Warning: failed to remove worktree at $UNIT_WORKTREE"
     echo "Cleaned up unit worktree for ${CURRENT_UNIT}"
+    source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+    aidlc_telemetry_init
+    aidlc_record_worktree_event "deleted" "${UNIT_WORKTREE}"
   fi
   git worktree prune
   git branch -d "ai-dlc/${INTENT_SLUG}/${UNIT_SLUG}" 2>/dev/null || true
@@ -322,6 +334,12 @@ git add "$INTENT_DIR/intent.md"
 git add "$INTENT_DIR/completion-criteria.md" 2>/dev/null || true
 git add "$INTENT_DIR/state/completion-criteria.md" 2>/dev/null || true
 git commit -m "status: mark intent ${INTENT_SLUG} as completed"
+
+# Record intent completion telemetry
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+UNIT_COUNT=$(ls "$INTENT_DIR"/unit-*.md 2>/dev/null | wc -l | tr -d ' ')
+aidlc_record_intent_completed "${INTENT_SLUG}" "${UNIT_COUNT}"
 ```
 
 ```javascript
@@ -427,6 +445,12 @@ git add "$INTENT_DIR/completion-criteria.md" 2>/dev/null || true
 git add "$INTENT_DIR/state/completion-criteria.md" 2>/dev/null || true
 git commit -m "status: mark intent ${INTENT_SLUG} as completed"
 
+# Record intent completion telemetry
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+UNIT_COUNT=$(ls "$INTENT_DIR"/unit-*.md 2>/dev/null | wc -l | tr -d ' ')
+aidlc_record_intent_completed "${INTENT_SLUG}" "${UNIT_COUNT}"
+
 # Proceed to Step 5 (completion summary)
 ```
 
@@ -488,6 +512,10 @@ fi
 # Intent-level state saved to current branch (intent branch)
 # state.hat = nextHat, state.iteration = ITERATION
 dlc_state_save "$INTENT_DIR" "iteration.json" '<updated JSON with hat and iteration>'
+
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_hat_transition "${INTENT_SLUG}" "${PREVIOUS_HAT}" "${NEXT_HAT}"
 ```
 
 ### Step 4: Confirm (Normal Advancement)
@@ -657,11 +685,27 @@ DIFF_STAT=$(git diff --stat "${DEFAULT_BRANCH}...HEAD" 2>/dev/null || git diff -
 - unit-NN-name (reason)
 ```
 
-4. **If Decision is APPROVED:** Proceed to delivery.
+4. **If Decision is APPROVED:**
+
+```bash
+# Record telemetry
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_delivery_review "${INTENT_SLUG}" "approved" "0"
+```
+
+Proceed to delivery.
 
 5. **If Decision is REQUEST CHANGES:**
 
 Only HIGH-confidence findings block delivery. MEDIUM and LOW findings are noted but do not block.
+
+```bash
+# Record telemetry
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_delivery_review "${INTENT_SLUG}" "rejected" "${ISSUE_COUNT}"
+```
 
 For each affected unit with HIGH findings:
 - Identify the unit slug from the affected file paths
@@ -695,6 +739,9 @@ INTENT_WORKTREE="${REPO_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}"
 if [ -d "$INTENT_WORKTREE" ]; then
   git worktree remove "$INTENT_WORKTREE" 2>/dev/null || echo "Warning: failed to remove worktree at $INTENT_WORKTREE"
   echo "Cleaned up intent worktree for ${INTENT_SLUG}"
+  source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+  aidlc_telemetry_init
+  aidlc_record_worktree_event "deleted" "${INTENT_WORKTREE}"
 fi
 git worktree prune
 ```
@@ -771,6 +818,12 @@ $(printf "%b" "${TICKET_REFS}")
 *Built with [AI-DLC](https://ai-dlc.dev)*
 EOF
 )"
+
+if [ -n "$PR_URL" ]; then
+  source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+  aidlc_telemetry_init
+  aidlc_record_delivery_created "${INTENT_SLUG}" "${CHANGE_STRATEGY}" "${PR_URL}"
+fi
 ```
 
 4. Clean up intent worktree after PR is pushed (work is on remote now):
@@ -781,6 +834,9 @@ INTENT_WORKTREE="${REPO_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}"
 if [ -d "$INTENT_WORKTREE" ]; then
   git worktree remove "$INTENT_WORKTREE" 2>/dev/null || echo "Warning: failed to remove worktree at $INTENT_WORKTREE"
   echo "Cleaned up intent worktree for ${INTENT_SLUG}"
+  source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+  aidlc_telemetry_init
+  aidlc_record_worktree_event "deleted" "${INTENT_WORKTREE}"
 fi
 git worktree prune
 # Keep the branch — it backs the open PR
@@ -812,6 +868,9 @@ INTENT_WORKTREE="${REPO_ROOT}/.ai-dlc/worktrees/${INTENT_SLUG}"
 if [ -d "$INTENT_WORKTREE" ]; then
   git worktree remove "$INTENT_WORKTREE" 2>/dev/null || echo "Warning: failed to remove worktree at $INTENT_WORKTREE"
   echo "Cleaned up intent worktree for ${INTENT_SLUG}"
+  source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+  aidlc_telemetry_init
+  aidlc_record_worktree_event "deleted" "${INTENT_WORKTREE}"
 fi
 git worktree prune
 # Keep the branch — user may create a PR from it

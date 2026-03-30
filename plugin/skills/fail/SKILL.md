@@ -80,6 +80,13 @@ fi
 dlc_state_save "$INTENT_DIR" "iteration.json" '<updated JSON with hat set to previous>'
 ```
 
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/telemetry.sh"
+aidlc_telemetry_init
+aidlc_record_hat_transition "${INTENT_SLUG}" "${CURRENT_HAT}" "${PREVIOUS_HAT}"
+aidlc_record_hat_failure "${INTENT_SLUG}" "${UNIT_SLUG}" "${CURRENT_HAT}" "${PREVIOUS_HAT}" "${REASON}"
+```
+
 ### Step 4b: Re-spawn Teammate (Agent Teams)
 
 When `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is enabled and a reviewer rejects work:

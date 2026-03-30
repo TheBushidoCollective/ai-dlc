@@ -104,7 +104,6 @@ export function renderLayout(
       mermaid.initialize({
         startOnLoad: false,
         theme: isDark() ? 'dark' : 'default',
-        securityLevel: 'loose',
       });
     }
 
@@ -119,13 +118,13 @@ export function renderLayout(
     window.addEventListener('themeChanged', async () => {
       mermaid.initialize({
         theme: isDark() ? 'dark' : 'default',
-        securityLevel: 'loose',
       });
       for (const el of document.querySelectorAll('.mermaid')) {
         const original = el.getAttribute('data-original');
         if (original) {
           el.removeAttribute('data-processed');
-          el.innerHTML = original;
+          // Use textContent (not innerHTML) to avoid XSS when restoring Mermaid source
+          el.textContent = original;
         }
       }
       await mermaid.run();

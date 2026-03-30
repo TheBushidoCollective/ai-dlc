@@ -128,20 +128,19 @@ export function renderStaticLayout(
     mermaid.initialize({
       startOnLoad: false,
       theme: isDark() ? 'dark' : 'default',
-      securityLevel: 'loose',
     });
     await mermaid.run();
 
     window.addEventListener('themeChanged', async function() {
       mermaid.initialize({
         theme: isDark() ? 'dark' : 'default',
-        securityLevel: 'loose',
       });
       for (var el of document.querySelectorAll('.mermaid')) {
         var original = el.getAttribute('data-original');
         if (original) {
           el.removeAttribute('data-processed');
-          el.innerHTML = original;
+          // Use textContent (not innerHTML) to avoid XSS when restoring Mermaid source
+          el.textContent = original;
         }
       }
       await mermaid.run();

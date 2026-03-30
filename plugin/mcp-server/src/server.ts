@@ -138,6 +138,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (name === "open_review") {
     const input = OpenReviewInput.parse(args);
 
+    // Validate intent_dir stays within .ai-dlc/ to prevent path traversal
+    const normalizedDir = input.intent_dir.replace(/\\/g, "/").replace(/\/+$/, "");
+    if (!normalizedDir.startsWith(".ai-dlc/") && normalizedDir !== ".ai-dlc") {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Error: intent_dir must be within .ai-dlc/ (got: ${input.intent_dir})`,
+          },
+        ],
+        isError: true,
+      };
+    }
+
     // Parse intent data
     const intent = await parseIntent(input.intent_dir);
     if (!intent) {

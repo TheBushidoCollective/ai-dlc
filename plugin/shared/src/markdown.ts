@@ -5,7 +5,12 @@ import type { Section, CriterionItem } from "./types.js";
  * Convert markdown string to HTML.
  */
 export function markdownToHtml(md: string): string {
-  return marked.parse(md, { async: false }) as string;
+  // marked.parse with async:false returns string synchronously
+  const result = marked.parse(md, { async: false });
+  if (typeof result !== "string") {
+    throw new Error("marked.parse returned unexpected type");
+  }
+  return result;
 }
 
 /**

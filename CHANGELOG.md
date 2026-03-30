@@ -5,7 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.82.5] - 2026-03-30
+## [Unreleased]
+
+### Added
+
+- Visual review & intent dashboard: browser-based review UI, `ask_user_visual_question` MCP tool, `/dashboard` skill, `@ai-dlc/shared` parser library, static dashboard generator
+- `visual_review` opt-in setting in `settings.yml` (default: `false`) gates all visual review tooling
+- MCP channel server (`claude/channel`) with `open_review`, `get_review_status`, and `ask_user_visual_question` tools
+- Elaboration wiring: 4 review boundaries use visual review with `AskUserQuestion` fallback
+
+### Fixed
+
+- Session IDs use `crypto.randomUUID()` instead of predictable sequential integers
+- XSS via `innerHTML` in Mermaid theme toggle fixed (use `textContent`)
+- Mermaid `securityLevel: 'loose'` removed; labels now HTML-escaped
+- Cycle detection added to DAG topological sort
+- Symlink-safe path traversal checks using `realpath()`
+- POST body validation added with Zod schemas
+- Session memory leak: 30-min TTL and 100-session cap
+- `intent_dir` validated to `.ai-dlc/` prefix before filesystem access
+- Fragile port detection uses only `EADDRINUSE` error code
+- Parse errors now emit console warnings instead of failing silently
+- `markdownToHtml` no longer uses unsafe type cast
+
+### Removed
+
+- Dead `plugin/lib/telemetry.sh` library (all call sites removed)
+
+## [1.83.3] - 2026-03-30
 
 ## [1.82.4] - 2026-03-30
 

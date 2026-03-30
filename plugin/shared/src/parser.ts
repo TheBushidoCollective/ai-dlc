@@ -66,7 +66,12 @@ export async function parseIntent(
       sections,
       rawContent: raw,
     };
-  } catch {
+  } catch (err) {
+    const filePath = join(intentDir, "intent.md");
+    // Only warn for parse errors, not missing files (ENOENT is expected)
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+      console.warn(`[ai-dlc/shared] Failed to parse ${filePath}:`, err);
+    }
     return null;
   }
 }
@@ -98,7 +103,10 @@ export async function parseUnit(
       sections,
       rawContent: raw,
     };
-  } catch {
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+      console.warn(`[ai-dlc/shared] Failed to parse ${filePath}:`, err);
+    }
     return null;
   }
 }

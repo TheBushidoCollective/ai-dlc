@@ -1,5 +1,5 @@
 import { mkdir, readdir, copyFile } from "node:fs/promises";
-import { join, basename } from "node:path";
+import { join, basename, resolve } from "node:path";
 import {
   listIntents,
   parseIntent,
@@ -145,18 +145,25 @@ export async function generateSite(
 
       // Also check for wireframe referenced in frontmatter
       if (unit.frontmatter.wireframe) {
+        // Validate wireframe path stays within intentDir to prevent path traversal
         const wireframePath = join(intentDir, unit.frontmatter.wireframe);
-        const wireframeName = basename(unit.frontmatter.wireframe);
-        try {
-          const wireframeOut = join(unitsOutDir, "wireframes");
-          await mkdir(wireframeOut, { recursive: true });
-          await copyFile(wireframePath, join(wireframeOut, wireframeName));
-          unitMockups.unshift({
-            label: "Wireframe",
-            src: `wireframes/${wireframeName}`,
-          });
-        } catch {
-          // wireframe file doesn't exist, skip
+        const resolvedWireframe = resolve(wireframePath);
+        const resolvedIntentDir = resolve(intentDir);
+        if (!resolvedWireframe.startsWith(resolvedIntentDir + "/") && resolvedWireframe !== resolvedIntentDir) {
+          console.warn(`[ai-dlc/cli] Skipping wireframe outside intent dir: ${unit.frontmatter.wireframe}`);
+        } else {
+          const wireframeName = basename(unit.frontmatter.wireframe);
+          try {
+            const wireframeOut = join(unitsOutDir, "wireframes");
+            await mkdir(wireframeOut, { recursive: true });
+            await copyFile(wireframePath, join(wireframeOut, wireframeName));
+            unitMockups.unshift({
+              label: "Wireframe",
+              src: `wireframes/${wireframeName}`,
+            });
+          } catch {
+            // wireframe file doesn't exist, skip
+          }
         }
       }
 

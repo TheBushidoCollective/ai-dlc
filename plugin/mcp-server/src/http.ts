@@ -1,4 +1,6 @@
 import { join, resolve, extname } from "node:path";
+import { realpath } from "node:fs/promises";
+import { z } from "zod";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { getSession, updateSession, updateQuestionSession } from "./sessions.js";
 import type { QuestionAnswer } from "./sessions.js";
@@ -36,10 +38,16 @@ async function handleDecidePost(
     return new Response("Session not found", { status: 404 });
   }
 
-  const body = (await req.json()) as {
-    decision: string;
-    feedback?: string;
-  };
+  let body: { decision: string; feedback?: string };
+  try {
+    const DecideSchema = z.object({
+      decision: z.string(),
+      feedback: z.string().optional(),
+    });
+    body = DecideSchema.parse(await req.json());
+  } catch {
+    return new Response("Invalid request body", { status: 400 });
+  }
 
   const decision =
     body.decision === "approved" ? "approved" : "changes_requested";
@@ -96,9 +104,10 @@ async function handleMockupGet(
     return new Response("Session not found", { status: 404 });
   }
 
-  // Resolve and validate path stays within intent dir
+  // Resolve and validate path stays within intent dir (realpath follows symlinks)
   const mockupsDir = join(session.intent_dir, "mockups");
   const resolved = resolve(mockupsDir, filePath);
+  // Pre-check with resolve() before attempting realpath
   if (!resolved.startsWith(resolve(mockupsDir))) {
     return new Response("Forbidden", { status: 403 });
   }
@@ -107,6 +116,12 @@ async function handleMockupGet(
     const file = Bun.file(resolved);
     if (!(await file.exists())) {
       return new Response("Not found", { status: 404 });
+    }
+    // Symlink-safe check: ensure resolved real path stays within base dir
+    const realResolved = await realpath(resolved).catch(() => null);
+    const realBase = await realpath(mockupsDir).catch(() => resolve(mockupsDir));
+    if (!realResolved || !realResolved.startsWith(realBase)) {
+      return new Response("Forbidden", { status: 403 });
     }
     const ext = extname(resolved).toLowerCase();
     const contentType = MIME_TYPES[ext] ?? "application/octet-stream";
@@ -129,6 +144,7 @@ async function handleWireframeGet(
 
   // Wireframe paths are relative to the intent dir
   const resolved = resolve(session.intent_dir, filePath);
+  // Pre-check with resolve() before attempting realpath
   if (!resolved.startsWith(resolve(session.intent_dir))) {
     return new Response("Forbidden", { status: 403 });
   }
@@ -137,6 +153,12 @@ async function handleWireframeGet(
     const file = Bun.file(resolved);
     if (!(await file.exists())) {
       return new Response("Not found", { status: 404 });
+    }
+    // Symlink-safe check: ensure resolved real path stays within base dir
+    const realResolved = await realpath(resolved).catch(() => null);
+    const realBase = await realpath(session.intent_dir).catch(() => resolve(session.intent_dir));
+    if (!realResolved || !realResolved.startsWith(realBase)) {
+      return new Response("Forbidden", { status: 403 });
     }
     const ext = extname(resolved).toLowerCase();
     const contentType = MIME_TYPES[ext] ?? "application/octet-stream";
@@ -167,7 +189,19 @@ async function handleQuestionAnswerPost(
     return new Response("Session not found", { status: 404 });
   }
 
-  const body = (await req.json()) as { answers: QuestionAnswer[] };
+  let body: { answers: QuestionAnswer[] };
+  try {
+    const QuestionAnswerSchema = z.object({
+      answers: z.array(z.object({
+        question: z.string(),
+        selectedOptions: z.array(z.string()),
+        otherText: z.string().optional(),
+      })),
+    });
+    body = QuestionAnswerSchema.parse(await req.json());
+  } catch {
+    return new Response("Invalid request body", { status: 400 });
+  }
 
   updateQuestionSession(sessionId, {
     status: "answered",
@@ -259,7 +293,7 @@ export function startHttpServer(): number {
       console.error(`Review HTTP server listening on http://127.0.0.1:${port}`);
       return port;
     } catch (err: any) {
-      if (err?.code === "EADDRINUSE" || err?.message?.includes("address")) {
+      if (err?.code === "EADDRINUSE") {
         port++;
         continue;
       }

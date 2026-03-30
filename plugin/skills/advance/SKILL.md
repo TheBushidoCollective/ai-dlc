@@ -600,6 +600,76 @@ if ! git diff --cached --quiet 2>/dev/null; then
 fi
 ```
 
+### Pre-Delivery Code Review
+
+Before creating the PR, review the full composed diff to catch cross-unit issues the per-unit reviewer couldn't see. **This is a hard gate — the PR cannot be created without passing.**
+
+**Skip condition:** If `ALL_UNIT_STRATEGY=true` (determined in the next step), this review is unnecessary because each unit already has its own individually-reviewed PR. However, since we haven't computed that yet, run this review for all intent-strategy and hybrid-strategy intents.
+
+```bash
+# Determine if we need pre-delivery review (intent/hybrid strategy only)
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
+CONFIG=$(get_ai_dlc_config "$INTENT_DIR")
+CHANGE_STRATEGY=$(echo "$CONFIG" | jq -r '.change_strategy // "unit"')
+
+NEEDS_DELIVERY_REVIEW=false
+for unit_file in "$INTENT_DIR"/unit-*.md; do
+  [ -f "$unit_file" ] || continue
+  UNIT_CS=$(parse_unit_change_strategy "$unit_file")
+  EFFECTIVE_CS="${UNIT_CS:-$CHANGE_STRATEGY}"
+  [ "$EFFECTIVE_CS" != "unit" ] && { NEEDS_DELIVERY_REVIEW=true; break; }
+done
+```
+
+**If `NEEDS_DELIVERY_REVIEW=true`:** Run the pre-delivery code review.
+
+1. Compute the full diff against the default branch:
+
+```bash
+DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+FULL_DIFF=$(git diff "${DEFAULT_BRANCH}...HEAD" 2>/dev/null || git diff "${DEFAULT_BRANCH}..HEAD")
+DIFF_STAT=$(git diff --stat "${DEFAULT_BRANCH}...HEAD" 2>/dev/null || git diff --stat "${DEFAULT_BRANCH}..HEAD")
+```
+
+2. Review the full diff for these categories:
+   - **Code quality**: naming consistency, dead code, unused imports, code duplication across units
+   - **Security**: injection risks, hardcoded secrets, auth issues introduced by the composed changes
+   - **Cross-unit integration**: conflicting patterns, inconsistent error handling, incompatible interfaces
+   - **Standards**: formatting drift, convention violations visible only in the aggregate
+
+3. Produce a structured decision:
+
+```markdown
+## PRE-DELIVERY REVIEW
+
+**Diff stats:**
+{DIFF_STAT}
+
+**Decision:** APPROVED | REQUEST CHANGES
+
+### Findings (if any)
+- [HIGH] description — affected file(s)
+- [MEDIUM] description — affected file(s)
+- [LOW] description — affected file(s)
+
+### Affected Units (if REQUEST CHANGES)
+- unit-NN-name (reason)
+```
+
+4. **If Decision is APPROVED:** Proceed to delivery.
+
+5. **If Decision is REQUEST CHANGES:**
+
+Only HIGH-confidence findings block delivery. MEDIUM and LOW findings are noted but do not block.
+
+For each affected unit with HIGH findings:
+- Identify the unit slug from the affected file paths
+- Call `/fail` with the reason: "Pre-delivery review found issues: {description}"
+- The fail mechanism will revert the unit's hat to builder and re-enter the build loop
+
+**After calling /fail, STOP.** Do not proceed to delivery. The execution loop will resume with the builder addressing the findings.
+
 **Gate on change strategy.** The delivery prompt only applies to intent-level strategy. With unit strategy, each unit already has its own PR.
 
 ```bash

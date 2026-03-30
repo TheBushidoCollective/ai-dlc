@@ -35,6 +35,7 @@ export function buildDAG(units: ParsedUnit[]): DAGGraph {
 /**
  * Topological sort using Kahn's algorithm.
  * Returns node IDs in dependency order.
+ * Throws if a cycle is detected.
  */
 export function topologicalSort(dag: DAGGraph): string[] {
   const inDegree = new Map<string, number>();
@@ -74,6 +75,16 @@ export function topologicalSort(dag: DAGGraph): string[] {
     }
   }
 
+  // Detect cycles: if not all nodes were processed, there is a cycle
+  if (sorted.length < dag.nodes.length) {
+    const cycleNodes = dag.nodes
+      .map((n) => n.id)
+      .filter((id) => !sorted.includes(id));
+    throw new Error(
+      `Circular dependency detected among units: ${cycleNodes.join(", ")}`
+    );
+  }
+
   return sorted;
 }
 
@@ -103,6 +114,20 @@ const STATUS_CSS: Record<string, string> = {
 };
 
 /**
+ * Escape a string for use as a Mermaid node label (inside double quotes).
+ * Removes characters that break Mermaid syntax.
+ */
+function escapeMermaidLabel(str: string): string {
+  // Replace double quotes and square brackets which break Mermaid node syntax
+  return str
+    .replace(/"/g, "&quot;")
+    .replace(/\[/g, "&#91;")
+    .replace(/\]/g, "&#93;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/**
  * Generate a Mermaid graph TD definition from a DAG and units.
  */
 export function toMermaidDefinition(
@@ -113,7 +138,8 @@ export function toMermaidDefinition(
 
   // Node definitions with labels
   for (const unit of units) {
-    const label = unit.title || unit.slug;
+    const rawLabel = unit.title || unit.slug;
+    const label = escapeMermaidLabel(rawLabel);
     lines.push(`  ${unit.slug}["${label}"]`);
   }
 

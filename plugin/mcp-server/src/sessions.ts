@@ -37,13 +37,34 @@ export interface QuestionSession {
 
 const sessions = new Map<string, ReviewSession | QuestionSession>();
 
-let nextReviewId = 1;
-let nextQuestionId = 1;
+// Cap total in-memory sessions and apply a 30-minute TTL to prevent unbounded growth
+const MAX_SESSIONS = 100;
+const SESSION_TTL_MS = 30 * 60 * 1000;
+const sessionCreatedAt = new Map<string, number>();
+
+function evictSessions(): void {
+  const now = Date.now();
+  // Evict expired sessions
+  for (const [id, ts] of sessionCreatedAt) {
+    if (now - ts > SESSION_TTL_MS) {
+      sessions.delete(id);
+      sessionCreatedAt.delete(id);
+    }
+  }
+  // If still over cap, evict oldest
+  while (sessions.size >= MAX_SESSIONS) {
+    const oldest = sessionCreatedAt.entries().next().value;
+    if (!oldest) break;
+    sessions.delete(oldest[0]);
+    sessionCreatedAt.delete(oldest[0]);
+  }
+}
 
 export function createSession(
   params: Omit<ReviewSession, "session_type" | "session_id" | "status" | "decision" | "feedback">
 ): ReviewSession {
-  const session_id = `review-${nextReviewId++}`;
+  evictSessions();
+  const session_id = crypto.randomUUID();
   const session: ReviewSession = {
     ...params,
     session_type: "review",
@@ -53,13 +74,15 @@ export function createSession(
     feedback: "",
   };
   sessions.set(session_id, session);
+  sessionCreatedAt.set(session_id, Date.now());
   return session;
 }
 
 export function createQuestionSession(
   params: Omit<QuestionSession, "session_type" | "session_id" | "status" | "answers">
 ): QuestionSession {
-  const session_id = `question-${nextQuestionId++}`;
+  evictSessions();
+  const session_id = crypto.randomUUID();
   const session: QuestionSession = {
     ...params,
     session_type: "question",
@@ -68,6 +91,7 @@ export function createQuestionSession(
     answers: [],
   };
   sessions.set(session_id, session);
+  sessionCreatedAt.set(session_id, Date.now());
   return session;
 }
 

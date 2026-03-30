@@ -637,6 +637,24 @@ OP_COUNT=0
 
 ## Phase 6: Write Artifacts
 
+### Prepare Adoption Branch
+
+Before writing artifacts, create a dedicated branch so commits don't land on the user's current branch (which may be `main`):
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+CONFIG=$(get_ai_dlc_config "" "$REPO_ROOT")
+DEFAULT_BRANCH=$(echo "$CONFIG" | jq -r '.default_branch')
+
+ADOPT_BRANCH="ai-dlc/${SLUG}/main"
+
+if ! git rev-parse --verify "$ADOPT_BRANCH" >/dev/null 2>&1; then
+  git checkout -b "$ADOPT_BRANCH"
+else
+  git checkout "$ADOPT_BRANCH"
+fi
+```
+
 ### Create Intent Directory
 
 ```bash
@@ -936,17 +954,9 @@ This intent is now compatible with:
 Execute the chosen option:
 
 - **Run /operate**: Invoke `/operate {slug}` via the Skill tool
-- **Open PR**: The adoption artifacts are already committed to the current branch. Create a dedicated adoption branch, push it, and open a PR against the default branch:
+- **Open PR**: The adoption artifacts are already committed to the `$ADOPT_BRANCH` branch (created in Phase 6). Push and open a PR against the default branch:
 
   ```bash
-  # Determine default branch
-  source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
-  CONFIG=$(get_ai_dlc_config "$INTENT_DIR")
-  DEFAULT_BRANCH=$(echo "$CONFIG" | jq -r '.default_branch')
-
-  # Create and push a dedicated branch for review
-  ADOPT_BRANCH="ai-dlc/${SLUG}/main"
-  git checkout -b "$ADOPT_BRANCH"
   git push -u origin "$ADOPT_BRANCH"
 
   gh pr create \

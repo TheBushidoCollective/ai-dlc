@@ -28,9 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parse errors now emit console warnings instead of failing silently
 - `markdownToHtml` no longer uses unsafe type cast
 
-### Removed
-
-- Dead `plugin/lib/telemetry.sh` library (all call sites removed)
 
 ## [1.83.3] - 2026-03-30
 

@@ -164,6 +164,7 @@ quality_gates:
 - **Additive (ratchet)** — Gates are merged additively: unit gates add to intent gates. Builders can add gates but never remove them. The reviewer verifies gate integrity.
 - **Scoped to building** — Only building hats (builder, implementer, refactorer) are enforced. Planner, reviewer, and designer hats skip enforcement silently.
 
+
 ## Backpressure
 
 Backpressure is the principle that quality gates should **block** non-conforming work rather than just flag it.

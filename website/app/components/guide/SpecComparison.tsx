@@ -55,81 +55,93 @@ export function SpecComparison() {
 				</div>
 			</div>
 
-			{/* Traditional Specs */}
-			<div className="flex flex-col rounded-xl border border-gray-200 bg-gray-50/50 p-6 dark:border-gray-700 dark:bg-gray-800/20">
+			{/* Spec-Driven Development */}
+			<div className="flex flex-col rounded-xl border border-amber-200 bg-amber-50/30 p-6 dark:border-amber-800/50 dark:bg-amber-950/10">
 				<span className="mb-3 block text-4xl">&#x1F4CB;</span>
-				<h3 className="mb-1 text-lg font-bold text-gray-500 dark:text-gray-400">
-					Traditional Specs
+				<h3 className="mb-1 text-lg font-bold text-amber-600 dark:text-amber-400">
+					Spec-Driven Dev
 				</h3>
-				<span className="mb-4 w-fit rounded-lg bg-gray-200 px-2.5 py-0.5 text-[0.7rem] font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-					the old way
+				<span className="mb-4 w-fit rounded-lg bg-amber-100 px-2.5 py-0.5 text-[0.7rem] font-semibold text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+					better, but still a hand-off
 				</span>
 				<ul className="mb-4 flex-1 space-y-2 text-sm text-gray-500 dark:text-gray-400">
-					<li>PM writes a 40-page requirements doc</li>
-					<li>Developer reads it (maybe)</li>
-					<li>Developer builds what they understood</li>
-					<li>QA finds gaps between spec and implementation</li>
-					<li>Spec is already stale by the time it&rsquo;s reviewed</li>
+					<li>
+						Someone writes a detailed spec or PRD
+					</li>
+					<li>
+						Spec is handed to an <strong className="text-gray-700 dark:text-gray-200">AI or developer</strong> to implement
+					</li>
+					<li>
+						Implementer interprets the spec (fills in gaps with assumptions)
+					</li>
+					<li>
+						Reviewer finds mismatches between intent and implementation
+					</li>
+					<li>
+						Back-and-forth to close the gap between what was meant and what was built
+					</li>
 				</ul>
-				<div className="rounded-lg bg-gray-200/60 p-3 dark:bg-gray-700/30">
-					<strong className="text-gray-500">Problem:</strong>{" "}
+				<div className="rounded-lg bg-amber-100/60 p-3 dark:bg-amber-900/20">
+					<strong className="text-amber-600 dark:text-amber-400">Problem:</strong>{" "}
 					<span className="text-sm text-gray-500 dark:text-gray-400">
-						Specs and code live in separate worlds. They drift apart
-						immediately.
+						The spec writer and the implementer have different mental models. The hand-off creates gaps that only surface during review.
 					</span>
 				</div>
 				<div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400">
 					<span className="text-lg">&#x2195;&#xFE0F;</span>
-					Two parallel lines that diverge
+					Spec → hand-off → interpretation gap
 				</div>
 			</div>
 
-			{/* AI-DLC Specs */}
+			{/* AI-DLC Elaboration */}
 			<div className="flex flex-col rounded-xl border border-green-200 bg-green-50/50 p-6 dark:border-green-800 dark:bg-green-950/10">
 				<span className="mb-3 block text-4xl">&#x1F3AF;</span>
-				<h3 className="mb-1 text-lg font-bold text-green-500">AI-DLC Specs</h3>
+				<h3 className="mb-1 text-lg font-bold text-green-500">AI-DLC Elaboration</h3>
 				<span className="mb-4 w-fit rounded-lg bg-green-100 px-2.5 py-0.5 text-[0.7rem] font-semibold text-green-500 dark:bg-green-900/30">
-					the AI-DLC way
+					no hand-off — co-created
 				</span>
 				<ul className="mb-4 flex-1 space-y-2 text-sm text-gray-500 dark:text-gray-400">
 					<li>
-						Human and AI define intent together -- conversation, not document
+						Human and AI{" "}
+						<strong className="text-gray-700 dark:text-gray-200">
+							co-create the spec through conversation
+						</strong>{" "}
+						— not a document tossed over a wall
+					</li>
+					<li>
+						AI explores your codebase, discovers the domain model, and asks clarifying questions — no interpretation gap
 					</li>
 					<li>
 						Success criteria are{" "}
 						<strong className="text-gray-700 dark:text-gray-200">
-							measurable and verifiable
+							machine-verifiable
 						</strong>{" "}
-						-- tests, type checks, performance thresholds
+						— tests, types, performance thresholds the AI can check itself
 					</li>
 					<li>
-						The AI builds to satisfy the spec -- criteria are the <em>only</em>{" "}
-						way it knows when it&rsquo;s done
+						The same system that helped define the spec{" "}
+						<strong className="text-gray-700 dark:text-gray-200">
+							also builds it
+						</strong>{" "}
+						— shared understanding, zero hand-off
 					</li>
 					<li>
 						Quality gates{" "}
 						<strong className="text-gray-700 dark:text-gray-200">
 							enforce
 						</strong>{" "}
-						the spec automatically -- if criteria aren&rsquo;t met, work
-						continues
-					</li>
-					<li>
-						Specs live alongside code in{" "}
-						<code className="text-xs text-amber-500">.ai-dlc/</code> --
-						versioned, committed, always current
+						the criteria automatically — work continues until they&rsquo;re met
 					</li>
 				</ul>
 				<div className="rounded-lg bg-green-100/60 p-3 dark:bg-green-900/20">
 					<strong className="text-green-500">Result:</strong>{" "}
 					<span className="text-sm text-gray-500 dark:text-gray-400">
-						The spec IS the contract. Clear spec = autonomous AI. Vague spec =
-						stuck AI.
+						No interpretation gap. The spec is a shared understanding, not a hand-off artifact. Clear criteria = autonomous AI.
 					</span>
 				</div>
 				<div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400">
 					<span className="text-lg">&#x2705;</span>
-					Straight arrow from spec to working code
+					Conversation → shared understanding → verified code
 				</div>
 			</div>
 		</motion.div>

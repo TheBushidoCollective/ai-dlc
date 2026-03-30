@@ -180,162 +180,164 @@ export default function Home() {
 						</CastCard>
 					</div>
 
-					{/* Hatted agents section */}
-					<motion.p
-						{...fadeIn}
-						className="my-10 text-center italic text-gray-500 dark:text-gray-400"
+					{/* Hatted agents — collapsed by default */}
+					<DeepDive
+						title="The Hatted Agents — Claude's specialist roles"
+						forceOpen={isRef}
 					>
-						When it&rsquo;s time to build, Claude spawns specialist agents --
-						each wearing a different hat.
-					</motion.p>
+						<p className="mb-6 italic text-gray-500 dark:text-gray-400">
+							When it&rsquo;s time to build, Claude spawns specialist agents —
+							each wearing a different hat.
+						</p>
 
-					<HatExplainer />
+						<HatExplainer />
 
-					{/* Workflow groups */}
-					<WorkflowGroup
-						name="Default Workflow"
-						badge="most common"
-						bgClass="bg-amber-500/5 dark:bg-amber-500/5"
-						labelColor="text-amber-400"
-						borderColor="border-l-amber-400"
-						hats={[
-							{
-								icon: "\u{1F4CB}",
-								name: "Planner",
-								desc: "Reads the criteria, checks for blockers, creates a tactical plan for this iteration.",
-							},
-							{
-								icon: "\u{1F528}",
-								name: "Builder",
-								desc: "Implements code incrementally, runs quality gates after every change, fixes what breaks.",
-							},
-							{
-								icon: "\u{1F50D}",
-								name: "Reviewer",
-								desc: "Verifies every success criterion with evidence, checks code quality, approves or sends back.",
-							},
-						]}
-					/>
+						{/* Workflow groups */}
+						<WorkflowGroup
+							name="Default Workflow"
+							badge="most common"
+							bgClass="bg-amber-500/5 dark:bg-amber-500/5"
+							labelColor="text-amber-400"
+							borderColor="border-l-amber-400"
+							hats={[
+								{
+									icon: "\u{1F4CB}",
+									name: "Planner",
+									desc: "Reads the criteria, checks for blockers, creates a tactical plan for this iteration.",
+								},
+								{
+									icon: "\u{1F528}",
+									name: "Builder",
+									desc: "Implements code incrementally, runs quality gates after every change, fixes what breaks.",
+								},
+								{
+									icon: "\u{1F50D}",
+									name: "Reviewer",
+									desc: "Verifies every success criterion with evidence, checks code quality, approves or sends back.",
+								},
+							]}
+						/>
 
-					<WorkflowGroup
-						name="Adversarial Workflow"
-						badge="security-focused"
-						bgClass="bg-rose-500/5 dark:bg-rose-500/5"
-						labelColor="text-rose-500"
-						borderColor="border-l-rose-500"
-						hats={[
-							{
-								icon: "\u{1F4CB}",
-								name: "Planner",
-								desc: "Reads the criteria, checks for blockers, creates a tactical plan.",
-							},
-							{
-								icon: "\u{1F528}",
-								name: "Builder",
-								desc: "Implements code incrementally, runs quality gates.",
-							},
-							{
-								icon: "\u2694\uFE0F",
-								name: "Red Team",
-								desc: "Attacks the code: tests for injection, auth bypass, data exposure.",
-							},
-							{
-								icon: "\u{1F6E1}\uFE0F",
-								name: "Blue Team",
-								desc: "Fixes what Red Team found: patches root causes, adds security tests.",
-							},
-							{
-								icon: "\u{1F50D}",
-								name: "Reviewer",
-								desc: "Verifies every success criterion with evidence.",
-							},
-						]}
-					/>
+						<WorkflowGroup
+							name="Adversarial Workflow"
+							badge="security-focused"
+							bgClass="bg-rose-500/5 dark:bg-rose-500/5"
+							labelColor="text-rose-500"
+							borderColor="border-l-rose-500"
+							hats={[
+								{
+									icon: "\u{1F4CB}",
+									name: "Planner",
+									desc: "Reads the criteria, checks for blockers, creates a tactical plan.",
+								},
+								{
+									icon: "\u{1F528}",
+									name: "Builder",
+									desc: "Implements code incrementally, runs quality gates.",
+								},
+								{
+									icon: "\u2694\uFE0F",
+									name: "Red Team",
+									desc: "Attacks the code: tests for injection, auth bypass, data exposure.",
+								},
+								{
+									icon: "\u{1F6E1}\uFE0F",
+									name: "Blue Team",
+									desc: "Fixes what Red Team found: patches root causes, adds security tests.",
+								},
+								{
+									icon: "\u{1F50D}",
+									name: "Reviewer",
+									desc: "Verifies every success criterion with evidence.",
+								},
+							]}
+						/>
 
-					<WorkflowGroup
-						name="TDD Workflow"
-						badge="test-driven"
-						bgClass="bg-cyan-500/5 dark:bg-cyan-500/5"
-						labelColor="text-cyan-400"
-						borderColor="border-l-cyan-400"
-						hats={[
-							{
-								icon: "\u270D\uFE0F",
-								name: "Test Writer",
-								desc: "Writes ONE failing test for ONE behavior. The test MUST fail.",
-							},
-							{
-								icon: "\u2699\uFE0F",
-								name: "Implementer",
-								desc: "Writes the minimum code to make the test pass. Nothing more.",
-							},
-							{
-								icon: "\u{1F9F9}",
-								name: "Refactorer",
-								desc: "Cleans up the code without changing behavior. Runs tests after every change.",
-							},
-							{
-								icon: "\u{1F50D}",
-								name: "Reviewer",
-								desc: "Verifies every success criterion with evidence.",
-							},
-						]}
-					/>
+						<WorkflowGroup
+							name="TDD Workflow"
+							badge="test-driven"
+							bgClass="bg-cyan-500/5 dark:bg-cyan-500/5"
+							labelColor="text-cyan-400"
+							borderColor="border-l-cyan-400"
+							hats={[
+								{
+									icon: "\u270D\uFE0F",
+									name: "Test Writer",
+									desc: "Writes ONE failing test for ONE behavior. The test MUST fail.",
+								},
+								{
+									icon: "\u2699\uFE0F",
+									name: "Implementer",
+									desc: "Writes the minimum code to make the test pass. Nothing more.",
+								},
+								{
+									icon: "\u{1F9F9}",
+									name: "Refactorer",
+									desc: "Cleans up the code without changing behavior. Runs tests after every change.",
+								},
+								{
+									icon: "\u{1F50D}",
+									name: "Reviewer",
+									desc: "Verifies every success criterion with evidence.",
+								},
+							]}
+						/>
 
-					<WorkflowGroup
-						name="Design Workflow"
-						badge="UI/UX"
-						bgClass="bg-violet-500/5 dark:bg-violet-500/5"
-						labelColor="text-violet-500"
-						borderColor="border-l-violet-500"
-						hats={[
-							{
-								icon: "\u{1F4CB}",
-								name: "Planner",
-								desc: "Reads the criteria, checks for blockers, creates a tactical plan.",
-							},
-							{
-								icon: "\u{1F3A8}",
-								name: "Designer",
-								desc: "Explores design options, presents 2-3 alternatives, creates specs.",
-							},
-							{
-								icon: "\u{1F50D}",
-								name: "Reviewer",
-								desc: "Verifies every success criterion with evidence.",
-							},
-						]}
-					/>
+						<WorkflowGroup
+							name="Design Workflow"
+							badge="UI/UX"
+							bgClass="bg-violet-500/5 dark:bg-violet-500/5"
+							labelColor="text-violet-500"
+							borderColor="border-l-violet-500"
+							hats={[
+								{
+									icon: "\u{1F4CB}",
+									name: "Planner",
+									desc: "Reads the criteria, checks for blockers, creates a tactical plan.",
+								},
+								{
+									icon: "\u{1F3A8}",
+									name: "Designer",
+									desc: "Explores design options, presents 2-3 alternatives, creates specs.",
+								},
+								{
+									icon: "\u{1F50D}",
+									name: "Reviewer",
+									desc: "Verifies every success criterion with evidence.",
+								},
+							]}
+						/>
 
-					<WorkflowGroup
-						name="Hypothesis Workflow"
-						badge="debugging"
-						bgClass="bg-green-500/5 dark:bg-green-500/5"
-						labelColor="text-green-500"
-						borderColor="border-l-green-500"
-						hats={[
-							{
-								icon: "\u{1F441}\uFE0F",
-								name: "Observer",
-								desc: "Reproduces the bug, captures errors, logs, timeline. Reports facts only.",
-							},
-							{
-								icon: "\u{1F4A1}",
-								name: "Hypothesizer",
-								desc: "Generates 3+ theories about the cause.",
-							},
-							{
-								icon: "\u{1F9EA}",
-								name: "Experimenter",
-								desc: "Tests hypotheses one at a time. Isolates variables.",
-							},
-							{
-								icon: "\u{1F4CA}",
-								name: "Analyst",
-								desc: "Confirms root cause, designs minimal fix, adds regression test.",
-							},
-						]}
-					/>
+						<WorkflowGroup
+							name="Hypothesis Workflow"
+							badge="debugging"
+							bgClass="bg-green-500/5 dark:bg-green-500/5"
+							labelColor="text-green-500"
+							borderColor="border-l-green-500"
+							hats={[
+								{
+									icon: "\u{1F441}\uFE0F",
+									name: "Observer",
+									desc: "Reproduces the bug, captures errors, logs, timeline. Reports facts only.",
+								},
+								{
+									icon: "\u{1F4A1}",
+									name: "Hypothesizer",
+									desc: "Generates 3+ theories about the cause.",
+								},
+								{
+									icon: "\u{1F9EA}",
+									name: "Experimenter",
+									desc: "Tests hypotheses one at a time. Isolates variables.",
+								},
+								{
+									icon: "\u{1F4CA}",
+									name: "Analyst",
+									desc: "Confirms root cause, designs minimal fix, adds regression test.",
+								},
+							]}
+						/>
+					</DeepDive>
 
 					{/* Supporting cast */}
 					<div className="mt-8 grid gap-5 sm:grid-cols-3">

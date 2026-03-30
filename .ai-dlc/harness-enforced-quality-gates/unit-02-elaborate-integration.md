@@ -1,6 +1,6 @@
 ---
 status: in_progress
-hat: planner
+hat: builder
 last_updated: ""
 depends_on:
   - unit-01-quality-gate-hook

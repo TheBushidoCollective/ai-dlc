@@ -1,6 +1,6 @@
 ---
-status: in_progress
-last_updated: "2026-03-31T19:19:58Z"
+status: completed
+last_updated: "2026-03-31T20:08:07Z"
 depends_on: [unit-01-pass-definitions]
 branch: ai-dlc/first-class-passes/02-hat-augmentation
 discipline: backend
@@ -9,7 +9,7 @@ workflow: ""
 ticket: ""
 design_ref: ""
 views: []
-hat: reviewer
+hat: ""
 ---
 
 # unit-02-hat-augmentation

@@ -283,3 +283,83 @@ fi
 
 The same pattern must be applied in `subagent-context.sh` lines 186-214.
 
+## Existing Implementations: Cross-Component Consistency Check
+
+### Files That Must Be Updated
+
+This intent touches all three components. Here is the full manifest of files requiring changes:
+
+**Plugin (primary implementation):**
+- `plugin/passes/design.md` -- NEW: design pass definition
+- `plugin/passes/product.md` -- NEW: product pass definition
+- `plugin/passes/dev.md` -- NEW: dev pass definition
+- `plugin/hooks/inject-context.sh` -- MODIFY: hat augmentation + pass injection
+- `plugin/hooks/subagent-context.sh` -- MODIFY: hat augmentation + pass injection
+- `plugin/schemas/settings.schema.json` -- MODIFY: remove hardcoded pass enum
+- `plugin/skills/elaborate/SKILL.md` -- MODIFY: Phase 5.95 wording, pass definition resolution
+- `plugin/skills/execute/SKILL.md` -- MODIFY: pass-aware workflow constraint enforcement
+- `plugin/lib/dag.sh` -- VERIFY: `find_ready_units_for_pass()` already pass-aware (likely no changes)
+- `plugin/shared/src/types.ts` -- VERIFY: `passes` and `active_pass` fields already present (likely no changes)
+- `plugin/workflows.yml` -- VERIFY: may need documentation comments about pass constraints
+
+**Paper (methodology documentation):**
+- `website/content/papers/ai-dlc-2026.md` -- MODIFY: Document pass loop, pass-backs, pass customization, fix frontmatter format mismatch
+
+**Website (user-facing documentation):**
+- `website/content/docs/concepts.md` -- MODIFY: Update pass section with definition files, customization, augmentation
+- Other docs pages may need minor updates
+
+### Paper-Implementation Mismatch Detail
+
+The paper (line 717-728) shows pass frontmatter as structured objects:
+```yaml
+passes:
+  - type: design
+    status: completed
+  - type: product
+    status: active
+```
+
+But the actual implementation uses flat string arrays:
+```yaml
+passes: [design, product, dev]
+active_pass: "design"
+```
+
+The flat format is simpler and sufficient. The paper should be updated to match the implementation, not the other way around. Pass status is derived from unit completion, not stored in the passes array.
+
+## Deployment Architecture: CI/CD
+
+**CI Platform:** GitHub Actions (`.github/workflows/`)
+
+Workflows present:
+- `bump-plugin-version.yml` -- auto-bumps plugin version
+- `claude-code-review.yml` -- Claude-powered PR review
+- `claude-conflict-resolver.yml` -- automated merge conflict resolution
+- `claude.yml` -- Claude Code execution
+- `deploy-website.yml` -- website deployment on push to main
+
+No CI changes needed for this intent -- pass definition files are markdown consumed at runtime by Claude Code hooks, not built artifacts.
+
+## Quality Gate Candidates
+
+Detected from project tooling:
+
+| Gate | Command | Source |
+|------|---------|--------|
+| lint | `bun run lint` | `package.json` `scripts.lint` (uses Biome) |
+| build | `bun run build` | `package.json` `scripts.build` (builds all workspaces) |
+
+**Note:** `bun.lock` present, so all npm commands should use `bun` instead.
+
+No test runner detected -- `package.json` has no `scripts.test` entry. The plugin is primarily markdown/shell-based; tests would be shell script tests if any existed.
+
+Recommended `quality_gates:` YAML block:
+```yaml
+quality_gates:
+  - name: lint
+    command: bun run lint
+  - name: build
+    command: bun run build
+```
+

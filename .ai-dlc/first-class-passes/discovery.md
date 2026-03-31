@@ -363,3 +363,49 @@ quality_gates:
     command: bun run build
 ```
 
+## Domain Model
+
+### Entities
+
+- **PassDefinition**: A typed pass with instructions and workflow constraints -- Fields: name, description, available_workflows, default_workflow, instructions (markdown body)
+- **Intent**: The overall feature being built -- Fields: workflow, git config, passes (ordered array), active_pass (current), status, units
+- **Unit**: A discrete work item within an intent -- Fields: status, depends_on, branch, discipline, pass (which pass it belongs to), workflow
+- **Hat**: A role in the construction workflow -- Fields: name, description, instructions (markdown body)
+- **Workflow**: A named sequence of hats -- Fields: name, description, hats (ordered array)
+- **Settings**: Project-level configuration -- Fields: default_passes, providers, quality_gates, etc.
+
+### Relationships
+
+- Intent has many Units
+- Intent has an ordered sequence of Passes (via `passes` array)
+- Intent has one active Pass (via `active_pass`)
+- Unit belongs to one Pass (via `pass` field)
+- PassDefinition constrains available Workflows (via `available_workflows`)
+- Workflow defines a sequence of Hats (via `hats` array)
+- Hat receives PassDefinition instructions during construction (via hook injection)
+- Settings provides default Passes for new Intents (via `default_passes`)
+- ProjectPassDefinition augments a PluginPassDefinition (same name = append)
+- ProjectHat augments a PluginHat (same name = append, new name = custom)
+
+### Data Sources
+
+- **Plugin filesystem** (markdown files):
+  - Available: hat definitions, skill definitions, workflow definitions, hook scripts, settings schema
+  - Missing: pass definition files (to be created)
+  - Real sample: `plugin/hats/builder.md` with frontmatter + markdown body
+
+- **Project filesystem** (.ai-dlc/ directory):
+  - Available: intent.md, unit-*.md, settings.yml, custom workflows, custom hats
+  - Missing: custom pass definitions (`.ai-dlc/passes/`)
+  - Real sample: `.ai-dlc/settings.yml` with `default_passes: [design, dev]`
+
+- **TypeScript parser** (plugin/shared/src/):
+  - Available: IntentFrontmatter with `passes?` and `active_pass?`, UnitFrontmatter with `pass?`
+  - Missing: PassDefinition type (new), no changes needed to existing types
+
+### Data Gaps
+
+- **Pass definition content**: Need to author the actual instructions for design, product, and dev passes. These should describe what hats should focus on during each pass type. Research into design methodology, product management practices, and development best practices needed to write high-quality instructions.
+- **Workflow constraint validation**: Need to determine what happens when a unit's workflow conflicts with the pass's allowed workflows. The intent description says "fall back to default_workflow" which is straightforward.
+- **Pass-back mechanism detail**: The intent describes backward pass transitions but the implementation details are sparse. Need to define: who triggers a pass-back, how is `active_pass` updated, are existing units in the new active pass re-elaborated or just new units added?
+

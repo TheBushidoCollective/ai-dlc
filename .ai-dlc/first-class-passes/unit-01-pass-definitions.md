@@ -1,6 +1,6 @@
 ---
-status: in_progress
-last_updated: "2026-03-31T18:09:57Z"
+status: completed
+last_updated: "2026-03-31T19:19:10Z"
 depends_on: []
 branch: ai-dlc/first-class-passes/01-pass-definitions
 discipline: backend
@@ -9,7 +9,7 @@ workflow: ""
 ticket: ""
 design_ref: ""
 views: []
-hat: reviewer
+hat: ""
 ---
 
 # unit-01-pass-definitions

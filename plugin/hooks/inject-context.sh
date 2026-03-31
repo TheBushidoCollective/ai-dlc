@@ -406,10 +406,32 @@ if [ "$NEEDS_ADVANCE" = "true" ] && [ "$SOURCE" != "compact" ]; then
   fi
 fi
 
+# Extract active_pass from intent frontmatter (zero-overhead when empty)
+ACTIVE_PASS=""
+if [ -n "$INTENT_DIR" ] && [ -f "${INTENT_DIR}/intent.md" ]; then
+  ACTIVE_PASS=$(yaml_get_simple "active_pass" "" < "${INTENT_DIR}/intent.md")
+fi
+
+PASS_INSTRUCTIONS=""
+if [ -n "$ACTIVE_PASS" ]; then
+  # shellcheck source=/dev/null
+  source "${PLUGIN_ROOT}/lib/pass.sh"
+  PASS_INSTRUCTIONS=$(load_pass_instructions "$ACTIVE_PASS")
+fi
+
 # Validate workflow name against known workflows (loaded above from workflows.yml files)
 if ! echo "$KNOWN_WORKFLOWS" | grep -qw "$WORKFLOW_NAME"; then
   echo "Warning: Unknown workflow '$WORKFLOW_NAME'. Using 'default'." >&2
   WORKFLOW_NAME="default"
+fi
+
+# Constrain workflow to pass's available workflows when active_pass is set
+if [ -n "$ACTIVE_PASS" ]; then
+  CONSTRAINED=$(constrain_workflow "$ACTIVE_PASS" "$WORKFLOW_NAME")
+  if [ "$CONSTRAINED" != "$WORKFLOW_NAME" ]; then
+    echo "Note: Workflow '$WORKFLOW_NAME' not available for '$ACTIVE_PASS' pass; using '$CONSTRAINED'." >&2
+    WORKFLOW_NAME="$CONSTRAINED"
+  fi
 fi
 
 # Format workflow hats as arrow-separated list
@@ -426,7 +448,11 @@ fi
 
 echo "## AI-DLC Context"
 echo ""
-echo "**Iteration:** $ITERATION | **Hat:** $HAT | **Workflow:** $WORKFLOW_NAME ($WORKFLOW_HATS_STR)"
+STATUS_LINE="**Iteration:** $ITERATION | **Hat:** $HAT | **Workflow:** $WORKFLOW_NAME ($WORKFLOW_HATS_STR)"
+if [ -n "$ACTIVE_PASS" ]; then
+  STATUS_LINE="$STATUS_LINE | **Pass:** $ACTIVE_PASS"
+fi
+echo "$STATUS_LINE"
 echo ""
 
 # Inject provider context and maturity signal
@@ -619,6 +645,22 @@ INSTRUCTIONS=$(load_hat_instructions "$HAT")
 HAT_META=$(load_hat_metadata "$HAT" 2>/dev/null || echo "{}")
 NAME=$(printf '%s' "$HAT_META" | sed -n 's/.*"name":"\([^"]*\)".*/\1/p')
 DESC=$(printf '%s' "$HAT_META" | sed -n 's/.*"description":"\([^"]*\)".*/\1/p')
+
+# Inject pass instructions before hat instructions (pass sets the lens, hat sets the role)
+if [ -n "$PASS_INSTRUCTIONS" ]; then
+  PASS_META=$(load_pass_metadata "$ACTIVE_PASS" 2>/dev/null || echo "{}")
+  PASS_DESC=$(printf '%s' "$PASS_META" | sed -n 's/.*"description":"\([^"]*\)".*/\1/p')
+  echo "### Active Pass Instructions"
+  echo ""
+  if [ -n "$PASS_DESC" ]; then
+    echo "**${ACTIVE_PASS}** — $PASS_DESC"
+  else
+    echo "**${ACTIVE_PASS}**"
+  fi
+  echo ""
+  echo "$PASS_INSTRUCTIONS"
+  echo ""
+fi
 
 echo "### Current Hat Instructions"
 echo ""

@@ -188,14 +188,14 @@ Work directly in the current working directory. Do NOT create worktrees.
 Do NOT use /ai-dlc:advance or /ai-dlc:fail — just complete your work and report results.
 ```
 
-**Hook fallback (F003):** If hooks don't fire for Agent calls from skills, manually inject hat context into the subagent prompt. Read the hat file directly:
+**Hat context injection (always explicit):** Always inject hat context directly into the subagent prompt — do not rely on hooks firing for Agent-spawned subagents. Read the hat file directly:
 
 ```bash
 HAT_FILE="${CLAUDE_PLUGIN_ROOT}/hats/{hat-name}.md"
 [ -f ".ai-dlc/hats/{hat-name}.md" ] && HAT_FILE=".ai-dlc/hats/{hat-name}.md"
 ```
 
-If the hat file exists, read its contents and append them to the subagent prompt as additional context under a `## Hat Instructions` heading.
+If the hat file exists, read its contents and append them to the subagent prompt as additional context under a `## Hat Instructions` heading. This makes hat injection deterministic regardless of whether `subagent-context.sh` fires.
 
 #### D. Hat-specific subagent instructions
 
@@ -235,7 +235,7 @@ When a reviewer rejects:
 
 ## Step 5: Cleanup
 
-**This step ALWAYS runs**, whether the hat loop succeeded, failed, or was interrupted.
+Run cleanup after the hat loop completes, regardless of outcome. If the session was interrupted mid-loop, the orphaned artifact check in Step 2b will handle cleanup on the next run.
 
 1. Remove the temporary quick artifacts:
    ```bash
@@ -243,7 +243,7 @@ When a reviewer rejects:
    ```
 2. If a `.ai-dlc/quick/` gitignore entry was added in Step 3a, remove it:
    ```bash
-   sed -i '' '/\.ai-dlc\/quick\//d' .gitignore
+   sed -i.bak '/\.ai-dlc\/quick\//d' .gitignore && rm -f .gitignore.bak
    ```
    If `.gitignore` is now unchanged from its original state (the only modification was the quick entry), do not commit the gitignore change. If other gitignore changes exist, leave them.
 

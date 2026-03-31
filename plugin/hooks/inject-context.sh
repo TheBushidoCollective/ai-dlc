@@ -223,7 +223,11 @@ if [ -z "$ITERATION_JSON" ]; then
     echo ""
     echo "**Syntax:** \`/ai-dlc:quick [workflow] <task description>\`"
     echo ""
-    echo "See available workflows above. Always confirm your routing suggestion with the user before proceeding."
+    if [ -n "$AVAILABLE_WORKFLOWS" ]; then
+      echo "See available workflows above. Always confirm your routing suggestion with the user before proceeding."
+    else
+      echo "Always confirm your routing suggestion with the user before proceeding."
+    fi
     echo ""
     exit 0
   fi
@@ -378,7 +382,11 @@ if [ -z "$ITERATION_JSON" ]; then
     echo ""
     echo "**Syntax:** \`/ai-dlc:quick [workflow] <task description>\`"
     echo ""
-    echo "See available workflows above. Always confirm your routing suggestion with the user before proceeding."
+    if [ -n "$AVAILABLE_WORKFLOWS" ]; then
+      echo "See available workflows above. Always confirm your routing suggestion with the user before proceeding."
+    else
+      echo "Always confirm your routing suggestion with the user before proceeding."
+    fi
     echo ""
   fi
   exit 0

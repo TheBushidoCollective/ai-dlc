@@ -9,7 +9,7 @@ passes: []
 active_pass: ""
 iterates_on: "visual-review"
 created: 2026-03-30
-status: active
+status: completed
 epic: ""
 ---
 
@@ -63,18 +63,18 @@ Fix bugs and extend the visual-review MCP server for full elaboration review int
 - Skill files are static markdown — wiring requires modifying instruction text
 
 ## Success Criteria
-- [ ] MCP server exposes `ask_user_visual_question` tool that accepts questions array (with options, multiSelect, header) and optional context markdown
-- [ ] `ask_user_visual_question` renders a rich HTML page with radio buttons (single-select) or checkboxes (multi-select) for each question's options
-- [ ] "Other" free-text option is always available for each question
-- [ ] User's answers flow back to Claude Code via `notifications/claude/channel` event with structured response in meta
-- [ ] All markdown content in review UI renders correctly — server-side via `markdownToHtml()` instead of client-side CDN
-- [ ] Problem, Solution, Technical Spec, Domain Model sections render with proper headings, lists, code blocks, tables, bold/italic
-- [ ] Unit wireframes resolve and display via mockups/ directory scan fallback when `wireframe:` frontmatter is empty
-- [ ] Mockup images (.png, .jpg, .svg) in mockups/ directory are served and displayed alongside HTML wireframes
-- [ ] Existing `open_review` tool continues to work unchanged
-- [ ] Static dashboard CLI also uses server-side markdown rendering
-- [ ] Visual question page loads in under 500ms on localhost
-- [ ] All interactive elements (radio buttons, checkboxes, submit) are keyboard-navigable with ARIA labels
+- [x] MCP server exposes `ask_user_visual_question` tool that accepts questions array (with options, multiSelect, header) and optional context markdown
+- [x] `ask_user_visual_question` renders a rich HTML page with radio buttons (single-select) or checkboxes (multi-select) for each question's options
+- [x] "Other" free-text option is always available for each question
+- [x] User's answers flow back to Claude Code via `notifications/claude/channel` event with structured response in meta
+- [x] All markdown content in review UI renders correctly — server-side via `markdownToHtml()` instead of client-side CDN
+- [x] Problem, Solution, Technical Spec, Domain Model sections render with proper headings, lists, code blocks, tables, bold/italic
+- [x] Unit wireframes resolve and display via mockups/ directory scan fallback when `wireframe:` frontmatter is empty
+- [x] Mockup images (.png, .jpg, .svg) in mockups/ directory are served and displayed alongside HTML wireframes
+- [x] Existing `open_review` tool continues to work unchanged
+- [x] Static dashboard CLI also uses server-side markdown rendering
+- [x] Visual question page loads in under 500ms on localhost
+- [x] All interactive elements (radio buttons, checkboxes, submit) are keyboard-navigable with ARIA labels
 
 ## Context
 - This iterates on the visual-review intent (all 5 units completed, code on `ai-dlc/visual-review/main` branch)

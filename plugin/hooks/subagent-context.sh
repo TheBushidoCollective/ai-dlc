@@ -47,6 +47,28 @@ if [ "$STATUS" = "completed" ] || [ -z "$HAT" ]; then
   exit 0
 fi
 
+# Extract active_pass from intent frontmatter (zero-overhead when empty)
+ACTIVE_PASS=""
+if [ -f "${INTENT_DIR}/intent.md" ]; then
+  ACTIVE_PASS=$(_state_yaml_get_simple "active_pass" "" < "${INTENT_DIR}/intent.md")
+fi
+
+PASS_INSTRUCTIONS=""
+if [ -n "$ACTIVE_PASS" ]; then
+  # shellcheck source=/dev/null
+  source "${PLUGIN_ROOT}/lib/pass.sh"
+  PASS_INSTRUCTIONS=$(load_pass_instructions "$ACTIVE_PASS")
+fi
+
+# Constrain workflow to pass's available workflows when active_pass is set
+if [ -n "$ACTIVE_PASS" ]; then
+  CONSTRAINED=$(constrain_workflow "$ACTIVE_PASS" "$WORKFLOW_NAME")
+  if [ "$CONSTRAINED" != "$WORKFLOW_NAME" ]; then
+    echo "Note: Workflow '$WORKFLOW_NAME' not available for '$ACTIVE_PASS' pass; using '$CONSTRAINED'." >&2
+    WORKFLOW_NAME="$CONSTRAINED"
+  fi
+fi
+
 # Role-scoped context — skip irrelevant sections for review-focused subagents
 # Review hats don't need bootstrap, worktree setup, or resilience boilerplate
 # This saves ~400 tokens per review subagent invocation
@@ -82,7 +104,11 @@ INTENT=$(cat "$INTENT_FILE")
 
 echo "## AI-DLC Subagent Context"
 echo ""
-echo "**Iteration:** $ITERATION | **Role:** $HAT | **Workflow:** $WORKFLOW_NAME ($WORKFLOW_HATS_STR)"
+STATUS_LINE="**Iteration:** $ITERATION | **Role:** $HAT | **Workflow:** $WORKFLOW_NAME ($WORKFLOW_HATS_STR)"
+if [ -n "$ACTIVE_PASS" ]; then
+  STATUS_LINE="$STATUS_LINE | **Pass:** $ACTIVE_PASS"
+fi
+echo "$STATUS_LINE"
 echo ""
 
 # Inject provider context
@@ -183,6 +209,22 @@ fi
 # In team mode, hat instructions are embedded in teammate prompts by /ai-dlc:execute
 # Skip here to avoid injecting the orchestrator's hat instead of the per-unit hat
 if [ -z "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" ]; then
+  # Inject pass instructions before hat instructions (pass sets the lens, hat sets the role)
+  if [ -n "$PASS_INSTRUCTIONS" ]; then
+    PASS_META=$(load_pass_metadata "$ACTIVE_PASS" 2>/dev/null || echo "{}")
+    PASS_DESC=$(printf '%s' "$PASS_META" | sed -n 's/.*"description":"\([^"]*\)".*/\1/p')
+    echo "### Active Pass: $ACTIVE_PASS"
+    echo ""
+    if [ -n "$PASS_DESC" ]; then
+      echo "**${ACTIVE_PASS}** — $PASS_DESC"
+    else
+      echo "**${ACTIVE_PASS}**"
+    fi
+    echo ""
+    echo "$PASS_INSTRUCTIONS"
+    echo ""
+  fi
+
   # Load role/hat instructions using augmentation pattern (plugin hat + project augmentation)
   # shellcheck source=/dev/null
   source "${PLUGIN_ROOT}/lib/hat.sh"

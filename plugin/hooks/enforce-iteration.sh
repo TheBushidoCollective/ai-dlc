@@ -139,7 +139,7 @@ if [ "$ALL_COMPLETE" = "true" ]; then
         UPDATED_STATE=$(echo "$ITERATION_JSON" | jq -c '.status = "completed"')
         dlc_state_save "$INTENT_DIR" "iteration.json" "$UPDATED_STATE"
       fi
-      git add "${INTENT_DIR}/intent.md" "${INTENT_DIR}/state/iteration.json" "${INTENT_DIR}/ai-dlc:completion-criteria.md" "${INTENT_DIR}/state/completion-criteria.md" 2>/dev/null || true
+      git add "${INTENT_DIR}/intent.md" "${INTENT_DIR}/state/iteration.json" "${INTENT_DIR}/completion-criteria.md" "${INTENT_DIR}/state/completion-criteria.md" 2>/dev/null || true
       git commit -m "status: mark $(basename "$INTENT_DIR") as completed (auto-reconciled)" 2>/dev/null || true
     fi
   fi

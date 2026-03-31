@@ -32,7 +32,7 @@ cat << 'EOF'
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
-    "permissionDecisionReason": "AI-DLC: Use /ai-dlc:elaborate instead of plan mode.\n\nThe AI-DLC plugin replaces Claude Code's built-in plan mode with a more comprehensive workflow:\n\n**`/ai-dlc:elaborate`** - Structured mob elaboration that:\n- Defines intent and success criteria collaboratively\n- Decomposes work into independent units\n- Selects appropriate workflow (default, tdd, hypothesis, adversarial)\n- Creates isolated worktrees for safe iteration\n- Sets up the execution loop with quality gates\n\n**To start:** Run `/ai-dlc:elaborate` with a description of what you want to build.\n\nExample:\n```\n/elaborate Add user authentication with OAuth2 support\n```"
+    "permissionDecisionReason": "AI-DLC: Use /ai-dlc:elaborate instead of plan mode.\n\nThe AI-DLC plugin replaces Claude Code's built-in plan mode with a more comprehensive workflow:\n\n**`/ai-dlc:elaborate`** - Structured mob elaboration that:\n- Defines intent and success criteria collaboratively\n- Decomposes work into independent units\n- Selects appropriate workflow (default, tdd, hypothesis, adversarial)\n- Creates isolated worktrees for safe iteration\n- Sets up the execution loop with quality gates\n\n**To start:** Run `/ai-dlc:elaborate` with a description of what you want to build.\n\nExample:\n```\n/ai-dlc:elaborate Add user authentication with OAuth2 support\n```"
   }
 }
 EOF

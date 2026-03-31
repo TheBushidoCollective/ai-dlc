@@ -487,10 +487,10 @@ if [ -n "$INTENT_DIR" ] && [ -f "${INTENT_DIR}/intent.md" ]; then
 fi
 
 # Load completion criteria from filesystem if exists
-if [ -n "$INTENT_DIR" ] && [ -f "${INTENT_DIR}/ai-dlc:completion-criteria.md" ]; then
+if [ -n "$INTENT_DIR" ] && [ -f "${INTENT_DIR}/completion-criteria.md" ]; then
   echo "### Completion Criteria"
   echo ""
-  cat "${INTENT_DIR}/ai-dlc:completion-criteria.md"
+  cat "${INTENT_DIR}/completion-criteria.md"
   echo ""
 fi
 

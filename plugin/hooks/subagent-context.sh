@@ -106,8 +106,8 @@ echo ""
 
 # Read completion criteria from filesystem (extracted from intent.md Success Criteria section)
 # Or from a separate file if it exists
-if [ -f "${INTENT_DIR}/ai-dlc:completion-criteria.md" ]; then
-  CRITERIA=$(cat "${INTENT_DIR}/ai-dlc:completion-criteria.md")
+if [ -f "${INTENT_DIR}/completion-criteria.md" ]; then
+  CRITERIA=$(cat "${INTENT_DIR}/completion-criteria.md")
   echo "### Completion Criteria"
   echo ""
   echo "$CRITERIA"

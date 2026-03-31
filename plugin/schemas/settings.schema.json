@@ -42,11 +42,10 @@
 		"default_passes": {
 			"type": "array",
 			"items": {
-				"type": "string",
-				"enum": ["design", "product", "dev"]
+				"type": "string"
 			},
 			"default": [],
-			"description": "Default iteration passes for new intents. Empty array means single dev pass (the default). Example: ['design', 'dev'] for design-then-dev workflow."
+			"description": "Default iteration passes for new intents. Each name must have a definition file in plugin/passes/ (built-in) or .ai-dlc/passes/ (custom). Empty array means single dev pass (the default). Built-in passes: design, product, dev. Custom passes: create .ai-dlc/passes/{name}.md."
 		},
 		"quality_gates": {
 			"$ref": "#/definitions/qualityGatesConfig",

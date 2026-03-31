@@ -638,20 +638,9 @@ git commit -m "status: set hat for ${UNIT_NAME}"
 5. **Load hat instructions for the first hat**:
 
 ```bash
-# Load hat instructions for the teammate's role
-HAT_NAME="${FIRST_HAT}"
-HAT_FILE=""
-if [ -f ".ai-dlc/hats/${HAT_NAME}.md" ]; then
-  HAT_FILE=".ai-dlc/hats/${HAT_NAME}.md"
-elif [ -n "$CLAUDE_PLUGIN_ROOT" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/hats/${HAT_NAME}.md" ]; then
-  HAT_FILE="${CLAUDE_PLUGIN_ROOT}/hats/${HAT_NAME}.md"
-fi
-
-# Extract instructions (content after second — in frontmatter)
-HAT_INSTRUCTIONS=""
-if [ -n "$HAT_FILE" ]; then
-  HAT_INSTRUCTIONS=$(sed '1,/^---$/d' "$HAT_FILE" | sed '1,/^---$/d')
-fi
+# Load hat instructions using augmentation pattern (plugin hat + project augmentation)
+source "${CLAUDE_PLUGIN_ROOT}/lib/hat.sh"
+HAT_INSTRUCTIONS=$(load_hat_instructions "${FIRST_HAT}")
 ```
 
 5. **Select agent type based on hat**:
@@ -753,20 +742,11 @@ When a teammate reports successful completion:
 
 a. Update hat in unit frontmatter: `dlc_frontmatter_set "hat" "$nextHat" "$UNIT_FILE"`
 b. Commit: `git add "$UNIT_FILE" && git commit -m "status: advance hat for $(basename "$UNIT_FILE" .md)"`
-c. Load hat file for nextHat:
+c. Load hat instructions for nextHat using augmentation pattern:
 
 ```bash
-HAT_NAME="${nextHat}"
-HAT_FILE=""
-if [ -f ".ai-dlc/hats/${HAT_NAME}.md" ]; then
-  HAT_FILE=".ai-dlc/hats/${HAT_NAME}.md"
-elif [ -n "$CLAUDE_PLUGIN_ROOT" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/hats/${HAT_NAME}.md" ]; then
-  HAT_FILE="${CLAUDE_PLUGIN_ROOT}/hats/${HAT_NAME}.md"
-fi
-HAT_INSTRUCTIONS=""
-if [ -n "$HAT_FILE" ]; then
-  HAT_INSTRUCTIONS=$(sed '1,/^---$/d' "$HAT_FILE" | sed '1,/^---$/d')
-fi
+source "${CLAUDE_PLUGIN_ROOT}/lib/hat.sh"
+HAT_INSTRUCTIONS=$(load_hat_instructions "${nextHat}")
 ```
 
 d. Select agent type based on hat:
@@ -918,7 +898,7 @@ e. For each newly ready unit, spawn at `workflow[0]` (first hat):
 FIRST_HAT=$(echo "$WORKFLOW_HATS" | jq -r '.[0]')
 ```
 
-Then follow the same spawn logic from Step 3 (load hat instructions, select agent type, spawn teammate with hat instructions in prompt).
+Then follow the same spawn logic from Step 3 (use `load_hat_instructions` from `hat.sh` for augmented hat resolution, select agent type, spawn teammate with hat instructions in prompt).
 
 #### Teammate Reports Issues (Any Hat)
 
@@ -929,7 +909,7 @@ When a teammate reports issues or rejects the work:
 3. Increment retry count in unit frontmatter (`dlc_frontmatter_get "retries" "$UNIT_FILE"`)
 4. If `retries >= 3`: Mark unit as blocked, document in `dlc_state_save "$INTENT_DIR" "blockers.md"`
 5. Otherwise: Update hat in unit frontmatter: `dlc_frontmatter_set "hat" "$previousHat" "$UNIT_FILE"`
-6. Load hat file for previousHat
+6. Load hat instructions for previousHat using augmentation pattern (`load_hat_instructions`)
 7. Spawn teammate at previous hat with the feedback/issues in the prompt
 
 This means ANY hat can reject -- not just the reviewer. A red-team finding issues sends work back to the previous hat.

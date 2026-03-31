@@ -9,7 +9,7 @@ passes: []
 active_pass: ""
 iterates_on: ""
 created: 2026-03-30
-status: active
+status: completed
 epic: ""
 quality_gates:
   - name: lint

@@ -30,7 +30,7 @@ fi
 # Determine git range from last version bump
 GIT_RANGE=""
 if [ -n "$OLD_VERSION" ]; then
-	LAST_BUMP_COMMIT=$(git log --all --grep="bump version.*-> $OLD_VERSION" --format="%H" -1 2>/dev/null || true)
+	LAST_BUMP_COMMIT=$(git log --all --grep="bump version.*-> $(echo "$OLD_VERSION" | sed 's/\./\\./g')" --format="%H" -1 2>/dev/null || true)
 	if [ -n "$LAST_BUMP_COMMIT" ]; then
 		GIT_RANGE="$LAST_BUMP_COMMIT..HEAD"
 	fi
@@ -92,7 +92,9 @@ clean_title() {
 }
 
 # --- Pass 1: Merge commits (PR-level entries) ---
-MERGE_HASHES=$(git log $GIT_RANGE --merges --first-parent --format="%h" 2>/dev/null || true)
+# Pass 1: Merge commits (PR-level entries) — intentionally not filtered by PATH_DIR
+# since PRs are a repo-level concept and their titles describe the overall change.
+MERGE_HASHES=$(git log "$GIT_RANGE" --merges --first-parent --format="%h" 2>/dev/null || true)
 
 for hash in $MERGE_HASHES; do
 	subject=$(git log -1 --format="%s" "$hash")
@@ -104,7 +106,12 @@ for hash in $MERGE_HASHES; do
 
 	if echo "$subject" | grep -q "Merge pull request"; then
 		pr_num=$(echo "$subject" | grep -oE '#[0-9]+' | head -1)
-		title="${body:-$subject}"
+	if echo "$subject" | grep -q "Merge pull request"; then
+		pr_num=$(echo "$subject" | grep -oE '#[0-9]+' | head -1)
+		if [ -z "$body" ]; then
+			continue  # skip PRs with no description
+		fi
+	
 	else
 		pr_num=""
 		title="$subject"
@@ -126,7 +133,7 @@ while IFS='|' read -r hash subject; do
 
 	cleaned=$(clean_title "$subject")
 	entry="- ${cleaned}"
-
+MERGE_HASHES=$(git log "$GIT_RANGE" --merges --first-parent --format="%h" 2>/dev/null || true)
 	if echo "$subject" | grep -qE '^[a-z]+(\([^)]+\))?!:'; then
 		add_entry breaking "$entry"
 	elif echo "$subject" | grep -qE '^feat(\([^)]+\))?:'; then

@@ -1,7 +1,7 @@
 ---
 title: Cowork Mode
 description: Use AI-DLC on repositories you don't have checked out locally
-order: 12
+order: 13
 ---
 
 # Cowork Mode

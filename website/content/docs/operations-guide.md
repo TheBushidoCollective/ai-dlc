@@ -1,7 +1,7 @@
 ---
 title: Operations Guide
 description: Complete walkthrough of the AI-DLC operations phase — defining, executing, deploying, and monitoring operational tasks
-order: 6
+order: 7
 ---
 
 The Operations Phase manages ongoing work after construction completes. Instead of treating operations as an external concern, AI-DLC models operational tasks as spec files that live alongside the code they support.

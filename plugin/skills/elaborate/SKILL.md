@@ -73,16 +73,16 @@ When elaboration is invoked from `/ai-dlc:autopilot`, it runs in **autonomous mo
 |---|---|---|
 | **1 (Gather Intent)** | Ask "What do you want to build?" | Use the feature description from `/ai-dlc:autopilot`. Do NOT ask. |
 | **2 (Clarify Requirements)** | Ask 2-4 clarification questions | **Skip entirely.** Infer requirements from the feature description and domain discovery. The description from autopilot is assumed to be sufficient for well-understood features. |
-| **2 (Deployment/Ops)** | Ask deployment target, monitoring, ops questions | **Skip.** Default to "Existing infrastructure" / "Use existing monitoring" / "Standard ops". If the codebase has no deployment surface, skip as usual. |
+| **2 (Deployment/Ops)** | Discovered from codebase (no questions asked) | **Same behavior.** Discovery is always autonomous — no change needed. |
 | **2.3 (Knowledge Bootstrap)** | Synthesize knowledge from codebase | **Run silently.** Invoke the knowledge synthesis subagent (or write greenfield scaffolds) without asking the user. No interaction needed. |
 | **2.5 (Domain Model validation)** | Ask user to confirm domain model accuracy | **Auto-approve.** Log the domain model for reference but do not ask. Discovery is still mandatory — only the confirmation prompt is skipped. |
 | **2.75 (Design Direction)** | Present design direction picker | **Auto-select Editorial** with default parameters. Skip the picker UI. The default archetype can be overridden via `default_archetype` in `.ai-dlc/settings.yml`. |
 | **3 (Workflow selection)** | Show options and ask user to choose | **Use the recommended workflow.** Run the recommendation logic, then apply it directly without asking. |
 | **4 (Success Criteria)** | Ask about NFRs, then confirm criteria list | **Generate criteria and auto-approve.** Derive NFRs from the domain model and codebase patterns. Do NOT ask for confirmation. |
-| **5.5 (Cross-cutting concerns)** | Ask per concern: foundation unit vs convention | **Decide autonomously.** If the concern requires shared code → foundation unit. If it's a pattern → convention. Do NOT ask. |
+| **5.5 (Cross-cutting concerns)** | Always create foundation units (no question asked) | **Same behavior.** Foundation units are always created autonomously — no change needed. |
 | **5.75 (Spec Alignment Gate)** | Ask user to confirm overall direction | **Auto-approve.** Skip the alignment question. |
 | **5.8 (Git Strategy)** | Ask delivery strategy, source branch, hybrid | **Default to intent strategy** (`change_strategy: intent`, `auto_merge: true`) from the repo's default branch. No hybrid overrides. Do NOT ask. |
-| **5.9 (Announcements)** | Ask what announcement formats to generate | **Default to `[changelog]`.** Do NOT ask. |
+| **5.9 (Announcements)** | Read from project settings (no question asked) | **Same behavior.** Settings are always read without asking — no change needed. |
 | **5.95 (Iteration Passes)** | Present configured passes via AskUserQuestion (3 options) | **Auto-accept defaults** but validate each pass name first via `validate_pass_exists`. If any pass is invalid, strip it and log a warning. Do NOT ask. |
 | **6 (Per-unit review)** | Present each unit and ask for approval | **Auto-approve each unit.** Still write and commit each unit, still display them in the output, but do NOT ask for approval. Move to the next unit immediately. |
 | **6.25 (Wireframe review)** | Ask product to review wireframes | **Auto-approve.** Still generate wireframes, but skip the review gate. |
@@ -116,6 +116,39 @@ Before any elaboration, verify the working environment:
    PROJECT_MATURITY=$(detect_project_maturity)
    ```
    Values: `greenfield` (brand new, 0-3 commits or minimal source files), `early` (some code but still small), `established` (mature codebase). This value gates Phase 2.5 exploration behavior.
+1c. **Check for project setup**: If `.ai-dlc/settings.yml` does not exist, the project has not been configured yet. Run `/ai-dlc:setup` first so that providers, delivery strategy, announcements, and other project-level settings are established before elaboration begins.
+   ```bash
+   if [ ! -f ".ai-dlc/settings.yml" ]; then
+     echo "No .ai-dlc/settings.yml found. Running /ai-dlc:setup first..."
+   fi
+   ```
+   If the file is missing, invoke the setup skill:
+   ```
+   Skill("ai-dlc:setup")
+   ```
+   After setup completes, verify the settings file was created:
+   ```bash
+   if [ ! -f ".ai-dlc/settings.yml" ]; then
+     echo "Setup was not completed. Please run /ai-dlc:setup before elaborating."
+     exit 1
+   fi
+   ```
+   If the file still doesn't exist (user cancelled or setup failed), stop and tell the user to run `/ai-dlc:setup` first. Do not proceed without configuration.
+
+   **In autonomous mode:** If settings.yml is missing during autopilot, use all defaults without running setup — create a minimal settings file with sensible defaults instead of blocking:
+   ```bash
+   mkdir -p .ai-dlc
+   cat > .ai-dlc/settings.yml << 'SETTINGS_EOF'
+   git:
+     change_strategy: intent
+     default_branch: auto
+     auto_merge: true
+   default_announcements: [changelog]
+   SETTINGS_EOF
+   git add .ai-dlc/settings.yml
+   git commit -m "ai-dlc: initialize default settings"
+   ```
+
 2. If **not cowork** (`IS_COWORK` is empty) **and in a repo** (`IN_REPO` is `true`): proceed to Phase 0 (Existing Intent Check) below.
 3. If **cowork** (`IS_COWORK=1`) **or not in a repo**:
    a. **Ask how to access the project**:
@@ -374,69 +407,17 @@ Focus your questions on understanding:
 
 Continue asking until you can articulate back to the user, in your own words, exactly what they want built. If you can't explain the domain entities, data flows, and user experience in concrete detail, you don't understand it yet.
 
-### Phase 2 (continued): Deployment & Operations Questions
+### Phase 2 (continued): Deployment & Operations Context
 
-**Gate:** Skip this sub-phase entirely if the intent is a library, documentation, design-only, or pure refactor with no deployment surface. Also skip if the stack config in `.ai-dlc/settings.yml` has no infrastructure/compute/monitoring/operations layers configured (check via `get_stack_layer()`).
+**These concerns are NOT asked as questions.** Deployment, monitoring, and operational needs are discovered automatically during Phase 2.5 (Domain Discovery) by analyzing:
+- Existing infrastructure config (Dockerfiles, Helm charts, Terraform, CI/CD pipelines)
+- Existing monitoring setup (Prometheus, Grafana, Datadog, alert rules, SLOs)
+- Existing operational procedures (runbooks, on-call configs, scaling policies)
+- Stack config layers from `.ai-dlc/settings.yml`
 
-To determine if this sub-phase applies, check:
-```bash
-source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
-STACK_INFRA=$(get_stack_layer "infrastructure")
-STACK_COMPUTE=$(get_stack_layer "compute")
-STACK_MONITORING=$(get_stack_layer "monitoring")
-STACK_OPS=$(get_stack_layer "operations")
-# Skip if all layers are empty arrays/objects AND intent doesn't introduce new deployable services
-if [ "$STACK_INFRA" != "[]" ] || [ "$STACK_COMPUTE" != "[]" ] || \
-   [ "$STACK_MONITORING" != "[]" ] || [ "$STACK_OPS" != "{}" ]; then
-  HAS_STACK=true
-else
-  HAS_STACK=false
-fi
-```
+The discovery subagent writes findings to `discovery.md` under standardized sections (`## Deployment Architecture`, `## Monitoring Setup`, `## Operational Procedures`). These findings feed into Phase 5 (auto-creation of infrastructure/observability units) and Phase 6 (unit frontmatter ops blocks).
 
-If the intent involves a new deployable service, API, worker, or infrastructure change — OR if stack config layers are populated — ask targeted deployment and operations questions using `AskUserQuestion`:
-
-```json
-{
-  "questions": [
-    {
-      "question": "Where will this be deployed?",
-      "header": "Deployment Target",
-      "options": [
-        {"label": "Containers (Kubernetes/ECS)", "description": "Orchestrated container deployment"},
-        {"label": "Serverless (Lambda/Cloud Functions)", "description": "Function-as-a-service"},
-        {"label": "Bare metal / VMs", "description": "Traditional server deployment"},
-        {"label": "Existing infrastructure", "description": "Deploys into current infra — no new provisioning needed"}
-      ],
-      "multiSelect": false
-    },
-    {
-      "question": "What monitoring and observability do you need?",
-      "header": "Monitoring Needs",
-      "options": [
-        {"label": "Use existing monitoring stack", "description": "Integrate with what's already in place"},
-        {"label": "New monitoring required", "description": "Need to set up dashboards, alerts, or SLOs for this"},
-        {"label": "Minimal / none", "description": "Internal tool or low-risk — basic health checks only"}
-      ],
-      "multiSelect": false
-    },
-    {
-      "question": "Are there operational concerns to address?",
-      "header": "Operational Needs",
-      "options": [
-        {"label": "Needs runbooks and alerting", "description": "Production service requiring on-call procedures"},
-        {"label": "Standard ops", "description": "Follow existing operational patterns — nothing special"},
-        {"label": "No operational needs", "description": "No runtime operational requirements"}
-      ],
-      "multiSelect": false
-    }
-  ]
-}
-```
-
-Pre-populate option descriptions using stack config data when available (e.g., if Kubernetes is already configured in the infrastructure layer, highlight it as the existing deployment target).
-
-Store the user's answers — they feed into Phase 5 (auto-creation of infrastructure/observability units) and Phase 6 (unit frontmatter ops blocks).
+**No user questions are asked here.** The elaboration skill uses discovered patterns and best practices to make deployment/ops decisions. For monitoring specifically, if discovery reveals an existing monitoring stack, the skill confirms the detected approach with the user after presenting the domain model (see Phase 2.5, "Present Domain Model to User").
 
 ---
 
@@ -835,6 +816,31 @@ Use `AskUserQuestion` to validate:
 ```
 
 **Do NOT proceed past this phase until the user confirms the domain model is accurate.** If they identify gaps, explore more. This is the foundation everything else builds on.
+
+### Post-Discovery: Monitoring Approach Confirmation
+
+**Gate:** Only run this sub-step if discovery found monitoring patterns (check `discovery.md` for a `## Monitoring Setup` section with substantive content). Skip entirely if:
+- No `## Monitoring Setup` section exists in discovery.md
+- The intent has no deployment surface (library, docs, design-only, pure refactor)
+
+If monitoring patterns were discovered, briefly summarize what was found and confirm the approach:
+
+```json
+{
+  "questions": [{
+    "question": "Discovery found existing monitoring patterns: {brief summary — e.g., 'Prometheus metrics with Grafana dashboards, OTel tracing'}. Should the new work follow these patterns?",
+    "header": "Monitoring",
+    "options": [
+      {"label": "Follow existing patterns", "description": "Integrate with the discovered monitoring stack"},
+      {"label": "New monitoring needed", "description": "This work needs monitoring beyond what exists"},
+      {"label": "No monitoring needed", "description": "This intent doesn't need observability"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+Store the answer — it feeds into Phase 5 (ops-aware unit creation) to determine whether an observability unit is needed.
 
 ### Visual Brainstorming
 
@@ -1264,7 +1270,7 @@ or timeline replay (unit-05). It only renders the structural hierarchy.
 
 **Gate:** Skip this sub-phase entirely if the intent has no deployment surface. An intent has no deployment surface when:
 - It is a library, documentation, design-only, or pure refactor intent
-- Phase 2 ops questions were skipped (no deployment/monitoring/operations answers)
+- Domain discovery found no deployment architecture, monitoring setup, or operational procedures
 - No stack config layers are populated in `.ai-dlc/settings.yml`
 
 When the intent DOES have a deployment surface, apply these rules to determine whether to create dedicated ops units or fold ops concerns into feature units:
@@ -1278,12 +1284,12 @@ STACK_MONITORING=$(get_stack_layer "monitoring")
 STACK_COMPUTE=$(get_stack_layer "compute")
 
 # Check: does the intent introduce NEW deployable services?
-# (Determined from clarification answers and domain model)
+# (Determined from domain model and discovery findings)
 INTRODUCES_NEW_SERVICES=false  # set true if intent adds new services/APIs/workers
 
 # Check: does the intent require NEW monitoring?
-# (Determined from Phase 2 ops answers)
-REQUIRES_NEW_MONITORING=false  # set true if user indicated new monitoring needed
+# (Determined from discovery findings — check discovery.md for "## Monitoring Setup" section)
+REQUIRES_NEW_MONITORING=false  # set true if discovery found gaps or new monitoring needs
 ```
 
 #### Step 2: Apply auto-creation rules
@@ -1312,28 +1318,22 @@ Present the full unit breakdown to the user and confirm before proceeding.
 
 ## Phase 5.5: Cross-Cutting Concern Analysis
 
-After units are defined, identify concerns that span multiple units. Ask:
+After units are defined, identify concerns that span multiple units:
 
-> "Do any concerns span multiple units? Examples: authentication, error handling patterns, logging conventions, shared state, caching strategy."
+> Examples: authentication, error handling patterns, logging conventions, shared state, caching strategy.
 
-For each cross-cutting concern identified, decide how to handle it using `AskUserQuestion`:
+**Auto-decide** how to handle each concern based on whether it requires shared code. Do NOT ask the user.
 
-```json
-{
-  "questions": [{
-    "question": "How should we handle the cross-cutting concern: '{concern}'?",
-    "header": "Strategy",
-    "options": [
-      {"label": "Foundation unit", "description": "Create a new unit that others depend_on. Use when the concern requires shared code/infrastructure (e.g., auth middleware, shared component library)."},
-      {"label": "Intent-level convention", "description": "Document as an intent-level success criterion that every unit's reviewer checks. Use when the concern is a pattern to follow, not code to build (e.g., 'all API errors return RFC 7807 format')."}
-    ],
-    "multiSelect": false
-  }]
-}
-```
+**If the concern requires shared code or infrastructure** (auth middleware, shared component library, database schema, shared API client):
+- Create a foundation unit with `depends_on: []`
+- Add it to the `depends_on` list of all consuming units
+- Follow the same unit specification format from Phase 5
 
-- **If foundation unit**: Add it to the unit list with appropriate `depends_on` edges from consuming units. Follow the same unit specification format from Phase 5.
-- **If convention**: Add it to the intent-level success criteria. The integration validation step (and each unit's Reviewer) will verify compliance.
+**If the concern is a pattern or convention** (error format standard, logging conventions, naming rules, coding patterns):
+- Add it as an intent-level success criterion that every unit's reviewer checks
+- Do NOT create a unit — conventions are rules to follow, not code to build
+
+The distinction is: does the concern produce *code artifacts* that other units import/depend on? If yes, foundation unit. If it's a *rule to follow consistently*, it's a criterion.
 
 **Skip this phase if there is only one unit.**
 
@@ -1470,16 +1470,16 @@ Use `AskUserQuestion`:
       "header": "Delivery Strategy",
       "options": [
         {
-          "label": "Build everything, then open one MR",
-          "description": "Units merge into an intent branch as they complete. Dependent units start automatically once their dependencies are done. One final MR for the whole intent."
+          "label": "Build everything, then open one PR",
+          "description": "Units merge into an intent branch as they complete. Dependent units start automatically once their dependencies are done. One final PR for the whole intent."
         },
         {
           "label": "Review each unit individually",
-          "description": "Each unit opens its own PR/MR. Dependent units wait until their dependencies are merged. Best when you want to validate each piece before moving on."
+          "description": "Each unit opens its own PR. Dependent units wait until their dependencies are merged. Best when you want to validate each piece before moving on."
         },
         {
           "label": "Build everything on {DEFAULT_BRANCH}",
-          "description": "Same as above, but all work happens directly on {DEFAULT_BRANCH}. No feature branches, no MR — relies on CI to gate quality."
+          "description": "Same as above, but all work happens directly on {DEFAULT_BRANCH}. No feature branches, no PR — relies on CI to gate quality."
         }
       ],
       "multiSelect": false
@@ -1530,67 +1530,64 @@ Map user selections to config values:
 
 | What You Want | Strategy Value |
 |--------------|----------------|
-| Build everything, then open one MR | `intent` |
+| Build everything, then open one PR | `intent` |
 | Review each unit individually | `unit` |
 | Build everything on {DEFAULT_BRANCH} | `trunk` |
 
-- "Build everything, then open one MR" → `intent` + `auto_merge: true`
+- "Build everything, then open one PR" → `intent` + `auto_merge: true`
 - "Review each unit individually" → `unit` (no `auto_merge` key — user merges their own PRs)
 - "Build everything on {DEFAULT_BRANCH}" → `trunk` (no `auto_merge` key — no branches)
 
-### Hybrid Per-Unit Strategy (Optional)
+### Hybrid Per-Unit Strategy (Auto-Decided)
 
-If the user selected **"Build everything, then open one MR"** (intent strategy), ask whether any foundational units should use per-unit branching instead. This creates a **hybrid** strategy where one or more units get their own PR (merged directly to the default branch), while the remaining units merge into the intent branch.
+If the user selected **"Build everything, then open one PR"** (intent strategy), evaluate whether any foundational units should use per-unit branching instead. This creates a **hybrid** strategy where one or more units get their own PR (merged directly to the default branch), while the remaining units merge into the intent branch.
 
-This is useful when a foundational unit (e.g., database schema, shared library setup) needs to land on `main` before other units can build on it.
+**Auto-decide using these heuristics:**
+- If a unit has `depends_on: []` (no dependencies) AND other units depend on it AND it involves schema migrations, shared library setup, or infrastructure provisioning → set `git: { change_strategy: unit }` on that unit (it should land on the default branch first)
+- If the dependency graph is linear (A → B → C) with no clear foundational boundary → keep all units on the intent branch (no hybrid)
+- If a unit has `discipline: infrastructure` and is depended on by feature units → set it as per-unit
 
-Use `AskUserQuestion`:
+**Only ask the user via `AskUserQuestion` when the heuristic is ambiguous** — e.g., multiple units could qualify as foundational but it's unclear which ones genuinely need to land on the default branch first. In that case:
+
 ```json
 {
   "questions": [{
-    "question": "Should any foundational units be reviewed individually (own PR to main) while others merge into the intent branch?",
+    "question": "Multiple units could be delivered individually to {DEFAULT_BRANCH} before the rest. Which foundational units should get their own PR?",
     "header": "Hybrid",
     "options": [
-      {"label": "No, build everything into the intent branch", "description": "All units merge into the intent branch (standard intent strategy)"},
-      {"label": "Yes, some reviewed individually", "description": "I'll specify which foundational units should get their own PR"}
+      {"label": "None — all into intent branch", "description": "Standard intent strategy, no hybrid overrides"},
+      {"label": "{unit-slug-1}", "description": "{one-line description}"},
+      {"label": "{unit-slug-2}", "description": "{one-line description}"}
     ],
-    "multiSelect": false
+    "multiSelect": true
   }]
 }
 ```
 
-If the user selects "Yes", ask which units should be reviewed individually. Note these units — their `git: { change_strategy: unit }` override will be written into unit frontmatter in Phase 6 Step 3.
+Units selected get `git: { change_strategy: unit }` in their frontmatter (Phase 6 Step 3).
 
-**Skip this question entirely if the user selected "Review each unit individually" or "Build everything on {DEFAULT_BRANCH}"** — per-unit overrides only make sense with the intent branch strategy.
+**Skip entirely if the user selected "Review each unit individually" or "Build everything on {DEFAULT_BRANCH}"** — per-unit overrides only make sense with the intent branch strategy.
 
 ---
 
 ## Phase 5.9: Completion Announcements
 
-Ask the user if they want announcement artifacts generated when the intent completes.
+Read the default announcements from project settings — **do NOT ask the user**. This is a project-level preference configured during `/ai-dlc:setup`.
 
-Use `AskUserQuestion`:
-```json
-{
-  "questions": [{
-    "question": "What announcement formats should be generated when this intent completes?",
-    "header": "Announcements",
-    "options": [
-      {"label": "None", "description": "No announcements — just deliver the code"},
-      {"label": "Changelog", "description": "Conventional changelog entry for developers"},
-      {"label": "Release notes", "description": "User-facing feature summary"},
-      {"label": "All formats", "description": "Changelog, release notes, social posts, and blog draft"}
-    ],
-    "multiSelect": false
-  }]
-}
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+DEFAULT_ANNOUNCEMENTS=$(get_setting_value "default_announcements")
+# Falls back to ["changelog"] if not configured
+if [ -z "$DEFAULT_ANNOUNCEMENTS" ] || [ "$DEFAULT_ANNOUNCEMENTS" = "null" ]; then
+  DEFAULT_ANNOUNCEMENTS='["changelog"]'
+fi
 ```
 
-Map selections to the `announcements` array in intent.md frontmatter:
-- "None" → `[]`
-- "Changelog" → `[changelog]`
-- "Release notes" → `[changelog, release-notes]`
-- "All formats" → `[changelog, release-notes, social-posts, blog-draft]`
+Write the value directly into intent.md frontmatter as `announcements:`. Valid values:
+- `[]` — No announcements
+- `[changelog]` — Conventional changelog entry (default)
+- `[changelog, release-notes]` — Changelog + user-facing summary
+- `[changelog, release-notes, social-posts, blog-draft]` — All formats
 
 ---
 
@@ -1774,36 +1771,83 @@ DISCOVERY_FILE=".ai-dlc/${INTENT_SLUG}/discovery.md"
 
 Read the file and look for the `## Quality Gate Candidates` section. Parse the detected gates table.
 
-**Step B — Present gates to user.** If quality gate candidates were found, use `AskUserQuestion` to present them:
+**Step B — Present gates to user.** If quality gate candidates were found, display them and ask via `AskUserQuestion`:
 
-> **Quality Gate Candidates Detected**
->
-> The following quality gates were detected from your project tooling:
->
-> | Name | Command | Source |
-> |------|---------|--------|
-> | {name} | {command} | {source file} |
-> | ... | ... | ... |
->
-> How would you like to proceed?
-> 1. **Use all detected gates** — All gates above will run during construction
-> 2. **Let me choose** — Pick which gates to include
-> 3. **Skip quality gates** — No gates will be enforced (you can add them later)
+First, display the detected gates as a formatted table:
 
-If the user selects **"Let me choose"**, present each gate individually and collect their selections.
+```markdown
+## Quality Gates Detected
 
-After the user confirms (options 1 or 2), inform them how to customize individual commands if needed:
+| Gate | Command | Source |
+|------|---------|--------|
+| {name} | `{command}` | {source file} |
+| ... | `...` | ... |
+```
 
-> Gates confirmed. To modify a gate command (e.g., change `npm test` to `npm test -- --coverage`), edit the `quality_gates:` field in `.ai-dlc/{intent-slug}/intent.md` directly after this step. Gates are written as a YAML list:
->
-> ```yaml
-> - name: tests
->   command: npm test -- --coverage
-> ```
+Then ask:
 
-If no candidates were found in discovery, inform the user:
+```json
+{
+  "questions": [{
+    "question": "These quality gates will be enforced during construction — the AI cannot stop building until all gates pass. Which gates should be active?",
+    "header": "Quality Gates",
+    "options": [
+      {"label": "Use all detected gates", "description": "All {N} gates above will run on every build cycle"},
+      {"label": "Let me choose", "description": "Select which gates to include"},
+      {"label": "Skip quality gates", "description": "No gates enforced (you can add them later in intent.md)"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
 
-> No quality gates were auto-detected from project tooling. You can add custom gates later by editing the `quality_gates:` field in intent.md frontmatter. Proceeding with `quality_gates: []`.
+If the user selects **"Let me choose"**:
+
+**If 4 or fewer gates:** Present each gate as a multi-select option:
+
+```json
+{
+  "questions": [{
+    "question": "Select which quality gates to enforce:",
+    "header": "Gates",
+    "options": [
+      {"label": "{name}", "description": "`{command}` (from {source})"}
+    ],
+    "multiSelect": true
+  }]
+}
+```
+
+**If 5+ gates:** `AskUserQuestion` supports max 4 options, so use a different approach. The gates table is already displayed above. Ask the user which to exclude:
+
+```json
+{
+  "questions": [{
+    "question": "All {N} gates are shown in the table above. Which gates should be EXCLUDED? (Type gate names to exclude, or leave empty to use all)",
+    "header": "Exclude",
+    "options": [
+      {"label": "Use all gates", "description": "Keep all {N} detected gates"},
+      {"label": "Exclude some", "description": "I'll type which gates to skip"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+If the user selects "Exclude some", ask a follow-up: "Type the names of gates to exclude (comma-separated):" and wait for their response. Parse the names and remove those gates from the list.
+
+After the user confirms (options 1 or 2), note:
+
+```
+Gates confirmed. To customize commands later, edit `quality_gates:` in `.ai-dlc/{intent-slug}/intent.md`.
+```
+
+If no candidates were found in discovery, skip the question and note:
+
+```
+No quality gates detected from project tooling. Proceeding with `quality_gates: []`.
+You can add gates later by editing intent.md frontmatter.
+```
 
 **Step C — Update intent.md frontmatter.** Write the confirmed gates to intent.md using `yq`:
 
@@ -1920,7 +1964,7 @@ is_category_applicable "$DISCIPLINE" "observable" && INCLUDE_MONITORING=true
 is_category_applicable "$DISCIPLINE" "operable" && INCLUDE_OPERATIONS=true
 ```
 
-For `discipline: infrastructure` or `discipline: observability` units, always populate the relevant ops blocks. For other disciplines, only include blocks where the category is applicable per `get_discipline_categories()`. When included, uncomment the relevant block(s) in the frontmatter and populate with values from Phase 2 ops answers.
+For `discipline: infrastructure` or `discipline: observability` units, always populate the relevant ops blocks. For other disciplines, only include blocks where the category is applicable per `get_discipline_categories()`. When included, uncomment the relevant block(s) in the frontmatter and populate with values from discovery findings (see `## Deployment Architecture`, `## Monitoring Setup`, and `## Operational Procedures` sections in `discovery.md`).
 
 > **Template selection by discipline:** For `discipline: design` units, use the design template below (Design Deliverables, States to Cover, Constraints, Design Tokens Reference). For all other disciplines (`frontend`, `backend`, `api`, `documentation`, `devops`, etc.), use the standard template above (Domain Entities, Data Sources, Technical Specification).
 
@@ -2671,7 +2715,7 @@ IS_COWORK="${CLAUDE_CODE_IS_COWORK:-}"
     "header": "Handoff",
     "options": [
       {"label": "Execute", "description": "Start the autonomous build loop now"},
-      {"label": "Open PR/MR for review", "description": "Create a pull/merge request for spec review before building"}
+      {"label": "Open PR for review", "description": "Create a pull request for spec review before building"}
     ],
     "multiSelect": false
   }]
@@ -2691,7 +2735,7 @@ The artifacts have already been written to `.ai-dlc/{intent-slug}/` in the worki
     "question": "Elaboration is complete! How would you like to deliver the spec?",
     "header": "Handoff",
     "options": [
-      {"label": "Push branch + open PR/MR", "description": "Push the spec branch and create a pull/merge request for review (requires git push access)"},
+      {"label": "Push branch + open PR", "description": "Push the spec branch and create a pull request for review (requires git push access)"},
       {"label": "Download as zip", "description": "Package all spec artifacts into a zip file you can share with your team"}
     ],
     "multiSelect": false
@@ -2716,7 +2760,7 @@ Note: All AI-DLC work happens in the worktree at .ai-dlc/worktrees/{intent-slug}
 Your main working directory stays clean on the main branch.
 ```
 
-### If PR/MR for review:
+### If PR for review:
 
 **IMPORTANT:** Do NOT include "Closes", "Fixes", or "Resolves" issue references in the PR body. This is a spec review PR — merging it must not auto-close the linked issue. The issue stays open until execution is complete.
 
@@ -2727,7 +2771,7 @@ INTENT_BRANCH="ai-dlc/${INTENT_SLUG}/main"
 git push -u origin "$INTENT_BRANCH"
 ```
 
-2. Create PR/MR:
+2. Create PR:
 
 ```bash
 # Determine default branch

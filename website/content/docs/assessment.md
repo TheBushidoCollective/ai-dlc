@@ -1,7 +1,7 @@
 ---
 title: Assessment
 description: Self-assessment to determine if AI-DLC is right for your team
-order: 22
+order: 23
 ---
 
 This self-assessment helps you evaluate whether AI-DLC is a good fit for your team and organization. Answer honestly for accurate guidance.

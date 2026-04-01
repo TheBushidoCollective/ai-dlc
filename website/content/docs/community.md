@@ -1,7 +1,7 @@
 ---
 title: Community
 description: Join the AI-DLC community - resources, support, and contribution opportunities
-order: 13
+order: 14
 ---
 
 AI-DLC is an open methodology built by practitioners for practitioners. Join us in evolving how humans and AI build software together.

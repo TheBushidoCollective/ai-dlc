@@ -1,7 +1,7 @@
 ---
 title: Operation File Reference
 description: Schema reference for .ai-dlc/{intent}/operations/*.md operation spec files
-order: 8
+order: 9
 ---
 
 This is the complete reference for operation spec files — the Markdown files that define operational tasks in AI-DLC.

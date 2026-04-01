@@ -1,7 +1,7 @@
 ---
 title: "Example: Bug Fix with Hypothesis Workflow"
 description: Using the hypothesis workflow for systematic debugging
-order: 11
+order: 12
 ---
 
 This example demonstrates the **hypothesis workflow** - a scientific approach to debugging complex issues where the root cause isn't obvious.

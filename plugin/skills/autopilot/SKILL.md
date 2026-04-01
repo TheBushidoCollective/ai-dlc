@@ -16,7 +16,7 @@ argument-hint: "<feature description>"
 
 ## Description
 
-**User-facing command** - Orchestrates the complete AI-DLC lifecycle for a well-understood feature: elaborate, execute all units, and deliver via PR/MR.
+**User-facing command** - Orchestrates the complete AI-DLC lifecycle for a well-understood feature: elaborate, execute all units, and deliver via PR.
 
 **When to use:** Well-understood features with clear requirements. NOT for exploratory work, complex architecture, or anything requiring design decisions.
 
@@ -26,7 +26,7 @@ User: /ai-dlc:autopilot Add a dark mode toggle to the settings page
 AI: Starting autonomous lifecycle...
   Phase 1: Elaboration (/ai-dlc:elaborate in autonomous mode)
   Phase 2: Execution (/ai-dlc:execute for each unit)
-  Phase 3: Delivery (PR/MR creation)
+  Phase 3: Delivery (PR creation)
 AI: Done! PR #42 created. [summary]
 ```
 
@@ -131,7 +131,7 @@ After all units are complete:
    - Highlight any assumptions made during execution
    - Show test results if available
 
-2. **Pause for confirmation** before creating the PR/MR:
+2. **Pause for confirmation** before creating the PR:
    ```
    DELIVERY CHECK: All {N} units complete. Ready to create PR.
 
@@ -140,10 +140,10 @@ After all units are complete:
    - unit-02-xxx: {what was done}
    ...
 
-   Shall I create the PR/MR? (Yes / No / Let me review first)
+   Shall I create the PR? (Yes / No / Let me review first)
    ```
 
-3. **On confirmation**, create the PR/MR:
+3. **On confirmation**, create the PR:
    - Use the intent title as PR title
    - Include the full summary in the PR body
    - Reference all units and their outcomes

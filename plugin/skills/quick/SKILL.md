@@ -233,9 +233,93 @@ When a reviewer rejects:
 
 ---
 
-## Step 5: Cleanup
+## Step 5: Pre-Delivery Review
 
-Run cleanup after the hat loop completes, regardless of outcome. If the session was interrupted mid-loop, the orphaned artifact check in Step 2b will handle cleanup on the next run.
+After the hat loop completes successfully (reviewer approved or no reviewer in workflow), run the pre-delivery code review to catch issues before they hit external CI or review bots.
+
+**Invoke `/ai-dlc:review`:**
+
+```
+Skill("ai-dlc:review")
+```
+
+The review skill:
+1. Diffs against the current branch's upstream (or default branch)
+2. Reads REVIEW.md + CLAUDE.md for project-specific review rules
+3. Spawns parallel specialized agents (correctness, security, performance, architecture, test quality)
+4. Auto-fixes HIGH findings in a loop (up to 3 iterations)
+5. Returns a result: `approved`, `needs_attention`, or `aborted`
+
+**Handle the result:**
+- **`approved`**: Proceed to Step 6 (delivery).
+- **`needs_attention`**: The review skill already asked the user how to proceed. If they chose "Proceed anyway", continue. If "Let me fix manually" or "Abort", skip to Step 7 (cleanup) without creating a PR.
+- **`aborted`**: Skip to Step 7 (cleanup) without creating a PR.
+
+---
+
+## Step 6: Delivery (PR Creation)
+
+Quick mode **always delivers via PR**. This ensures all changes go through the standard merge process regardless of task size.
+
+### 6a: Ensure branch is ready
+
+```bash
+# Get the current branch
+CURRENT_BRANCH=$(git branch --show-current)
+DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+
+# If on the default branch, create a feature branch from the commits
+if [ "$CURRENT_BRANCH" = "$DEFAULT_BRANCH" ]; then
+  # Determine how many commits were added by quick mode
+  COMMIT_COUNT=$(git rev-list --count "origin/${DEFAULT_BRANCH}..HEAD" 2>/dev/null || echo "0")
+  if [ "$COMMIT_COUNT" -gt 0 ]; then
+    BRANCH_NAME="quick/$(echo "${TASK_DESCRIPTION}" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | head -c 50 | sed 's/-$//')"
+    git checkout -b "$BRANCH_NAME"
+  else
+    echo "No commits to deliver."
+    # Skip to cleanup
+  fi
+fi
+
+# Push to remote
+git push -u origin "$(git branch --show-current)"
+```
+
+### 6b: Create PR
+
+```bash
+BRANCH=$(git branch --show-current)
+
+gh pr create \
+  --title "$(git log -1 --format='%s')" \
+  --base "$DEFAULT_BRANCH" \
+  --head "$BRANCH" \
+  --body "$(cat <<EOF
+## Summary
+
+Quick mode task: ${TASK_DESCRIPTION}
+
+## Changes
+
+$(git diff --stat "${DEFAULT_BRANCH}...HEAD")
+
+## Review
+
+Pre-delivery review: **passed** (multi-agent review)
+
+---
+*Created via \`/ai-dlc:quick\` with pre-delivery review*
+EOF
+)"
+```
+
+Display the PR URL to the user.
+
+---
+
+## Step 7: Cleanup
+
+Run cleanup after delivery (or if delivery was skipped), regardless of outcome. If the session was interrupted mid-loop, the orphaned artifact check in Step 2b will handle cleanup on the next run.
 
 1. Remove the temporary quick artifacts:
    ```bash
@@ -249,7 +333,7 @@ Run cleanup after the hat loop completes, regardless of outcome. If the session 
 
 ---
 
-## Step 6: Completion Report
+## Step 8: Completion Report
 
 Output a brief summary:
 
@@ -260,6 +344,8 @@ Output a brief summary:
 **Workflow:** {WORKFLOW_NAME} ({hat1} -> {hat2} -> ... -> {hatN})
 **Changed:** {file(s) modified}
 **Review cycles:** {count}
+**Pre-delivery review:** {passed | skipped | needs attention}
+**PR:** {PR_URL or "not created"}
 **Result:** {APPROVED | cycle limit reached | completed without reviewer}
 ```
 
@@ -271,6 +357,8 @@ Output a brief summary:
 - **No worktrees.** Work happens in the current working directory on the current branch. Quick mode does NOT create git worktrees.
 - **Subagent delegation.** Each hat phase is executed by a spawned subagent, not by the orchestrator directly. This keeps hat context clean and isolated.
 - **3-cycle limit.** If the reviewer rejects 3 times, quick mode stops and recommends `/ai-dlc:elaborate`. Quick mode is not for tasks that need extensive iteration.
+- **Always delivers via PR.** Quick mode creates a feature branch (if on default branch) and opens a PR. All changes go through the merge process.
+- **Pre-delivery review is mandatory.** `/ai-dlc:review` runs after the hat loop — the same multi-agent review that runs for full intents. Issues are fixed locally before the PR is created.
 - **Scope escape hatch.** If at any point during execution you realize the task is not trivial, stop and recommend `/ai-dlc:elaborate`. Do not silently expand scope.
 - **Conflict guard.** Quick mode refuses to start if another active intent exists. Only one intent can be active at a time.
 - **Empty quality gates.** Quick artifacts use `quality_gates: []` — no harness-enforced gates. Verification is handled by the hat workflow itself.

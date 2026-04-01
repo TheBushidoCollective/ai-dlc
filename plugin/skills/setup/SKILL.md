@@ -408,6 +408,38 @@ Pre-fill from existing `settings.yml` `default_passes` if available.
 
 ---
 
+## Phase 5c: Default Announcements
+
+Ask the user what announcement formats should be generated when intents complete.
+
+Use `AskUserQuestion`:
+
+```json
+{
+  "questions": [{
+    "question": "What announcement formats should be generated when intents complete?",
+    "header": "Announcements",
+    "options": [
+      {"label": "Changelog only (Recommended)", "description": "Conventional changelog entry for developers"},
+      {"label": "Changelog + release notes", "description": "Changelog entry plus user-facing feature summary"},
+      {"label": "All formats", "description": "Changelog, release notes, social posts, and blog draft"},
+      {"label": "None", "description": "No announcements — just deliver the code"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+Map selections to `default_announcements` in settings.yml:
+- "Changelog only" → `default_announcements: [changelog]`
+- "Changelog + release notes" → `default_announcements: [changelog, release-notes]`
+- "All formats" → `default_announcements: [changelog, release-notes, social-posts, blog-draft]`
+- "None" → `default_announcements: []`
+
+Pre-fill from existing `settings.yml` `default_announcements` if available.
+
+---
+
 ## Phase 6: VCS Strategy
 
 Ask the user about their preferred delivery strategy and source branch.
@@ -424,16 +456,16 @@ Use `AskUserQuestion`:
       "header": "Delivery Strategy",
       "options": [
         {
-          "label": "Build everything, then open one MR",
-          "description": "Units merge into an intent branch as they complete. Dependent units start automatically once their dependencies are done. One final MR for the whole intent."
+          "label": "Build everything, then open one PR",
+          "description": "Units merge into an intent branch as they complete. Dependent units start automatically once their dependencies are done. One final PR for the whole intent."
         },
         {
           "label": "Review each unit individually",
-          "description": "Each unit opens its own PR/MR. Dependent units wait until their dependencies are merged. Best when you want to validate each piece before moving on."
+          "description": "Each unit opens its own PR. Dependent units wait until their dependencies are merged. Best when you want to validate each piece before moving on."
         },
         {
           "label": "Build everything on my default branch",
-          "description": "Same as above, but all work happens directly on the default branch. No feature branches, no MR — relies on CI to gate quality."
+          "description": "Same as above, but all work happens directly on the default branch. No feature branches, no PR — relies on CI to gate quality."
         }
       ],
       "multiSelect": false
@@ -446,7 +478,7 @@ Pre-fill from existing `settings.yml` `{vcs}.change_strategy` if available.
 
 Map user selections to config values:
 - "Review each unit individually" → `change_strategy: unit`
-- "Build everything, then open one MR" → `change_strategy: intent`
+- "Build everything, then open one PR" → `change_strategy: intent`
 - "Build everything on my default branch" → `change_strategy: trunk`
 
 **Question 2: Source branch** *(asked for ALL strategies)*
@@ -497,6 +529,9 @@ git:  # or jj:
 # Visual review: browser-based review UI for elaboration gates
 visual_review: true  # or false
 
+# Announcement formats for intent completion (default: [changelog])
+default_announcements: [changelog]
+
 # Only include if non-default (non-empty)
 default_passes: [design, dev]
 
@@ -546,6 +581,7 @@ Display a final summary:
 | Auto-merge | yes |
 | Visual Review | enabled / disabled |
 | Default Passes | dev only |
+| Announcements | changelog |
 | Ticketing | jira (PROJ) |
 | Spec | confluence (TEAM) |
 | Design | — |

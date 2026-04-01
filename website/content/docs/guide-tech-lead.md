@@ -1,7 +1,7 @@
 ---
 title: Tech Lead Guide
 description: Guide for tech leads rolling out AI-DLC to their teams
-order: 16
+order: 17
 ---
 
 This guide is for tech leads responsible for introducing AI-DLC to their teams. It covers preparation, rollout strategies, and measuring success.

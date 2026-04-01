@@ -1,7 +1,7 @@
 ---
 title: The Hat System
 description: Understanding the hat-based workflow system
-order: 3
+order: 4
 ---
 
 AI-DLC uses a "hat" metaphor to separate concerns. Each hat represents a distinct mindset, set of responsibilities, and communication style. Hats are organized into **workflows**, with different workflows using different hat combinations depending on the type of work being done.

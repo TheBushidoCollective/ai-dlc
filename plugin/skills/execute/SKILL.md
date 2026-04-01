@@ -989,7 +989,7 @@ UNIT_COUNT=$(ls -1 "$INTENT_DIR"/unit-*.md 2>/dev/null | wc -l)
 
 Skip integration if:
 - Only one unit (the reviewer already validated it)
-- ALL units effectively use `unit` strategy (each unit reviewed individually via per-unit MR)
+- ALL units effectively use `unit` strategy (each unit reviewed individually via per-unit PR)
 
 Note: In hybrid mode (intent-level `intent` + some units overriding to `unit`), integration still runs because non-unit units merge into the intent branch and need integration verification.
 
@@ -1318,7 +1318,7 @@ To clean up:
     "question": "How would you like to deliver this intent?",
     "header": "Delivery",
     "options": [
-      {"label": "Open PR/MR for delivery", "description": "Create a pull/merge request to merge into the default branch"},
+      {"label": "Open PR for delivery", "description": "Create a pull request to merge into the default branch"},
       {"label": "I'll handle it", "description": "Just show me the branch details"}
     ],
     "multiSelect": false
@@ -1326,7 +1326,7 @@ To clean up:
 }
 ```
 
-**If PR/MR:**
+**If PR:**
 
 1. Push intent branch to remote (if not already):
 
@@ -1350,7 +1350,7 @@ for unit_file in "$INTENT_DIR"/unit-*.md; do
 done
 ```
 
-3. Create PR/MR:
+3. Create PR:
 
 ```bash
 PR_URL=$(gh pr create \
@@ -1591,4 +1591,4 @@ The execution loop is **fully autonomous**. It continues until:
 
 **Targeted unit exception:** When `targetUnit` IS set, stop after the targeted unit's hat cycle completes. `/ai-dlc:advance` handles clearing the `targetUnit` and outputting next-step guidance.
 
-When the intent is marked complete, present the completion summary and delivery prompt (same as advance/SKILL.md Step 5 — ask user to open PR/MR or handle manually).
+When the intent is marked complete, present the completion summary and delivery prompt (same as advance/SKILL.md Step 5 — ask user to open PR or handle manually).

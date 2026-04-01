@@ -1,7 +1,7 @@
 ---
 title: First Intent Checklist
 description: Step-by-step checklist for completing your first AI-DLC intent
-order: 19
+order: 20
 ---
 
 This checklist walks you through completing your first intent with AI-DLC. Follow each section in order.

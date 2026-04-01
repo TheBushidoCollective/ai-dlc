@@ -81,6 +81,7 @@ Your progress is preserved - the AI picks up where it left off.
 
 | Command | Purpose |
 |---------|---------|
+| `/ai-dlc:review` | Pre-delivery code review — catches issues before external CI/bots |
 | `/ai-dlc:resume [slug]` | Resume an existing intent after a break |
 | `/ai-dlc:reset` | Abandon current work and start fresh |
 | `/methodology [question]` | Ask questions about AI-DLC |
@@ -108,6 +109,7 @@ Once your intent is complete, manage ongoing operational tasks with `/ai-dlc:ope
 
 ## Next Steps
 
+- [Elaboration Guide](/docs/elaboration/) - What to expect during `/ai-dlc:elaborate`
 - [Core Concepts](/docs/concepts/) - Understand intents, units, and hats
 - [Workflows](/docs/workflows/) - Learn about TDD, adversarial, and hypothesis workflows
 - [Installation](/docs/installation/) - Detailed setup including Han CLI

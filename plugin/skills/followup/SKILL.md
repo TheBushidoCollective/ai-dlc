@@ -27,7 +27,7 @@ allowed-tools:
 **User-facing command** - Create a new intent that builds on, fixes, or enhances a previously completed (or active) intent. Instead of modifying the original intent, this creates a **new independent intent** linked via `iterates_on` frontmatter. During elaboration of the new intent, the system automatically loads context from the previous intent.
 
 This addresses scenarios where:
-- MR reviewer requests changes after intent completion
+- PR reviewer requests changes after intent completion
 - A bug is discovered after merging
 - A descoped feature needs to be added back
 - An enhancement builds on what was previously shipped
@@ -38,7 +38,7 @@ User: /ai-dlc:followup
 AI: Found intents: my-feature, api-refactor. Which is this a follow-up to?
 User: my-feature
 AI: What does this follow-up address?
-User: "MR reviewer asked me to add error handling to the API endpoint"
+User: "PR reviewer asked me to add error handling to the API endpoint"
 AI: Created new intent fix-api-error-handling (iterates_on: my-feature).
     Transitioning to /ai-dlc:elaborate...
 ```
@@ -187,7 +187,7 @@ Use `AskUserQuestion` to understand the nature of the follow-up:
     "question": "What does this follow-up address?",
     "header": "Follow-up Reason",
     "options": [
-      {"label": "Review feedback", "description": "MR/PR reviewer requested changes"},
+      {"label": "Review feedback", "description": "PR reviewer requested changes"},
       {"label": "Bug fix", "description": "A bug was found after merging"},
       {"label": "Descoped feature", "description": "Adding back a feature that was cut from the original scope"},
       {"label": "Enhancement", "description": "Building on top of what was shipped"}

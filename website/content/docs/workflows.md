@@ -1,7 +1,7 @@
 ---
 title: Workflows
 description: Named workflow patterns in AI-DLC - Default, Adversarial, Design, Hypothesis, TDD, and custom workflows
-order: 5
+order: 6
 ---
 
 AI-DLC provides five built-in workflows, each optimized for different types of work. Choose the workflow that matches your task, or define your own.

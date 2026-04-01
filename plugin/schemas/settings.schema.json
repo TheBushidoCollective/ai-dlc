@@ -33,6 +33,15 @@
 			"default": "ascii",
 			"description": "Format for UI mockups generated during elaboration. 'ascii' produces text-based wireframes in markdown code blocks. 'html' produces self-contained HTML files written to .ai-dlc/{intent-slug}/mockups/."
 		},
+		"default_announcements": {
+			"type": "array",
+			"items": {
+				"type": "string",
+				"enum": ["changelog", "release-notes", "social-posts", "blog-draft"]
+			},
+			"default": ["changelog"],
+			"description": "Default announcement formats generated when an intent completes. Valid values: changelog, release-notes, social-posts, blog-draft. Set to empty array for no announcements."
+		},
 		"default_passes": {
 			"type": "array",
 			"items": {

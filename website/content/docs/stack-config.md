@@ -1,7 +1,7 @@
 ---
 title: Stack Configuration Reference
 description: Reference for .ai-dlc/settings.yml stack layers — infrastructure, compute, packaging, pipeline, secrets, monitoring, alerting, and operations
-order: 7
+order: 8
 ---
 
 The stack configuration describes your project's infrastructure in `.ai-dlc/settings.yml` under the `stack:` key. AI-DLC uses this configuration to generate deployment manifests, validate operations, and tailor advice to your environment.

@@ -676,20 +676,15 @@ provider_config: {JSON of PROVIDERS object}
 ## Existing Project Knowledge
 
 {For each knowledge artifact that exists (from Phase 2.3 or prior intents),
-include its full content so the discovery subagent can avoid re-discovering
-what is already known and focus on new areas.}
+include its full content here. Load the list of artifacts via
+`dlc_knowledge_list` and read each one via `dlc_knowledge_read "$type"`.
+Format each artifact as a subsection:}
 
-{Load via:}
-{```bash}
-{source "${CLAUDE_PLUGIN_ROOT}/lib/knowledge.sh"}
-{for artifact in $(dlc_knowledge_list); do}
-{  echo "### knowledge/${artifact}.md"}
-{  dlc_knowledge_read "$artifact"}
-{  echo ""}
-{done}
-{```}
+### knowledge/{type}.md
+{content of the artifact}
 
-{If no knowledge artifacts exist, omit this section entirely.}
+{Repeat for each artifact. If no knowledge artifacts exist, omit this
+section entirely.}
 ```
 
 Commit the discovery brief immediately after writing it:

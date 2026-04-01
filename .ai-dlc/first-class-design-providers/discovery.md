@@ -290,3 +290,79 @@ Supported formats: png, jpg, html, webp, directory. Does NOT support: `.op`, `.p
 - Native format handlers that call provider export APIs to get PNG/SVG output
 - Registration mechanism so new providers can plug in resolution logic
 
+## Architecture Decision: Design Provider Abstraction Layer
+
+### The Problem
+
+The current system has a single hard-coded `figma` type in the design provider enum. Adding six new providers (Canva, OpenPencil x2, Pencil.dev, Penpot, Excalidraw, plus Figma variants) requires an extensible abstraction that:
+
+1. Lets the plugin discover which design tools are available (MCP connections, CLI tools)
+2. Provides a uniform capability interface across heterogeneous backends
+3. Falls back gracefully when a provider is unavailable
+4. Integrates with the existing three-tier instruction pattern
+
+### Proposed Approach: Capability-Based Provider Model
+
+Rather than treating all design tools identically, define a set of **capabilities** that each provider may or may not support:
+
+| Capability | Description | Tools That Support It |
+|------------|-------------|----------------------|
+| `read_design` | Read existing design structure/metadata | All providers |
+| `write_design` | Create or modify designs programmatically | Canva, OpenPencil, Pencil.dev, Penpot, Figma (Write) |
+| `export_png` | Export design to PNG for visual comparison | Canva, OpenPencil, Pencil.dev, Penpot, Excalidraw, Figma |
+| `generate_wireframe` | Generate wireframe/mockup from description | Canva (generate-design), OpenPencil, Pencil.dev, Excalidraw |
+| `design_tokens` | Access design system tokens (colors, fonts, spacing) | Canva (brand-kits), Figma (styles), Penpot (tokens) |
+| `code_export` | Export design to framework code | OpenPencil (8 targets), Pencil.dev, Figma (Code Connect) |
+| `collaboration` | Comments, sharing, team features | Canva, Figma, Penpot |
+
+### Auto-Detection Strategy
+
+Each provider has a detection heuristic, consistent with the auto-detect pattern already used for VCS hosting and CI/CD:
+
+| Provider | Detection Method | MCP Tool Pattern |
+|----------|-----------------|------------------|
+| Canva | MCP tools matching `mcp__*Canva*` | `mcp__claude_ai_Canva__*` |
+| OpenPencil | CLI `op` in PATH OR MCP tools matching `mcp__*openpencil*` | `mcp__*openpencil*` |
+| Pencil.dev | CLI `pencil` in PATH OR MCP tools matching `mcp__*pencil*` | `mcp__*pencil*` |
+| Penpot | MCP tools matching `mcp__*penpot*` | `mcp__*penpot*` |
+| Excalidraw | MCP tools matching `mcp__*excalidraw*` | `mcp__*excalidraw*` |
+| Figma | MCP tools matching `mcp__*figma*` OR `mcp__*Figma*` | `mcp__*figma*` / `mcp__*Figma*` |
+
+### Configuration Schema Extension
+
+The `designProviderEntry` type enum expands from `["figma"]` to include all supported providers. A new `design_provider` top-level key in settings supports:
+
+```yaml
+providers:
+  design:
+    type: canva          # or: openpencil, pencil, penpot, excalidraw, figma, auto
+    config: {}           # provider-specific config
+    instructions: ""     # inline instructions
+```
+
+The `auto` type triggers auto-detection, selecting the first available provider by priority.
+
+### Provider URI Scheme
+
+Each provider registers a URI scheme for `design_ref:` resolution:
+
+| Provider | URI Format | Example |
+|----------|-----------|---------|
+| Canva | `canva://design/{id}` | `canva://design/DAGFx12345` |
+| OpenPencil | `openpencil://{path}` | `openpencil://designs/main-screen.op` |
+| Pencil.dev | `pencil://{path}` | `pencil://designs/dashboard.pen` |
+| Penpot | `penpot://project/{id}/file/{id}` | `penpot://project/abc/file/def` |
+| Excalidraw | `excalidraw://{id}` | `excalidraw://scene/abc123` |
+| Figma | `figma://file/{key}` | `figma://file/abc123XYZ` |
+
+Resolution: parse URI -> call provider's `export_png` capability -> write to screenshots dir.
+
+### Fallback Chain
+
+When a design provider is configured but unavailable at runtime:
+1. Log warning: "Design provider {type} configured but not available"
+2. Fall back to HTML wireframe generation (existing behavior)
+3. Continue without blocking elaboration or execution
+
+This ensures the system degrades gracefully — design providers enhance the workflow but are never a hard requirement.
+

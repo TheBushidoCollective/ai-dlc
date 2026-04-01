@@ -395,7 +395,7 @@ Task({
   subagent_type: "general-purpose",
   description: `integrate: ${intentSlug}`,
   prompt: `
-    Run the /ai-dlc:integrate skill for intent ${intentSlug}.
+    Read the skill definition at plugin/skills/execute/subskills/integrate/SKILL.md first, then execute it for intent ${intentSlug}.
 
     ## CRITICAL: Work on Intent Branch
     **Worktree path:** .ai-dlc/worktrees/${intentSlug}/

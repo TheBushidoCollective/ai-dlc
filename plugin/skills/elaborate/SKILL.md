@@ -67,7 +67,7 @@ When elaboration is invoked from `/ai-dlc:autopilot`, it runs in **autonomous mo
 |---|---|---|
 | **1 (Gather Intent)** | Ask "What do you want to build?" | Use the feature description from `/ai-dlc:autopilot`. Do NOT ask. |
 | **2 (Clarify Requirements)** | Ask 2-4 clarification questions | **Skip entirely.** Infer requirements from the feature description and domain discovery. The description from autopilot is assumed to be sufficient for well-understood features. |
-| **2 (Deployment/Ops)** | Ask deployment target, monitoring, ops questions | **Skip.** Default to "Existing infrastructure" / "Use existing monitoring" / "Standard ops". If the codebase has no deployment surface, skip as usual. |
+| **2 (Deployment/Ops)** | Discovered from codebase (no questions asked) | **Same behavior.** Discovery is always autonomous — no change needed. |
 | **2.3 (Knowledge Bootstrap)** | Synthesize knowledge from codebase | **Run silently.** Invoke the knowledge synthesis subagent (or write greenfield scaffolds) without asking the user. No interaction needed. |
 | **2.5 (Domain Model validation)** | Ask user to confirm domain model accuracy | **Auto-approve.** Log the domain model for reference but do not ask. Discovery is still mandatory — only the confirmation prompt is skipped. |
 | **2.75 (Design Direction)** | Present design direction picker | **Auto-select Editorial** with default parameters. Skip the picker UI. The default archetype can be overridden via `default_archetype` in `.ai-dlc/settings.yml`. |
@@ -368,69 +368,17 @@ Focus your questions on understanding:
 
 Continue asking until you can articulate back to the user, in your own words, exactly what they want built. If you can't explain the domain entities, data flows, and user experience in concrete detail, you don't understand it yet.
 
-### Phase 2 (continued): Deployment & Operations Questions
+### Phase 2 (continued): Deployment & Operations Context
 
-**Gate:** Skip this sub-phase entirely if the intent is a library, documentation, design-only, or pure refactor with no deployment surface. Also skip if the stack config in `.ai-dlc/settings.yml` has no infrastructure/compute/monitoring/operations layers configured (check via `get_stack_layer()`).
+**These concerns are NOT asked as questions.** Deployment, monitoring, and operational needs are discovered automatically during Phase 2.5 (Domain Discovery) by analyzing:
+- Existing infrastructure config (Dockerfiles, Helm charts, Terraform, CI/CD pipelines)
+- Existing monitoring setup (Prometheus, Grafana, Datadog, alert rules, SLOs)
+- Existing operational procedures (runbooks, on-call configs, scaling policies)
+- Stack config layers from `.ai-dlc/settings.yml`
 
-To determine if this sub-phase applies, check:
-```bash
-source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
-STACK_INFRA=$(get_stack_layer "infrastructure")
-STACK_COMPUTE=$(get_stack_layer "compute")
-STACK_MONITORING=$(get_stack_layer "monitoring")
-STACK_OPS=$(get_stack_layer "operations")
-# Skip if all layers are empty arrays/objects AND intent doesn't introduce new deployable services
-if [ "$STACK_INFRA" != "[]" ] || [ "$STACK_COMPUTE" != "[]" ] || \
-   [ "$STACK_MONITORING" != "[]" ] || [ "$STACK_OPS" != "{}" ]; then
-  HAS_STACK=true
-else
-  HAS_STACK=false
-fi
-```
+The discovery subagent writes findings to `discovery.md` under standardized sections (`## Deployment Architecture`, `## Monitoring Setup`, `## Operational Procedures`). These findings feed into Phase 5 (auto-creation of infrastructure/observability units) and Phase 6 (unit frontmatter ops blocks).
 
-If the intent involves a new deployable service, API, worker, or infrastructure change — OR if stack config layers are populated — ask targeted deployment and operations questions using `AskUserQuestion`:
-
-```json
-{
-  "questions": [
-    {
-      "question": "Where will this be deployed?",
-      "header": "Deployment Target",
-      "options": [
-        {"label": "Containers (Kubernetes/ECS)", "description": "Orchestrated container deployment"},
-        {"label": "Serverless (Lambda/Cloud Functions)", "description": "Function-as-a-service"},
-        {"label": "Bare metal / VMs", "description": "Traditional server deployment"},
-        {"label": "Existing infrastructure", "description": "Deploys into current infra — no new provisioning needed"}
-      ],
-      "multiSelect": false
-    },
-    {
-      "question": "What monitoring and observability do you need?",
-      "header": "Monitoring Needs",
-      "options": [
-        {"label": "Use existing monitoring stack", "description": "Integrate with what's already in place"},
-        {"label": "New monitoring required", "description": "Need to set up dashboards, alerts, or SLOs for this"},
-        {"label": "Minimal / none", "description": "Internal tool or low-risk — basic health checks only"}
-      ],
-      "multiSelect": false
-    },
-    {
-      "question": "Are there operational concerns to address?",
-      "header": "Operational Needs",
-      "options": [
-        {"label": "Needs runbooks and alerting", "description": "Production service requiring on-call procedures"},
-        {"label": "Standard ops", "description": "Follow existing operational patterns — nothing special"},
-        {"label": "No operational needs", "description": "No runtime operational requirements"}
-      ],
-      "multiSelect": false
-    }
-  ]
-}
-```
-
-Pre-populate option descriptions using stack config data when available (e.g., if Kubernetes is already configured in the infrastructure layer, highlight it as the existing deployment target).
-
-Store the user's answers — they feed into Phase 5 (auto-creation of infrastructure/observability units) and Phase 6 (unit frontmatter ops blocks).
+**No user questions are asked here.** The elaboration skill uses discovered patterns and best practices to make deployment/ops decisions. For monitoring specifically, if discovery reveals an existing monitoring stack, the skill confirms the detected approach with the user after presenting the domain model (see Phase 2.5, "Present Domain Model to User").
 
 ---
 
@@ -1258,7 +1206,7 @@ or timeline replay (unit-05). It only renders the structural hierarchy.
 
 **Gate:** Skip this sub-phase entirely if the intent has no deployment surface. An intent has no deployment surface when:
 - It is a library, documentation, design-only, or pure refactor intent
-- Phase 2 ops questions were skipped (no deployment/monitoring/operations answers)
+- Domain discovery found no deployment architecture, monitoring setup, or operational procedures
 - No stack config layers are populated in `.ai-dlc/settings.yml`
 
 When the intent DOES have a deployment surface, apply these rules to determine whether to create dedicated ops units or fold ops concerns into feature units:
@@ -1272,12 +1220,12 @@ STACK_MONITORING=$(get_stack_layer "monitoring")
 STACK_COMPUTE=$(get_stack_layer "compute")
 
 # Check: does the intent introduce NEW deployable services?
-# (Determined from clarification answers and domain model)
+# (Determined from domain model and discovery findings)
 INTRODUCES_NEW_SERVICES=false  # set true if intent adds new services/APIs/workers
 
 # Check: does the intent require NEW monitoring?
-# (Determined from Phase 2 ops answers)
-REQUIRES_NEW_MONITORING=false  # set true if user indicated new monitoring needed
+# (Determined from discovery findings — check discovery.md for "## Monitoring Setup" section)
+REQUIRES_NEW_MONITORING=false  # set true if discovery found gaps or new monitoring needs
 ```
 
 #### Step 2: Apply auto-creation rules
@@ -1914,7 +1862,7 @@ is_category_applicable "$DISCIPLINE" "observable" && INCLUDE_MONITORING=true
 is_category_applicable "$DISCIPLINE" "operable" && INCLUDE_OPERATIONS=true
 ```
 
-For `discipline: infrastructure` or `discipline: observability` units, always populate the relevant ops blocks. For other disciplines, only include blocks where the category is applicable per `get_discipline_categories()`. When included, uncomment the relevant block(s) in the frontmatter and populate with values from Phase 2 ops answers.
+For `discipline: infrastructure` or `discipline: observability` units, always populate the relevant ops blocks. For other disciplines, only include blocks where the category is applicable per `get_discipline_categories()`. When included, uncomment the relevant block(s) in the frontmatter and populate with values from discovery findings (see `## Deployment Architecture`, `## Monitoring Setup`, and `## Operational Procedures` sections in `discovery.md`).
 
 > **Template selection by discipline:** For `discipline: design` units, use the design template below (Design Deliverables, States to Cover, Constraints, Design Tokens Reference). For all other disciplines (`frontend`, `backend`, `api`, `documentation`, `devops`, etc.), use the standard template above (Domain Entities, Data Sources, Technical Specification).
 

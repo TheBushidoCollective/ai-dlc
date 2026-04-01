@@ -63,7 +63,7 @@ If you encounter ambiguity:
 
 If truly blocked (cannot proceed without user input):
 1. Document the blocker clearly in `dlc_state_save "$INTENT_DIR" "blockers.md"`
-2. Stop the loop naturally (don't call /ai-dlc:advance)
+2. Stop the loop naturally (don't read or execute the advance skill definition)
 3. The Stop hook will alert the user that human intervention is required
 
 ## Implementation

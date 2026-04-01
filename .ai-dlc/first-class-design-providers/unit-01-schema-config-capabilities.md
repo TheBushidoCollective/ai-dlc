@@ -1,6 +1,6 @@
 ---
-status: in_progress
-last_updated: "2026-04-01T19:01:48Z"
+status: completed
+last_updated: "2026-04-01T19:15:23Z"
 depends_on: []
 branch: ai-dlc/first-class-design-providers/01-schema-config-capabilities
 discipline: backend

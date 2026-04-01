@@ -9,7 +9,7 @@ workflow: ""
 ticket: ""
 design_ref: ""
 views: []
-hat: reviewer
+hat: builder
 ---
 
 # unit-01-knowledge-infrastructure

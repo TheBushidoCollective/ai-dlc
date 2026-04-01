@@ -164,6 +164,8 @@ Clean up the targeted unit's team agents before exiting (if Agent Teams are enab
 If `AGENT_TEAMS_ENABLED` is set, delete the team to release all agent resources:
 
 ```javascript
+  // Note: If no active team exists (e.g., prior run crashed before TeamCreate), TeamDelete
+  // is a no-op. No manual error handling is needed; proceed normally.
   TeamDelete()
 ```
 
@@ -289,6 +291,8 @@ AGENT_TEAMS_ENABLED="${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}"
 If `AGENT_TEAMS_ENABLED` is set, call `TeamDelete` to tear down the team and terminate any remaining agents:
 
 ```javascript
+// Note: If no active team exists (e.g., prior run crashed before TeamCreate), TeamDelete
+// is a no-op. No manual error handling is needed; proceed normally.
 TeamDelete()
 ```
 

@@ -10,7 +10,7 @@ workflow: ""
 ticket: ""
 design_ref: ""
 views: []
-hat: builder
+hat: reviewer
 retries: 1
 ---
 

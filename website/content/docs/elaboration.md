@@ -154,6 +154,19 @@ When invoked via `/ai-dlc:autopilot`, elaboration runs with minimal interaction 
 - **Use `/ai-dlc:elaborate {slug}`** to modify an existing intent that hasn't started execution yet.
 - **Use `/ai-dlc:followup`** to create an iteration intent that builds on a completed one.
 
+## What Happens After Elaboration
+
+After elaboration, the typical flow is:
+
+1. **Execute** (`/ai-dlc:execute`) — autonomous build loop: Planner → Builder → Reviewer per unit
+2. **Integration** — cross-unit validation after all units complete
+3. **Pre-delivery review** — full-diff, multi-agent code review before PR creation
+4. **PR creation** — push and open a pull request
+
+The **pre-delivery review** (`/ai-dlc:review`) deserves special mention. It runs specialized review agents in fresh contexts against the full diff — catching issues that the per-unit reviewer might miss because it only saw one unit at a time. It reads your project's `REVIEW.md` and `CLAUDE.md` for project-specific review rules, and auto-fixes issues in a loop before the PR is created.
+
+You can also run `/ai-dlc:review` standalone — after `/ai-dlc:quick`, or on any branch before pushing — to catch issues before they hit external CI or review bots.
+
 ## Next Steps
 
 - [Core Concepts](/docs/concepts/) — Understand intents, units, hats, and bolts

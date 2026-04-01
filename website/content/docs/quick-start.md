@@ -81,6 +81,7 @@ Your progress is preserved - the AI picks up where it left off.
 
 | Command | Purpose |
 |---------|---------|
+| `/ai-dlc:review` | Pre-delivery code review — catches issues before external CI/bots |
 | `/ai-dlc:resume [slug]` | Resume an existing intent after a break |
 | `/ai-dlc:reset` | Abandon current work and start fresh |
 | `/methodology [question]` | Ask questions about AI-DLC |

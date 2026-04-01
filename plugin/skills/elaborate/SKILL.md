@@ -611,7 +611,7 @@ Scan the codebase and synthesize knowledge artifacts for: domain, architecture, 
 Agent({
   subagent_type: "general-purpose",
   description: "knowledge-synthesize: {INTENT_SLUG}",
-  prompt: "Read the skill definition at plugin/skills/elaborate/subskills/knowledge-synthesize/SKILL.md first, then execute it with the brief file at .ai-dlc/{INTENT_SLUG}/.briefs/knowledge-synthesize.md as input."
+  prompt: "Run the /ai-dlc:knowledge-synthesize skill. Read the skill definition at plugin/skills/elaborate/subskills/knowledge-synthesize/SKILL.md first, then execute it with the brief file at .ai-dlc/{INTENT_SLUG}/.briefs/knowledge-synthesize.md as input."
 })
 ```
 

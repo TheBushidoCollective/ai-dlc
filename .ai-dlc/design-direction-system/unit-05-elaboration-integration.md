@@ -35,14 +35,21 @@ backend - This unit will be executed by backend-focused agents.
 
 ## Technical Specification
 
-### 1. New Phase 2.75: Design Direction (in elaborate skill)
+### 1. New Phases 2.3 and 2.75: Knowledge Bootstrap & Design Direction
 
-Insert a new phase between Phase 2.5 (Domain Discovery completion) and Phase 3 (Workflow Selection) in `plugin/skills/elaborate/SKILL.md`.
+Split the knowledge and design direction work into two phases to avoid overlap with domain discovery:
 
-**Phase 2.75: Design Direction & Knowledge Bootstrap**
+- **Phase 2.3** (before discovery): Knowledge Bootstrap — synthesize knowledge artifacts from existing code so discovery can build on them
+- **Phase 2.75** (after discovery): Design Direction — present the visual picker for greenfield projects
+
+This ordering ensures: (1) knowledge synthesis scans the codebase first, (2) domain discovery can reference synthesized knowledge, and (3) design direction happens after the domain model is understood.
+
+Insert Phase 2.3 between Phase 2.25 (worktree creation) and Phase 2.5 (domain discovery) in `plugin/skills/elaborate/SKILL.md`.
+
+**Phase 2.3: Knowledge Bootstrap**
 
 ```markdown
-## Phase 2.75: Design Direction & Knowledge Bootstrap
+## Phase 2.3: Knowledge Bootstrap
 
 ### Step 1: Check project maturity and existing knowledge
 
@@ -54,27 +61,43 @@ HAS_DESIGN_KNOWLEDGE=$(dlc_knowledge_exists "design" && echo "true" || echo "fal
 KNOWLEDGE_COUNT=$(dlc_knowledge_list | wc -l | tr -d ' ')
 ```
 
-### Step 2: Knowledge Bootstrap (first elaboration or missing knowledge)
+### Step 2: Knowledge Synthesis (first elaboration or missing knowledge)
 
-If `KNOWLEDGE_COUNT` is 0 (no knowledge artifacts exist yet), trigger knowledge synthesis:
+**Gate:** Only invoke the full synthesis subagent if `KNOWLEDGE_COUNT` is 0 AND `PROJECT_MATURITY` is `early` or `established` (there's actually code to scan). For greenfield projects with no code, skip the subagent and write inline scaffold artifacts instead (empty sections with "greenfield — will be populated as the project grows" notes). This avoids wasting a subagent invocation on an empty codebase.
 
+If synthesis is needed:
 1. Write knowledge synthesis brief to `.ai-dlc/{intent-slug}/.briefs/knowledge-synthesize.md`
 2. Invoke the knowledge synthesis subagent:
    ```
    Agent({
      subagent_type: "general-purpose",
      description: "knowledge-synthesize: {INTENT_SLUG}",
-     prompt: "Run the /ai-dlc:knowledge-synthesize skill..."
+     prompt: "Read the skill definition at plugin/skills/knowledge-synthesize/SKILL.md first, then execute it with the brief file at .ai-dlc/{INTENT_SLUG}/.briefs/knowledge-synthesize.md as input."
    })
    ```
 3. Read results from `.ai-dlc/{intent-slug}/.briefs/knowledge-synthesize-results.md`
 4. Commit synthesized knowledge artifacts
 
-**CRITICAL — DO NOT STOP HERE.** Knowledge synthesis is just one step of Phase 2.75.
+**CRITICAL — DO NOT STOP HERE.** Knowledge synthesis is just one step. Domain discovery (Phase 2.5) follows and can now build on the synthesized knowledge.
+```
 
-### Step 3: Design Direction (greenfield only)
+Insert Phase 2.75 between Phase 2.5 (Domain Discovery completion) and Phase 3 (Workflow Selection).
 
-**Gate:** Only activate if `PROJECT_MATURITY` is `greenfield` AND `HAS_DESIGN_KNOWLEDGE` is `false`.
+**Phase 2.75: Design Direction**
+
+```markdown
+## Phase 2.75: Design Direction
+
+### Step 1: Check design knowledge
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/knowledge.sh"
+HAS_DESIGN_KNOWLEDGE=$(dlc_knowledge_exists "design" && echo "true" || echo "false")
+```
+
+### Step 2: Design Direction (greenfield only)
+
+**Gate:** Only activate if `PROJECT_MATURITY` is `greenfield` or `early` AND `HAS_DESIGN_KNOWLEDGE` is `false`.
 
 If both conditions are met:
 
@@ -134,7 +157,7 @@ PRODUCT_KNOWLEDGE=$(dlc_knowledge_read "product" 2>/dev/null || echo "")
 
 If domain knowledge exists, pass it to Phase 3 (Workflow Selection) and Phase 5 (Decomposition) as additional context. This enriches unit specs with domain vocabulary and business rules already captured in knowledge artifacts.
 
-**Autonomous mode behavior:** In autonomous mode, the design direction phase auto-selects the first archetype (Brutalist) with default parameters. Knowledge synthesis runs silently.
+**Autonomous mode behavior:** In autonomous mode, the design direction phase auto-selects **Editorial** with default parameters (the most conventional and broadly appropriate archetype). Knowledge synthesis runs silently. The autonomous default can be overridden via `default_archetype` in `.ai-dlc/settings.yml`.
 ```
 
 ### 2. Knowledge-Aware Discovery (Phase 2.5 update)
@@ -243,7 +266,7 @@ design_blueprint_path: {path to design-blueprint.md or empty}
 - [ ] Styled wireframes still look low-fidelity (no photos/brand assets) but carry the archetype's spatial personality
 - [ ] When no blueprint exists, wireframes produce standard gray-box output (backwards compatible)
 - [ ] Domain and product knowledge are loaded and available for Phase 3+ context
-- [ ] Autonomous mode auto-selects first archetype with defaults
+- [ ] Autonomous mode auto-selects Editorial archetype with defaults (configurable via settings)
 - [ ] When design_blueprint_path is set in the wireframe brief frontmatter, the wireframe skill reads and applies it; when empty or missing, gray-box behavior is preserved (end-to-end integration test)
 
 ## Risks

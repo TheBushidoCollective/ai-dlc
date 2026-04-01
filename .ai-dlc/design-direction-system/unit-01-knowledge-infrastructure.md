@@ -26,6 +26,7 @@ backend - This unit will be executed by backend-focused agents.
 ## Data Sources
 - **Filesystem**: `.ai-dlc/knowledge/*.md` — read/write knowledge artifacts
 - **`plugin/lib/config.sh`**: Existing config library patterns to follow for function naming, error handling, sourcing conventions
+- **`plugin/lib/parse.sh`**: Contains `dlc_frontmatter_get` and `dlc_frontmatter_set` functions for YAML frontmatter operations — use these for reading/writing knowledge artifact frontmatter fields
 
 ## Technical Specification
 
@@ -180,7 +181,7 @@ Body structure varies by type (documented in the knowledge artifact templates be
 
 ## Risks
 - **Section parsing fragility**: `dlc_knowledge_read_section()` relies on markdown heading patterns — malformed headings could cause incorrect extraction. Mitigation: Use strict `## ` prefix matching with `awk`.
-- **Concurrent writes**: Two agents writing to the same knowledge artifact simultaneously could corrupt it. Mitigation: Atomic write (write to temp file, then `mv`) in `dlc_knowledge_write()`.
+- **Concurrent writes**: Two agents writing to the same knowledge artifact simultaneously could corrupt it. Mitigation: Atomic write (write to temp file, then `mv`) in `dlc_knowledge_write()`. For `dlc_knowledge_update_section()` which does read-modify-write, use `flock` around the critical section to prevent TOCTOU races. In practice, knowledge artifacts are typically written by a single synthesis subagent, so contention is rare — but the lock prevents corruption if it does occur.
 
 ## Boundaries
 This unit does NOT handle:

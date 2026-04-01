@@ -33,7 +33,11 @@ backend - This unit will be executed by backend-focused agents.
 
 ### 1. Archetype Data Module
 
-Create `plugin/mcp-server/src/archetypes.ts` — exports archetype and parameter definitions.
+Create `plugin/data/archetypes.json` as the **canonical source of truth** for archetype and parameter definitions. This JSON file is readable by both the TypeScript MCP server (imported at build time) and shell functions (parsed with `jq` at runtime).
+
+Then create `plugin/mcp-server/src/archetypes.ts` as a thin TypeScript wrapper that imports and re-exports the JSON data with proper types. The shell blueprint generation function reads the same JSON file via `jq`.
+
+**Why JSON as source of truth:** The MCP tool (TypeScript) serves archetype data to the browser picker, but the blueprint generation function (shell) needs the same archetype data (CSS tokens, layout guidelines, etc.) to produce the blueprint. Storing archetypes in JSON ensures both consumers read identical data without a serialization bridge.
 
 #### Archetype Definitions
 
@@ -316,11 +320,33 @@ Create a function (in `plugin/lib/knowledge.sh` or a new `plugin/lib/design-blue
 
 This function:
 1. Reads the archetype definition (CSS tokens, layout guidelines, typography, component guidelines)
-2. Applies parameter adjustments:
-   - **Density** modifies `--spacing-unit`, `--spacing-section`, `--font-size-base`, `--line-height-base`
-   - **Expressiveness** modifies the degree of layout rule enforcement (low = strict grid, high = more creative freedom)
-   - **Shape Language** modifies `--border-radius` (low = 0px, high = 16px+)
-   - **Color Mood** shifts the accent/surface colors (low = desaturated/cool, high = saturated/warm)
+2. Applies parameter adjustments using these concrete mappings (linear interpolation between endpoints):
+
+   **Density** (0=airy, 100=packed):
+   | Parameter Value | `--spacing-unit` | `--spacing-section` | `--font-size-base` | `--line-height-base` |
+   |:-:|:-:|:-:|:-:|:-:|
+   | 0 | 12px | 80px | 18px | 1.8 |
+   | 50 | 8px | 48px | 15px | 1.5 |
+   | 100 | 4px | 16px | 12px | 1.2 |
+
+   **Shape Language** (0=sharp, 100=rounded):
+   | Parameter Value | `--border-radius` | `--border-width` |
+   |:-:|:-:|:-:|
+   | 0 | 0px | 3px |
+   | 50 | 8px | 2px |
+   | 100 | 20px | 1px |
+
+   **Color Mood** (0=cool/monochrome, 100=warm/vibrant):
+   - At 0: desaturate all accent/surface colors by 80% (toward grayscale)
+   - At 50: use archetype's default colors unchanged
+   - At 100: increase saturation by 30% and shift hue +15° toward warm (red/orange)
+   - Implementation: convert hex to HSL, adjust S and H, convert back
+
+   **Expressiveness** (0=strict, 100=expressive):
+   - This parameter does NOT modify CSS tokens — it modifies the text of the layout and component guidelines:
+   - At 0-30: Add guidelines like "Stick to strict grid alignment", "No decorative elements", "Minimal visual hierarchy"
+   - At 70-100: Add guidelines like "Break the grid for emphasis", "Use decorative borders and dividers", "Dramatic size contrasts are encouraged"
+   - At 40-60: Use the archetype's default guidelines unchanged
 3. Writes `.ai-dlc/{intent-slug}/design-blueprint.md` with:
 
 ```yaml

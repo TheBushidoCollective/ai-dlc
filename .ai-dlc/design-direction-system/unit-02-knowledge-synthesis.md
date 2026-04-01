@@ -33,7 +33,7 @@ backend - This unit will be executed by backend-focused agents.
 
 ### Skill File: `plugin/skills/knowledge-synthesize/SKILL.md`
 
-A fork-context skill (not user-invocable directly — called by the elaborate skill or by `/ai-dlc:seed`).
+A fork-context skill (not user-invocable). Invoked via `Agent()` subagent delegation from the elaborate skill (Phase 2.3). The calling skill passes a brief file path and the subagent reads the skill definition at `plugin/skills/knowledge-synthesize/SKILL.md` before executing — following the same pattern as `elaborate-discover` and `elaborate-wireframes`.
 
 **Frontmatter:**
 ```yaml
@@ -74,6 +74,16 @@ The subagent performs 5 analysis passes, one per knowledge artifact type. Each p
 2. **Extracts** patterns and conventions
 3. **Structures** findings into the knowledge artifact template
 4. **Writes** the artifact via the knowledge library
+
+#### Maturity-Based Synthesis Depth
+
+The `project_maturity` field from the brief gates synthesis depth:
+
+| Maturity | Synthesis Behavior |
+|----------|-------------------|
+| **greenfield** | Skip subagent entirely — the elaborate skill writes inline scaffold artifacts with empty sections. The design direction picker (Phase 2.75) will seed `design.md`. |
+| **early** | Run synthesis but with shallow scanning — sample fewer files, set `confidence: low` on most findings. Treat "early" like greenfield for the design direction picker (the design direction is likely not established yet). |
+| **established** | Full deep synthesis — scan comprehensively, produce high-confidence artifacts. Skip the design direction picker (existing design patterns are the source of truth). |
 
 #### Pass 1: Design Knowledge (`design.md`)
 

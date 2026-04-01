@@ -48,8 +48,11 @@ interface DesignDirectionSession {
     parameters: Record<string, number>;  // parameter name → value
   } | null;
   html: string;
-  created_at: number;
 }
+// NOTE: Do NOT add a created_at field. Session creation timestamps are tracked
+// externally in the sessionCreatedAt Map. Follow the existing createSession()
+// and createQuestionSession() patterns for registration in both the sessions
+// map and sessionCreatedAt map.
 ```
 
 Add `DesignDirectionSession` to the session union type and add corresponding create/update/get functions following the existing `createQuestionSession` pattern.
@@ -238,6 +241,7 @@ The fallback uses default parameter values for the chosen archetype (no slider t
 ## Risks
 - **Preview HTML injection**: The `preview_html` field is rendered inside the picker page — malicious content could break layout or execute scripts. Mitigation: Render previews in sandboxed `<iframe srcdoc="...">` elements with `sandbox` attribute (no scripts, no same-origin).
 - **Template complexity**: The picker is significantly more interactive than existing templates (question form, review page). Mitigation: Keep JavaScript minimal — use native HTML form elements (radio buttons, range inputs) with thin event listeners, not a framework.
+- **Session TTL expiry**: The session store has a 30-minute TTL. Users may deliberate on design direction longer than typical questions. Mitigation: The POST handler for `/direction/:sessionId/select` should return a clear JSON error `{ error: "session_expired" }` when the session is not found. The picker template should handle this response by showing "Session expired — please re-run the design direction command" instead of a silent failure.
 
 ## Boundaries
 This unit does NOT handle:

@@ -1,7 +1,7 @@
 ---
 status: pending
 last_updated: ""
-depends_on: [unit-01-knowledge-infrastructure, unit-05-elaboration-integration]
+depends_on: [unit-01-knowledge-infrastructure]
 branch: ai-dlc/design-direction-system/06-hat-integration
 discipline: backend
 pass: ""

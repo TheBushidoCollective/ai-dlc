@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.82.13] - 2026-04-01
+
+### Changed
+- Reorganized internal subskills to nest under their parent skill directories for clearer plugin structure.
+
+### Fixed
+- Corrected stale command references and paths throughout skill definitions and artifacts to ensure proper subskill invocation.
+
 ## [1.82.12] - 2026-04-01
 
 ### Fixed

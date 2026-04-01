@@ -1,0 +1,12 @@
+{
+  "iteration": 1,
+  "hat": "planner",
+  "workflowName": "default",
+  "workflow": [
+    "planner",
+    "builder",
+    "reviewer"
+  ],
+  "status": "completed",
+  "teamName": "ai-dlc-first-class-passes"
+}

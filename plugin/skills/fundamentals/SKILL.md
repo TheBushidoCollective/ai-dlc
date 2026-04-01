@@ -190,6 +190,51 @@ Investigate the problem space before implementing.
 Gather context, explore options, document findings.
 ```
 
+## Iteration Passes
+
+Passes are typed disciplinary iterations that focus each unit through a specific lens. They allow cross-functional collaboration where design or product artifacts precede code.
+
+### Built-in Passes
+
+| Pass | Description |
+|------|-------------|
+| `design` | Visual and interaction design; produces mockups, tokens, component specs |
+| `product` | Behavioral specification and gap analysis; produces acceptance criteria |
+| `dev` | Working implementation; produces tested, deployable code |
+
+### Single-Pass vs Multipass
+
+Most work needs only a dev pass — this is the default when `default_passes` is empty (`[]`). Multipass is for cross-functional collaboration where design or product artifacts should precede code. Example: `[design, product, dev]` runs three passes in sequence, each with its own units and workflow.
+
+### Custom Passes
+
+Create a pass definition at `.ai-dlc/passes/{name}.md` with frontmatter and body instructions:
+
+```markdown
+---
+name: accessibility
+description: Accessibility audit and remediation
+available_workflows: [default]
+default_workflow: default
+---
+
+# Accessibility Pass
+
+Audit all user-facing components for WCAG 2.1 AA compliance...
+```
+
+The `available_workflows` field constrains which execution workflows the pass supports. The `default_workflow` is used when the requested workflow is not in the available list.
+
+### Augmenting Built-in Passes
+
+To tailor a built-in pass to your project, create `.ai-dlc/passes/{name}.md` where `{name}` matches a built-in pass (e.g., `design`, `product`, `dev`). The project file's body is appended under a `## Project Augmentation` heading when the pass instructions are loaded. This lets you add project-specific guidance without replacing the built-in defaults.
+
+### Configuration
+
+- **Global default:** Set `default_passes` in `.ai-dlc/settings.yml` (e.g., `default_passes: [design, dev]`)
+- **Per-intent override:** Set `passes` in the intent frontmatter or intent-level `settings.yml`
+- **Empty array** (`[]`) means a single implicit dev pass — the default for most work
+
 ## State Management
 
 ### Scoped Storage

@@ -363,6 +363,21 @@ Ask the user about their preferred workflow intensity:
 
 Ask the user about their default cross-functional iteration passes for new intents. Most teams only need a single dev pass.
 
+First, discover all available passes (built-in + project-defined) by running:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/pass.sh"
+list_available_passes
+```
+
+This returns pass names one per line (e.g., `design`, `dev`, `product`). For each discovered pass, load its metadata to get a description:
+
+```bash
+load_pass_metadata "<pass_name>"
+```
+
+Build the `AskUserQuestion` options dynamically from the discovered passes:
+
 Use `AskUserQuestion`:
 
 ```json
@@ -372,20 +387,22 @@ Use `AskUserQuestion`:
     "header": "Default Iteration Passes",
     "options": [
       {"label": "Dev only", "description": "Single pass — elaborate and build (default for most work)"},
-      {"label": "Design + Dev", "description": "Design pass produces artifacts, then dev pass builds from them"},
-      {"label": "Design + Product + Dev", "description": "Full cross-functional: design artifacts → product specs → working code"},
-      {"label": "Product + Dev", "description": "Product defines acceptance criteria, then dev builds"}
+      {"label": "Select passes", "description": "Choose from available passes: <list discovered pass names with descriptions>"},
+      {"label": "Custom", "description": "Enter a comma-separated list of pass names"}
     ],
     "multiSelect": false
   }]
 }
 ```
 
+For "Select passes", present a follow-up multi-select with all discovered passes (built-in and project-defined), each showing its description from the pass metadata. For "Custom", ask the user to type a comma-separated list of pass names.
+
+To add custom passes, users can create `.ai-dlc/passes/{name}.md` files before running setup.
+
 Map selections to `default_passes` in settings.yml:
 - "Dev only" → `default_passes: []`
-- "Design + Dev" → `default_passes: [design, dev]`
-- "Design + Product + Dev" → `default_passes: [design, product, dev]`
-- "Product + Dev" → `default_passes: [product, dev]`
+- "Select passes" → `default_passes: [<selected pass names>]`
+- "Custom" → `default_passes: [<user-typed pass names>]`
 
 Pre-fill from existing `settings.yml` `default_passes` if available.
 

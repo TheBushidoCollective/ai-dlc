@@ -430,6 +430,62 @@ flowchart TB
 
 **Passes preserve the "Everyone Becomes a Builder" principle.** A designer running a design pass uses the same elaborate → execute → review loop as an engineer running a dev pass. The workflow is identical; the discipline and artifacts differ.
 
+#### Pass Definition Files
+
+Each pass is defined as a frontmatter-enabled markdown file. The frontmatter declares the pass's identity and constraints:
+
+- `name` — The pass identifier (e.g., `design`, `product`, `dev`)
+- `description` — What this pass produces
+- `available_workflows` — Which named workflows can be used during this pass
+- `default_workflow` — Fallback when the requested workflow is not available
+
+The markdown body contains instructions that are injected into builder and reviewer hat context during construction, orienting agents toward the pass's discipline without separate agent configurations.
+
+**Built-in passes and their workflow constraints:**
+
+| Pass | Available Workflows | Default | Focus |
+|------|-------------------|---------|-------|
+| **design** | `design` | `design` | Visual and interaction design — mockups, prototypes, design tokens |
+| **product** | `default`, `bdd` | `default` | Behavioral specification — acceptance criteria, edge cases, user journeys |
+| **dev** | `default`, `tdd`, `adversarial`, `bdd` | `default` | Working implementation — tested, deployable code |
+
+Workflow constraints prevent mismatches: requesting `tdd` during a design pass automatically falls back to the design pass's `default_workflow`. This ensures the right methodology is applied at the right time.
+
+#### The Pass Loop
+
+Execution runs one pass at a time through the intent's `passes` array:
+
+1. Elaborate the active pass's discipline-specific units
+2. Execute those units through the standard bolt cycle
+3. When the active pass's units are complete, advance `active_pass` to the next entry
+4. Repeat from step 1 for the new pass
+
+When all passes are complete, the intent is ready for integration and deployment.
+
+#### Pass-Backs
+
+When a later pass discovers issues requiring earlier-pass work, the intent iterates backward:
+
+1. `active_pass` is set backward to the target pass (e.g., dev → product, product → design)
+2. Re-elaboration occurs — new units are created alongside existing completed ones
+3. Forward progression resumes after the pass-back is resolved
+
+Pass-backs are triggered by reviewer recommendation or user decision. They represent normal cross-disciplinary iteration — a dev pass discovering a constraint that invalidates a design assumption sends work back to the design pass for correction.
+
+#### Single-Pass Default
+
+Intents with no `passes` configured (or `passes: []` with empty `active_pass`) use a single implicit dev pass. The pass system adds zero overhead until multi-pass iteration is needed. Projects configure their default pass structure via `default_passes` in `.ai-dlc/settings.yml`.
+
+#### Pass Customization
+
+The pass system uses an augmentation pattern shared with hats:
+
+- **Augment built-in passes:** Create `.ai-dlc/passes/{name}.md` where `{name}` matches a built-in pass. The project file's instructions are appended under a "Project Augmentation" heading — the built-in instructions are preserved, not replaced.
+- **Define custom passes:** Create `.ai-dlc/passes/{name}.md` with a name that does not match any built-in pass. The custom pass's instructions are used directly.
+- **Configure defaults:** Set `default_passes` in `.ai-dlc/settings.yml` to control which passes new intents receive by default.
+
+This same augmentation pattern applies to hats: plugin-provided hats are canonical, and project-level files in `.ai-dlc/hats/` augment them rather than replacing them.
+
 ### Context Is Abundant—Use It Wisely
 
 Modern language models offer context windows ranging from 200K tokens (Claude Opus 4.5) to over 1 million tokens (Claude Sonnet 4.5, Gemini). This abundance fundamentally changes how we think about AI workflows—but not in the ways that might be obvious.
@@ -718,18 +774,23 @@ A **Pass** is a typed iteration through the standard AI-DLC loop (elaborate, dec
 
 ```yaml
 # intent.md frontmatter
-passes:
-  - type: design
-    status: completed
-  - type: product
-    status: active
-  - type: dev
-    status: pending
+passes: [design, product, dev]
+active_pass: "design"
 ```
 
-**Passes are optional.** An intent with no `passes` field uses a single implicit dev pass—the current default behavior. Teams add passes when cross-functional iteration is needed.
+The `passes` field lists the ordered sequence of disciplinary lenses. The `active_pass` field tracks which pass is currently being executed. Pass completion is inferred from `active_pass` advancement and unit statuses — there is no per-pass status field.
 
-**Feedback between passes:** When a later pass discovers issues that require earlier-pass work, the intent iterates backward. The dev pass finding a constraint feeds back to the product pass. The product pass finding a design gap feeds back to the design pass. These backward flows are tracked in pass status and are a normal part of the workflow.
+**Pass definition files:** Each pass is defined as a frontmatter-enabled markdown file in the plugin's `passes/` directory. Frontmatter declares metadata (`name`, `description`, `available_workflows`, `default_workflow`). The markdown body contains instructions injected into builder and reviewer hat context during construction — orienting agents toward the pass's discipline without requiring separate agent configurations.
+
+**Workflow constraints:** Each pass declares which named workflows are available during its execution. The design pass allows only the `design` workflow. The product pass allows `default` and `bdd`. The dev pass allows `default`, `tdd`, `adversarial`, and `bdd`. When a requested workflow is not in the active pass's `available_workflows`, the pass's `default_workflow` is used instead. This prevents mismatches like running TDD during a design pass.
+
+**Passes are optional — zero overhead by default.** An intent with no `passes` configured (or `passes: []` with empty `active_pass`) uses a single implicit dev pass. The pass system is invisible until multi-pass iteration is needed. Projects configure their default pass structure via `default_passes` in `.ai-dlc/settings.yml`.
+
+**The pass loop:** Execution runs one pass at a time. When the active pass's units are complete, `active_pass` advances to the next pass in the array, and a new elaboration cycle begins for that pass's discipline-specific units. The loop is: elaborate -> execute -> (advance pass) -> elaborate -> execute -> ... -> all passes done.
+
+**Pass-backs:** When a later pass discovers issues that require earlier-pass work, `active_pass` is set backward to the target pass. Re-elaboration occurs (new units are created alongside existing completed ones), and forward progression resumes after the pass-back is resolved. Pass-backs are triggered by reviewer recommendation or user decision — they represent normal cross-disciplinary iteration, not failure.
+
+**Pass customization:** Projects can augment built-in passes by creating `.ai-dlc/passes/{name}.md` — the project file's instructions are appended under a "Project Augmentation" heading, not replaced. Projects can also define entirely custom passes by creating a pass file with a name that does not match any built-in pass. This same augmentation pattern applies to hats: plugin-provided hats are canonical, and project-level hats in `.ai-dlc/hats/` augment them.
 
 **Pass artifacts persist as context:** Each completed pass produces artifacts (designs, specs, code) that become input context for the next pass. This preserves the institutional knowledge that traditional handoffs lose.
 
@@ -1681,7 +1742,7 @@ For detailed runbooks with system prompts, entry/exit criteria, and failure mode
 | **Mob Elaboration** | Collaborative ritual where humans and AI decompose Intent into Units with Completion Criteria |
 | **OHOTL** | Observed Human-on-the-Loop: human watches AI work in real-time with ability to intervene; synchronous awareness with asynchronous control; used for creative, subjective, or training scenarios |
 | **Operation** | A file-based operational task spec (`.md` with YAML frontmatter) defining scheduled, reactive, or process-type work with agent or human ownership; stored in `.ai-dlc/{intent}/operations/` |
-| **Pass** | A typed iteration through the standard AI-DLC loop (elaborate, units, execute, review) that refines an Intent through a specific disciplinary lens (design, product, dev); passes are optional and configurable; output of one pass becomes input to the next |
+| **Pass** | A typed iteration through the standard AI-DLC loop (elaborate, units, execute, review) that refines an Intent through a specific disciplinary lens; defined as frontmatter-enabled markdown files with instructions and workflow constraints; three built-in passes (design, product, dev) can be augmented or extended by project-level definitions; passes are optional (zero overhead when unused) and configurable via `default_passes` in settings; output of one pass becomes input to the next |
 | **Quality Gate** | Automated check (tests, types, lint, security) that provides pass/fail feedback |
 | **Ralph Wiggum Pattern** | Autonomous loop methodology: try, fail, learn, iterate until success criteria met |
 | **Stack Config** | Infrastructure stack configuration in `.ai-dlc/settings.yml` describing deployment, compute, monitoring, alerting, and operations layers |

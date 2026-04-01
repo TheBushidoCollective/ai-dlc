@@ -75,6 +75,7 @@ When elaboration is invoked from `/ai-dlc:autopilot`, it runs in **autonomous mo
 | **5.75 (Spec Alignment Gate)** | Ask user to confirm overall direction | **Auto-approve.** Skip the alignment question. |
 | **5.8 (Git Strategy)** | Ask delivery strategy, source branch, hybrid | **Default to intent strategy** (`change_strategy: intent`, `auto_merge: true`) from the repo's default branch. No hybrid overrides. Do NOT ask. |
 | **5.9 (Announcements)** | Ask what announcement formats to generate | **Default to `[changelog]`.** Do NOT ask. |
+| **5.95 (Iteration Passes)** | Present configured passes via AskUserQuestion (3 options) | **Auto-accept defaults** but validate each pass name first via `validate_pass_exists`. If any pass is invalid, strip it and log a warning. Do NOT ask. |
 | **6 (Per-unit review)** | Present each unit and ask for approval | **Auto-approve each unit.** Still write and commit each unit, still display them in the output, but do NOT ask for approval. Move to the next unit immediately. |
 | **6.25 (Wireframe review)** | Ask product to review wireframes | **Auto-approve.** Still generate wireframes, but skip the review gate. |
 | **7 (Spec Review)** | Ask user on FAIL findings | **Auto-fix FAIL findings** without asking. If auto-fix is not possible (genuine ambiguity about what the user wants), STOP and return control to autopilot with a clear error. |
@@ -1319,21 +1320,75 @@ Map selections to the `announcements` array in intent.md frontmatter:
 
 ## Phase 5.95: Iteration Passes
 
-Read the project's configured default passes from `.ai-dlc/settings.yml`:
+Source the pass library and read configured defaults:
 
 ```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/pass.sh"
 DEFAULT_PASSES=$(yq -r '.default_passes // [] | join(",")' .ai-dlc/settings.yml 2>/dev/null || echo "")
 ```
 
 **If `DEFAULT_PASSES` is empty or contains fewer than 2 entries** (which includes the common "dev only" default): skip this phase entirely. Set `passes: []` and `active_pass: ""` in the intent frontmatter. Do not ask the user.
 
-**If `DEFAULT_PASSES` has 2 or more entries**: apply them directly. Set `passes` to the configured array and `active_pass` to the first entry. Do not ask the user — the default was configured at setup time.
+**If `DEFAULT_PASSES` has 2 or more entries**, validate and present them interactively:
 
-Map configured values to the `passes` array in intent.md frontmatter:
-- Empty or single entry → `passes: []` (empty — single implicit dev pass, the default)
+### Step 1: Validate each pass name
+
+```bash
+VALID_PASSES=""
+for pass_name in $(echo "$DEFAULT_PASSES" | tr ',' ' '); do
+  if validate_pass_exists "$pass_name"; then
+    VALID_PASSES="${VALID_PASSES}${VALID_PASSES:+,}${pass_name}"
+  else
+    echo "WARNING: Pass '${pass_name}' has no definition file. Skipping."
+  fi
+done
+```
+
+If fewer than 2 valid passes remain after validation, fall back to single-pass behavior (`passes: []`, `active_pass: ""`). Do not ask the user.
+
+### Step 2: Load and display pass metadata
+
+For each valid pass, call `load_pass_metadata` and build a summary table:
+
+| Pass | Description | Available Workflows |
+|---|---|---|
+| `{name}` | `{description}` | `{available_workflows}` |
+
+Display this table as context before asking.
+
+### Step 3: Present via AskUserQuestion
+
+**In autonomous mode:** skip the question. Auto-accept the validated defaults — set `passes` to the validated array and `active_pass` to the first entry. Log which passes were applied.
+
+**In interactive mode:** present the following question:
+
+```json
+{
+  "questions": [{
+    "question": "Your project has configured multi-pass iteration:\n\n{pass metadata table}\n\nUse these passes for this intent?",
+    "header": "Iteration Passes",
+    "options": [
+      {"label": "Use defaults ({pass1} → {pass2} → ...)", "description": "Apply the configured passes in order"},
+      {"label": "Override", "description": "Specify different passes or reorder"},
+      {"label": "Single pass (dev only)", "description": "Skip multi-pass — single implicit dev pass"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+### Step 4: Handle selection
+
+- **Use defaults**: Set `passes` to the validated array, set `active_pass` to the first entry.
+- **Override**: Ask the user which passes and in what order. Validate each name via `validate_pass_exists`. If any name is invalid, display a warning listing all available passes (from `list_available_passes`) and ask the user to correct. Repeat until all names are valid.
+- **Single pass (dev only)**: Set `passes: []` and `active_pass: ""`.
+
+### Step 5: Map to intent frontmatter
+
+Map the result to the `passes` array in intent.md frontmatter:
+- Single pass → `passes: []` (empty — single implicit dev pass, the default)
 - `[design, dev]` → `passes: [design, dev]`
 - `[design, product, dev]` → `passes: [design, product, dev]`
-- `[product, dev]` → `passes: [product, dev]`
 
 When passes are configured with 2+ entries, set `active_pass` to the first pass in the list. The units elaborated in this session belong to the active pass. When execution completes the active pass, the next pass will trigger a new elaboration cycle for its discipline-specific units.
 
@@ -1373,8 +1428,8 @@ git:
   auto_merge: {true|false}
   auto_squash: false
 announcements: []  # e.g., [changelog, release-notes, social-posts, blog-draft]
-passes: []  # Optional: [design, product, dev] — omit or leave empty for single-pass (default dev)
-active_pass: ""  # Current pass being worked on (auto-managed by construct)
+passes: []  # Validated pass names in order — empty for single-pass (default dev)
+active_pass: ""  # Current pass being worked on — set to first pass during elaboration, auto-managed by advance
 iterates_on: ""  # Slug of the previous intent this iterates on (set by /ai-dlc:followup, leave empty for new intents)
 created: {ISO date}
 status: active
@@ -1510,7 +1565,7 @@ last_updated: ""  # ISO 8601 UTC timestamp of last status change (auto-populated
 depends_on: []
 branch: ai-dlc/{intent-slug}/NN-{unit-slug}
 discipline: {discipline}  # frontend, backend, api, documentation, devops, design, etc.
-pass: ""  # Which pass this unit belongs to (design, product, dev) — empty for single-pass intents
+pass: ""  # Set to active pass during elaboration — empty for single-pass intents
 workflow: ""  # Per-unit workflow override (optional — omit or leave empty to use intent-level workflow). Auto-set to "design" when discipline is "design".
 ticket: ""  # Ticketing provider ticket key (auto-populated if ticketing provider configured)
 design_ref: ""  # Optional: path to external design file (PNG/JPG/HTML) or directory. Activates visual fidelity gate with high fidelity.
@@ -1569,6 +1624,8 @@ misinterpret what to build.}
 {Implementation hints, context, pitfalls to avoid}
 ```
 
+> **Pass tagging:** When the intent has `active_pass` set (non-empty), every unit created during this elaboration session MUST have its `pass:` frontmatter field set to the `active_pass` value. When `active_pass` is empty (single-pass intent), leave `pass:` as `""`. This applies to both standard and design unit templates.
+
 > **Quality gates in units:** Builders may add unit-level `quality_gates:` entries to a unit's
 > frontmatter during construction (e.g., a migration dry-run check specific to that unit).
 > Unit gates are enforced *in addition to* intent-level gates. Gates are additive —
@@ -1603,7 +1660,7 @@ status: pending
 depends_on: []
 branch: ai-dlc/{intent-slug}/NN-{unit-slug}
 discipline: design
-pass: ""  # Which pass this unit belongs to (design, product, dev) — empty for single-pass intents
+pass: ""  # Set to active pass during elaboration — empty for single-pass intents
 workflow: ""  # Per-unit workflow override (optional — omit or leave empty to use intent-level workflow)
 ticket: ""  # Ticketing provider ticket key (auto-populated if ticketing provider configured)
 design_ref: ""  # Optional: path to external design file (PNG/JPG/HTML) or directory. Activates visual fidelity gate with high fidelity.

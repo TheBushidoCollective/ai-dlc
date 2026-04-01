@@ -460,10 +460,32 @@ if [ "$NEEDS_ADVANCE" = "true" ] && [ "$SOURCE" != "compact" ]; then
   fi
 fi
 
+# Extract active_pass from intent frontmatter (zero-overhead when empty)
+ACTIVE_PASS=""
+if [ -n "$INTENT_DIR" ] && [ -f "${INTENT_DIR}/intent.md" ]; then
+  ACTIVE_PASS=$(yaml_get_simple "active_pass" "" < "${INTENT_DIR}/intent.md")
+fi
+
+PASS_INSTRUCTIONS=""
+if [ -n "$ACTIVE_PASS" ]; then
+  # shellcheck source=/dev/null
+  source "${PLUGIN_ROOT}/lib/pass.sh"
+  PASS_INSTRUCTIONS=$(load_pass_instructions "$ACTIVE_PASS")
+fi
+
 # Validate workflow name against known workflows (loaded above from workflows.yml files)
 if ! echo "$KNOWN_WORKFLOWS" | grep -qw "$WORKFLOW_NAME"; then
   echo "Warning: Unknown workflow '$WORKFLOW_NAME'. Using 'default'." >&2
   WORKFLOW_NAME="default"
+fi
+
+# Constrain workflow to pass's available workflows when active_pass is set
+if [ -n "$ACTIVE_PASS" ]; then
+  CONSTRAINED=$(constrain_workflow "$ACTIVE_PASS" "$WORKFLOW_NAME")
+  if [ "$CONSTRAINED" != "$WORKFLOW_NAME" ]; then
+    echo "Note: Workflow '$WORKFLOW_NAME' not available for '$ACTIVE_PASS' pass; using '$CONSTRAINED'." >&2
+    WORKFLOW_NAME="$CONSTRAINED"
+  fi
 fi
 
 # Format workflow hats as arrow-separated list
@@ -480,7 +502,11 @@ fi
 
 echo "## AI-DLC Context"
 echo ""
-echo "**Iteration:** $ITERATION | **Hat:** $HAT | **Workflow:** $WORKFLOW_NAME ($WORKFLOW_HATS_STR)"
+STATUS_LINE="**Iteration:** $ITERATION | **Hat:** $HAT | **Workflow:** $WORKFLOW_NAME ($WORKFLOW_HATS_STR)"
+if [ -n "$ACTIVE_PASS" ]; then
+  STATUS_LINE="$STATUS_LINE | **Pass:** $ACTIVE_PASS"
+fi
+echo "$STATUS_LINE"
 echo ""
 
 # Inject provider context and maturity signal
@@ -665,40 +691,42 @@ if [ -n "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" ]; then
   fi
 fi
 
-# Load hat instructions from markdown files
-# Resolution order: 1) User override (.ai-dlc/hats/), 2) Plugin built-in (hats/)
-HAT_FILE=""
-HAT_CONTENT=""
+# Load hat instructions using augmentation pattern (plugin hat + project augmentation)
+# shellcheck source=/dev/null
+source "${PLUGIN_ROOT}/lib/hat.sh"
 
-# Check for user override first
-if [ -f ".ai-dlc/hats/${HAT}.md" ]; then
-  HAT_FILE=".ai-dlc/hats/${HAT}.md"
-# Then check plugin directory
-elif [ -n "$PLUGIN_ROOT" ] && [ -f "${PLUGIN_ROOT}/hats/${HAT}.md" ]; then
-  HAT_FILE="${PLUGIN_ROOT}/hats/${HAT}.md"
+INSTRUCTIONS=$(load_hat_instructions "$HAT")
+HAT_META=$(load_hat_metadata "$HAT" 2>/dev/null || echo "{}")
+NAME=$(printf '%s' "$HAT_META" | sed -n 's/.*"name":"\([^"]*\)".*/\1/p')
+DESC=$(printf '%s' "$HAT_META" | sed -n 's/.*"description":"\([^"]*\)".*/\1/p')
+
+# Inject pass instructions before hat instructions (pass sets the lens, hat sets the role)
+if [ -n "$PASS_INSTRUCTIONS" ]; then
+  PASS_META=$(load_pass_metadata "$ACTIVE_PASS" 2>/dev/null || echo "{}")
+  PASS_DESC=$(printf '%s' "$PASS_META" | sed -n 's/.*"description":"\([^"]*\)".*/\1/p')
+  echo "### Active Pass Instructions"
+  echo ""
+  if [ -n "$PASS_DESC" ]; then
+    echo "**${ACTIVE_PASS}** — $PASS_DESC"
+  else
+    echo "**${ACTIVE_PASS}**"
+  fi
+  echo ""
+  echo "$PASS_INSTRUCTIONS"
+  echo ""
 fi
 
 echo "### Current Hat Instructions"
 echo ""
 
-if [ -n "$HAT_FILE" ] && [ -f "$HAT_FILE" ]; then
-  # Parse frontmatter
-  NAME=$(dlc_frontmatter_get "name" "$HAT_FILE")
-  DESC=$(dlc_frontmatter_get "description" "$HAT_FILE")
-
-  # Get content after frontmatter (skip until second ---)
-  HAT_CONTENT=$(cat "$HAT_FILE")
-  INSTRUCTIONS=$(echo "$HAT_CONTENT" | sed '1,/^---$/d' | sed '1,/^---$/d')
-
+if [ -n "$INSTRUCTIONS" ]; then
   if [ -n "$DESC" ]; then
     echo "**${NAME:-$HAT}** — $DESC"
   else
     echo "**${NAME:-$HAT}**"
   fi
   echo ""
-  if [ -n "$INSTRUCTIONS" ]; then
-    echo "$INSTRUCTIONS"
-  fi
+  echo "$INSTRUCTIONS"
 
 else
   # No hat file found - show generic message

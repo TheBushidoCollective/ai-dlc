@@ -690,13 +690,27 @@ provider_config: {JSON of PROVIDERS object}
 {For each knowledge artifact that exists (from Phase 2.3 or prior intents),
 include its full content here. Load the list of artifacts via
 `dlc_knowledge_list` and read each one via `dlc_knowledge_read "$type"`.
-Format each artifact as a subsection:}
+
+**Filter out scaffold artifacts:** Before including an artifact, check its
+frontmatter confidence level via `dlc_frontmatter_get "confidence"`. Skip
+any artifact with `confidence: low` — these are greenfield scaffolds with
+no real content. Also skip artifacts whose body sections contain only
+placeholder text like `(none yet)`.
+
+```bash
+CONFIDENCE=$(dlc_frontmatter_get "confidence" ".ai-dlc/knowledge/${artifact_type}.md" 2>/dev/null || echo "")
+if [ "$CONFIDENCE" = "low" ]; then
+  continue  # Skip low-confidence scaffolds in discovery brief
+fi
+```
+
+Format each remaining artifact as a subsection:}
 
 ### knowledge/{type}.md
 {content of the artifact}
 
-{Repeat for each artifact. If no knowledge artifacts exist, omit this
-section entirely.}
+{Repeat for each non-scaffold artifact. If no knowledge artifacts exist
+(or all are low-confidence scaffolds), omit this section entirely.}
 ```
 
 Commit the discovery brief immediately after writing it:

@@ -22,6 +22,9 @@ source "$BLUEPRINT_SCRIPT_DIR/deps.sh"
 # shellcheck source=parse.sh
 source "$BLUEPRINT_SCRIPT_DIR/parse.sh"
 
+# Validate jq dependency (required for archetype JSON processing)
+dlc_require_jq || return 1
+
 # Resolve path to archetypes.json relative to this script
 _DLC_ARCHETYPES_JSON="${BLUEPRINT_SCRIPT_DIR}/../data/archetypes.json"
 

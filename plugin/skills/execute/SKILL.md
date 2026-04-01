@@ -546,10 +546,41 @@ Loop over ALL ready units from the DAG (not just one):
 
 ```bash
 source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
-READY_UNITS=$(find_ready_units "$INTENT_DIR")
+
+# Read active_pass from intent frontmatter for pass-filtered selection
+ACTIVE_PASS=$(dlc_frontmatter_get "active_pass" "$INTENT_DIR/intent.md" 2>/dev/null || echo "")
+
+if [ -n "$ACTIVE_PASS" ]; then
+  READY_UNITS=$(find_ready_units_for_pass "$INTENT_DIR" "$ACTIVE_PASS")
+else
+  READY_UNITS=$(find_ready_units "$INTENT_DIR")
+fi
 
 # Intent-level workflow (default fallback)
 INTENT_WORKFLOW_HATS=$(echo "$STATE" | dlc_json_get "workflow")
+
+# If no ready units and active_pass is set, check if the pass is complete
+# (all units for this pass are completed, not just blocked)
+if [ -z "$READY_UNITS" ] && [ -n "$ACTIVE_PASS" ]; then
+  PASS_COMPLETE=true
+  for unit_file in "$INTENT_DIR"/unit-*.md; do
+    [ -f "$unit_file" ] || continue
+    unit_pass=$(parse_unit_pass "$unit_file")
+    [ "$unit_pass" != "$ACTIVE_PASS" ] && continue
+    unit_status=$(parse_unit_status "$unit_file")
+    if [ "$unit_status" != "completed" ]; then
+      PASS_COMPLETE=false
+      break
+    fi
+  done
+
+  if [ "$PASS_COMPLETE" = "true" ]; then
+    # All units for this pass are done — trigger pass transition (Step 5b logic)
+    # Skip to team shutdown / pass transition rather than declaring "all blocked"
+    echo "PASS_COMPLETE: All units for pass '$ACTIVE_PASS' are completed."
+    # Flow continues to Step 5 (Teams): Integration Validation and Team Shutdown
+  fi
+fi
 ```
 
 **Include repo URL for cowork**: If operating in a cloned workspace, include the repo URL in each teammate's prompt: "Repository: `<remote-url>`. Clone and checkout `ai-dlc/<intent-slug>` if you don't have local access." This enables teammates to clone independently in cowork mode.
@@ -619,6 +650,25 @@ if [ -n "$UNIT_WORKFLOW_NAME" ]; then
   [ -z "$UNIT_WORKFLOW_HATS" ] && UNIT_WORKFLOW_HATS="$INTENT_WORKFLOW_HATS"
 else
   UNIT_WORKFLOW_HATS="$INTENT_WORKFLOW_HATS"
+fi
+
+# Apply pass-level workflow constraint if active_pass is set
+if [ -n "$ACTIVE_PASS" ] && [ -n "$UNIT_WORKFLOW_NAME" ]; then
+  source "${CLAUDE_PLUGIN_ROOT}/lib/pass.sh"
+  CONSTRAINED_WORKFLOW=$(constrain_workflow "$ACTIVE_PASS" "$UNIT_WORKFLOW_NAME")
+  if [ "$CONSTRAINED_WORKFLOW" != "$UNIT_WORKFLOW_NAME" ]; then
+    echo "Note: Workflow '$UNIT_WORKFLOW_NAME' not available in '$ACTIVE_PASS' pass. Using '$CONSTRAINED_WORKFLOW'."
+    UNIT_WORKFLOW_NAME="$CONSTRAINED_WORKFLOW"
+    # Re-resolve hats for the constrained workflow
+    UNIT_WORKFLOW_HATS=""
+    if [ -f ".ai-dlc/workflows.yml" ]; then
+      UNIT_WORKFLOW_HATS=$(dlc_frontmatter_get "${UNIT_WORKFLOW_NAME}.hats" ".ai-dlc/workflows.yml" 2>/dev/null || echo "")
+    fi
+    if [ -z "$UNIT_WORKFLOW_HATS" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/workflows.yml" ]; then
+      UNIT_WORKFLOW_HATS=$(dlc_frontmatter_get "${UNIT_WORKFLOW_NAME}.hats" "${CLAUDE_PLUGIN_ROOT}/workflows.yml" 2>/dev/null || echo "")
+    fi
+    [ -z "$UNIT_WORKFLOW_HATS" ] && UNIT_WORKFLOW_HATS="$INTENT_WORKFLOW_HATS"
+  fi
 fi
 
 FIRST_HAT=$(echo "$UNIT_WORKFLOW_HATS" | jq -r '.[0]')
@@ -918,7 +968,8 @@ This means ANY hat can reject -- not just the reviewer. A red-team finding issue
 
 1. Document the blocker in `dlc_state_save "$INTENT_DIR" "blockers.md"`
 2. Check if ALL units are blocked
-3. If all blocked, alert user: "All units blocked. Human intervention required."
+3. Before declaring "all blocked," check if the active pass's units are all completed — if so, this is a pass completion, not a blocker. Route to pass transition (Step 5b) instead.
+4. If all blocked (and not a pass-complete scenario), alert user: "All units blocked. Human intervention required."
 
 ### Step 5 (Teams): Integration Validation and Team Shutdown
 
@@ -1044,6 +1095,14 @@ if [ -n "$PASSES" ] && [ -n "$ACTIVE_PASS" ]; then
   done
 
   if [ -n "$NEXT_PASS" ]; then
+    # Validate next pass exists and load its description
+    source "${CLAUDE_PLUGIN_ROOT}/lib/pass.sh"
+    NEXT_PASS_DESC=""
+    if validate_pass_exists "$NEXT_PASS"; then
+      NEXT_PASS_META=$(load_pass_metadata "$NEXT_PASS")
+      NEXT_PASS_DESC=$(echo "$NEXT_PASS_META" | jq -r '.description // ""')
+    fi
+
     echo "PASS_TRANSITION: $ACTIVE_PASS -> $NEXT_PASS"
   fi
 fi
@@ -1051,7 +1110,9 @@ fi
 
 **If a next pass exists:** Do NOT mark intent complete. Instead:
 1. Update `active_pass` in intent.md frontmatter to the next pass
-2. Notify the user: "The **{active_pass}** pass is complete. The next pass is **{next_pass}**. Run `/ai-dlc:elaborate` to define {next_pass} units using the artifacts from the {active_pass} pass."
+2. Notify the user with the next pass's description (from `load_pass_metadata`):
+   - If description is available: "The **{active_pass}** pass is complete. The next pass is **{next_pass}** — {NEXT_PASS_DESC}. Run `/ai-dlc:elaborate` to define {next_pass} units using the artifacts from the {active_pass} pass."
+   - If no description: "The **{active_pass}** pass is complete. The next pass is **{next_pass}**. Run `/ai-dlc:elaborate` to define {next_pass} units using the artifacts from the {active_pass} pass."
 3. Save state with `status=pass_transition`
 4. Stop execution — the user will re-elaborate for the next pass
 
@@ -1081,6 +1142,41 @@ aidlc_record_intent_completed "${INTENT_SLUG}" "${UNIT_COUNT}"
 ```
 
 4. Output completion summary (same as current Step 5 format from `/ai-dlc:advance`)
+
+#### Pass-Back Mechanism
+
+A pass-back occurs when a reviewer or late-pass hat determines that work needs to flow back to an earlier pass (e.g., the `dev` pass discovers that `design` artifacts are insufficient). The orchestrator detects a pass-back signal from a teammate's output — typically a structured message like `PASS_BACK: <target_pass>` with a reason.
+
+When a pass-back is detected:
+
+```bash
+# Pass-back mechanism: set active_pass backward and stop for re-elaboration
+PASS_BACK_TARGET="$TARGET_PASS"  # Set by orchestrator when pass-back detected
+
+if [ -n "$PASS_BACK_TARGET" ]; then
+  source "${CLAUDE_PLUGIN_ROOT}/lib/pass.sh"
+  if ! validate_pass_exists "$PASS_BACK_TARGET"; then
+    echo "Error: Pass-back target '$PASS_BACK_TARGET' is not a valid pass."
+    exit 1
+  fi
+
+  # Update active_pass to the target pass
+  dlc_frontmatter_set "active_pass" "$PASS_BACK_TARGET" "$INTENT_DIR/intent.md"
+  git add "$INTENT_DIR/intent.md"
+  git commit -m "pass-back: revert active_pass to $PASS_BACK_TARGET"
+
+  # Save state
+  STATE=$(echo "$STATE" | dlc_json_set "status" "pass_back")
+  dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
+
+  echo ""
+  echo "The current pass discovered issues requiring work in the **${PASS_BACK_TARGET}** pass."
+  echo "Run \`/ai-dlc:elaborate\` to define new units for the ${PASS_BACK_TARGET} pass."
+  exit 0
+fi
+```
+
+The pass-back stops execution immediately. The user must re-elaborate for the target pass before resuming execution.
 
 #### 5c. Delivery Prompt
 
@@ -1354,7 +1450,14 @@ TARGET_UNIT=$(echo "$STATE" | dlc_json_get "targetUnit" "")
 if [ -n "$TARGET_UNIT" ]; then
   UNIT_FILE="$INTENT_DIR/${TARGET_UNIT}.md"
 else
-  UNIT_FILE=$(find_ready_unit "$INTENT_DIR")
+  # Read active_pass from intent frontmatter for pass-filtered selection
+  ACTIVE_PASS=$(dlc_frontmatter_get "active_pass" "$INTENT_DIR/intent.md" 2>/dev/null || echo "")
+  if [ -n "$ACTIVE_PASS" ]; then
+    READY_UNIT=$(find_ready_units_for_pass "$INTENT_DIR" "$ACTIVE_PASS" | head -1)
+    [ -n "$READY_UNIT" ] && UNIT_FILE="$INTENT_DIR/${READY_UNIT}.md"
+  else
+    UNIT_FILE=$(find_ready_unit "$INTENT_DIR")
+  fi
 fi
 UNIT_NAME=$(basename "$UNIT_FILE" .md)  # e.g., unit-01-core-backend
 UNIT_SLUG="${UNIT_NAME#unit-}"  # e.g., 01-core-backend

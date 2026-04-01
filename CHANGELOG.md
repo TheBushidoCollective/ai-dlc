@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.82.8] - 2026-04-01
+
+### Added
+
+- add pre-delivery review and PR delivery to quick mode ([0c57db3](../../commit/0c57db3))
+- add /ai-dlc:review — pre-delivery code review with fix loop ([f46414f](../../commit/f46414f))
+
+### Fixed
+
+- clarify exclude-some gate selection follow-up instruction ([8cc6738](../../commit/8cc6738))
+- handle 5+ quality gates and guard setup completion ([d8d7315](../../commit/d8d7315))
+- address all PR review findings ([019a1ab](../../commit/019a1ab))
+- improve quality gates question formatting in elaborate ([99e4a68](../../commit/99e4a68))
+- run /ai-dlc:setup automatically if settings.yml is missing ([a321d39](../../commit/a321d39))
+- standardize on PR terminology across all skills and docs ([70162e1](../../commit/70162e1))
+- reduce elaboration verbosity by removing setup concerns ([6e67402](../../commit/6e67402))
+- resolve merge conflict in elaborate SKILL.md ([dac14e5](../../commit/dac14e5))
+
 ## [1.82.7] - 2026-04-01
 
 ### Fixed

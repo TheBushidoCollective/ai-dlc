@@ -68,7 +68,9 @@ When elaboration is invoked from `/ai-dlc:autopilot`, it runs in **autonomous mo
 | **1 (Gather Intent)** | Ask "What do you want to build?" | Use the feature description from `/ai-dlc:autopilot`. Do NOT ask. |
 | **2 (Clarify Requirements)** | Ask 2-4 clarification questions | **Skip entirely.** Infer requirements from the feature description and domain discovery. The description from autopilot is assumed to be sufficient for well-understood features. |
 | **2 (Deployment/Ops)** | Ask deployment target, monitoring, ops questions | **Skip.** Default to "Existing infrastructure" / "Use existing monitoring" / "Standard ops". If the codebase has no deployment surface, skip as usual. |
+| **2.3 (Knowledge Bootstrap)** | Synthesize knowledge from codebase | **Run silently.** Invoke the knowledge synthesis subagent (or write greenfield scaffolds) without asking the user. No interaction needed. |
 | **2.5 (Domain Model validation)** | Ask user to confirm domain model accuracy | **Auto-approve.** Log the domain model for reference but do not ask. Discovery is still mandatory — only the confirmation prompt is skipped. |
+| **2.75 (Design Direction)** | Present design direction picker | **Auto-select Editorial** with default parameters. Skip the picker UI. The default archetype can be overridden via `default_archetype` in `.ai-dlc/settings.yml`. |
 | **3 (Workflow selection)** | Show options and ask user to choose | **Use the recommended workflow.** Run the recommendation logic, then apply it directly without asking. |
 | **4 (Success Criteria)** | Ask about NFRs, then confirm criteria list | **Generate criteria and auto-approve.** Derive NFRs from the domain model and codebase patterns. Do NOT ask for confirmation. |
 | **5.5 (Cross-cutting concerns)** | Ask per concern: foundation unit vs convention | **Decide autonomously.** If the concern requires shared code → foundation unit. If it's a pattern → convention. Do NOT ask. |
@@ -518,6 +520,115 @@ This ensures:
 
 ---
 
+## Phase 2.3: Knowledge Bootstrap
+
+Before domain discovery, check whether knowledge artifacts already exist. If this is the first elaboration in a project with code, synthesize knowledge from the existing codebase so that the discovery subagent can build on it rather than re-discovering what is already known.
+
+### Step 1: Check project maturity and existing knowledge
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+source "${CLAUDE_PLUGIN_ROOT}/lib/knowledge.sh"
+PROJECT_MATURITY=$(detect_project_maturity)
+HAS_DESIGN_KNOWLEDGE=$(dlc_knowledge_exists "design" && echo "true" || echo "false")
+KNOWLEDGE_COUNT=$(dlc_knowledge_list | wc -l | tr -d ' ')
+```
+
+### Step 2: Knowledge Synthesis (first elaboration or missing knowledge)
+
+**Gate:** Only invoke the full synthesis subagent if `KNOWLEDGE_COUNT` is 0 AND `PROJECT_MATURITY` is `early` or `established` (there is actually code to scan). For `greenfield` projects with no code, skip the subagent and write inline scaffold artifacts instead.
+
+**If `PROJECT_MATURITY` is `greenfield` AND `KNOWLEDGE_COUNT` is 0:**
+
+Write empty scaffold knowledge artifacts so subsequent phases have files to reference:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/knowledge.sh"
+
+dlc_knowledge_write "domain" "$(cat <<'SCAFFOLD_EOF'
+---
+type: domain
+status: scaffold
+---
+
+# Domain Knowledge
+
+> Greenfield project — will be populated as the project grows.
+
+## Key Concepts
+
+(none yet)
+
+## Business Rules
+
+(none yet)
+SCAFFOLD_EOF
+)"
+
+dlc_knowledge_write "product" "$(cat <<'SCAFFOLD_EOF'
+---
+type: product
+status: scaffold
+---
+
+# Product Knowledge
+
+> Greenfield project — will be populated as the project grows.
+
+## User Personas
+
+(none yet)
+
+## Key Workflows
+
+(none yet)
+SCAFFOLD_EOF
+)"
+
+git add .ai-dlc/knowledge/
+git commit -m "elaborate(${INTENT_SLUG}): scaffold greenfield knowledge artifacts"
+```
+
+**If `PROJECT_MATURITY` is `early` or `established` AND `KNOWLEDGE_COUNT` is 0:**
+
+1. Write the knowledge synthesis brief to `.ai-dlc/${INTENT_SLUG}/.briefs/knowledge-synthesize.md`:
+
+```markdown
+---
+intent_slug: {INTENT_SLUG}
+worktree_path: {absolute path to intent worktree}
+project_maturity: {PROJECT_MATURITY}
+---
+
+# Knowledge Synthesis Request
+
+Scan the codebase and synthesize knowledge artifacts for: domain, architecture, product, conventions.
+```
+
+2. Invoke the knowledge synthesis subagent:
+
+```
+Agent({
+  subagent_type: "general-purpose",
+  description: "knowledge-synthesize: {INTENT_SLUG}",
+  prompt: "Read the skill definition at plugin/skills/knowledge-synthesize/SKILL.md first, then execute it with the brief file at .ai-dlc/{INTENT_SLUG}/.briefs/knowledge-synthesize.md as input."
+})
+```
+
+3. Read results from `.ai-dlc/${INTENT_SLUG}/.briefs/knowledge-synthesize-results.md`
+4. Commit synthesized knowledge artifacts:
+
+```bash
+git add .ai-dlc/knowledge/ .ai-dlc/${INTENT_SLUG}/.briefs/knowledge-synthesize*.md
+git commit -m "elaborate(${INTENT_SLUG}): synthesize knowledge from codebase"
+```
+
+**If `KNOWLEDGE_COUNT` is greater than 0:** Skip — knowledge artifacts already exist. No action needed.
+
+**CRITICAL — DO NOT STOP HERE.** Knowledge synthesis is just one step. Domain discovery (Phase 2.5) follows and can now build on the synthesized knowledge.
+
+---
+
 ## Phase 2.5: Domain Discovery & Technical Exploration (Delegated)
 
 **This phase is mandatory.** Domain discovery runs in a forked subagent to keep the main context lean. The subagent performs deep technical exploration autonomously, writing all findings to `discovery.md` on disk.
@@ -561,6 +672,24 @@ provider_config: {JSON of PROVIDERS object}
 ## Discovery File Path
 
 {absolute path to discovery.md}
+
+## Existing Project Knowledge
+
+{For each knowledge artifact that exists (from Phase 2.3 or prior intents),
+include its full content so the discovery subagent can avoid re-discovering
+what is already known and focus on new areas.}
+
+{Load via:}
+{```bash}
+{source "${CLAUDE_PLUGIN_ROOT}/lib/knowledge.sh"}
+{for artifact in $(dlc_knowledge_list); do}
+{  echo "### knowledge/${artifact}.md"}
+{  dlc_knowledge_read "$artifact"}
+{  echo ""}
+{done}
+{```}
+
+{If no knowledge artifacts exist, omit this section entirely.}
 ```
 
 Commit the discovery brief immediately after writing it:
@@ -699,6 +828,108 @@ This is most useful during:
 - Phase 2.5 (domain discovery) — architecture diagrams
 - Phase 5 (unit decomposition) — flow diagrams showing unit dependencies
 - Phase 6.25 (wireframes) — already handled by elaborate-wireframes skill
+
+---
+
+## Phase 2.75: Design Direction
+
+For greenfield and early-stage projects without existing design knowledge, present a design direction picker so the chosen archetype informs wireframes and builder context throughout the intent.
+
+### Step 1: Check design knowledge
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/knowledge.sh"
+HAS_DESIGN_KNOWLEDGE=$(dlc_knowledge_exists "design" && echo "true" || echo "false")
+```
+
+### Step 2: Design Direction (greenfield/early only)
+
+**Gate:** Only activate if `PROJECT_MATURITY` is `greenfield` or `early` AND `HAS_DESIGN_KNOWLEDGE` is `false`. If the project is `established` or design knowledge already exists, skip to Step 3.
+
+**Visual Picker Path (preferred):**
+
+Check if the `pick_design_direction` MCP tool is available:
+
+```
+ToolSearch("pick_design_direction")
+```
+
+If the tool is found:
+
+1. Call `pick_design_direction` with the archetypes data. The MCP tool opens a browser-based visual picker showing archetype previews and parameter sliders.
+2. Parse the session ID from the response, then poll `get_review_status({session_id})` until `status` is `"answered"`.
+3. Read the selection from the result: `{ archetype, parameters }`.
+4. Generate the design blueprint:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/design-blueprint.sh"
+SELECTED_ARCHETYPE="{archetype id from picker}"
+SELECTED_PARAMS='{JSON parameters from picker}'
+dlc_generate_design_blueprint "${INTENT_SLUG}" "${SELECTED_ARCHETYPE}" "${SELECTED_PARAMS}"
+```
+
+5. Seed the design knowledge artifact from the blueprint:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/knowledge.sh"
+BLUEPRINT_CONTENT=$(cat ".ai-dlc/${INTENT_SLUG}/design-blueprint.md")
+dlc_knowledge_write "design" "${BLUEPRINT_CONTENT}"
+```
+
+6. Commit:
+
+```bash
+git add .ai-dlc/${INTENT_SLUG}/design-blueprint.md .ai-dlc/knowledge/design.md
+git commit -m "elaborate(${INTENT_SLUG}): set design direction — ${SELECTED_ARCHETYPE}"
+```
+
+**Terminal Fallback Path:**
+
+If the `pick_design_direction` MCP tool is NOT available, use `AskUserQuestion` to present archetype options:
+
+```json
+{
+  "questions": [{
+    "question": "Choose a design direction for this project:",
+    "header": "Design Direction",
+    "options": [
+      {"label": "Brutalist", "description": "High contrast, raw borders, asymmetric grids, monospace type"},
+      {"label": "Editorial", "description": "Magazine layouts, strong typography, generous whitespace"},
+      {"label": "Dense / Utilitarian", "description": "Packed information, minimal chrome, keyboard-first"},
+      {"label": "Playful / Warm", "description": "Rounded corners, vibrant colors, playful personality"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+Map the selected label to the archetype ID: `Brutalist` → `brutalist`, `Editorial` → `editorial`, `Dense / Utilitarian` → `dense`, `Playful / Warm` → `playful`.
+
+Use the default parameters for the chosen archetype (no slider tuning in terminal mode). Generate the blueprint and seed knowledge using the same steps as the Visual Picker Path above.
+
+**Skip condition:** If `PROJECT_MATURITY` is `established`, or if `HAS_DESIGN_KNOWLEDGE` is already `true`, skip the design direction picker entirely. Existing design knowledge (from prior intents, synthesis, or manual setup) is already available.
+
+**Autonomous mode behavior:** In autonomous mode, skip the picker UI entirely. Auto-select **Editorial** with default parameters (the most conventional and broadly appropriate archetype). This default can be overridden via `default_archetype` in `.ai-dlc/settings.yml`:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
+DEFAULT_ARCHETYPE=$(get_setting_value "default_archetype" "editorial")
+```
+
+Generate the blueprint and seed knowledge using the selected archetype with its default parameters.
+
+### Step 3: Load knowledge context for remaining phases
+
+After knowledge bootstrap (Phase 2.3) and optional design direction:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/knowledge.sh"
+DOMAIN_KNOWLEDGE=$(dlc_knowledge_read "domain" 2>/dev/null || echo "")
+PRODUCT_KNOWLEDGE=$(dlc_knowledge_read "product" 2>/dev/null || echo "")
+DESIGN_KNOWLEDGE=$(dlc_knowledge_read "design" 2>/dev/null || echo "")
+```
+
+If domain or product knowledge exists, carry it forward as additional context for Phase 3 (Workflow Selection), Phase 4 (Success Criteria), and Phase 5 (Decomposition). This enriches unit specs with domain vocabulary and business rules already captured in knowledge artifacts.
 
 ---
 

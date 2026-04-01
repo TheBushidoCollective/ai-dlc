@@ -38,6 +38,27 @@ The deliverable is a `design-spec.md` — a structured document that downstream 
 
 Before designing anything, understand the building blocks available to you.
 
+#### 1a. Load Design Knowledge
+
+Check for persistent design knowledge:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/knowledge.sh"
+DESIGN_KNOWLEDGE=$(dlc_knowledge_read "design" 2>/dev/null || echo "")
+```
+
+If `DESIGN_KNOWLEDGE` is non-empty, this project has an established design direction. Read and internalize:
+- **Design Tokens**: Use these exact token values — do not invent new colors, spacing, or typography
+- **Layout Principles**: Follow these layout rules when designing screens
+- **Component Usage Guide**: Reference existing components before designing new ones
+- **Design Rationale**: Understand WHY design decisions were made to maintain consistency
+
+**CRITICAL:** When design knowledge exists, your designs MUST be consistent with it. Do not introduce new tokens, spacing values, or component patterns that contradict the established design direction. If you believe the design knowledge needs updating, note it explicitly — do not silently deviate.
+
+If `DESIGN_KNOWLEDGE` is empty, proceed with the survey below (component libraries, codebase patterns, etc.) as currently documented.
+
+**Knowledge freshness:** Knowledge artifacts have a `last_updated` timestamp in their frontmatter. If the artifact is older than 90 days, treat its guidance as potentially outdated — the codebase may have evolved. Note any discrepancies you observe between the knowledge and actual code patterns.
+
 - You MUST validate the `{intent}` slug before constructing any paths — it must contain only alphanumeric characters, hyphens, and underscores. Reject any value containing `/`, `..`, or other path traversal sequences
 - You MUST check for a component library or design system (Storybook MCP, design tokens, UI framework docs)
 - You MUST check for existing patterns in the codebase (reusable components, layout conventions, established UX patterns)
@@ -59,6 +80,7 @@ Before designing anything, understand the building blocks available to you.
 - You MUST consider accessibility requirements from the start (contrast, labels, keyboard navigation)
 - You SHOULD sketch low-fidelity options first — structure and flow before visual polish
 - You MUST NOT commit to first idea without exploration
+- When design knowledge is available, the 2-3 design alternatives MUST all be consistent with the established design direction (archetype, tokens, layout principles). Variation should be in layout composition, information hierarchy, and interaction patterns — NOT in visual fundamentals like color palette, typography, or shape language, which are set by the design direction.
 - **Validation**: Multiple options documented
 
 ### 4. Present options to user

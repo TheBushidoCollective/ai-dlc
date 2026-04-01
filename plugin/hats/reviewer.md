@@ -97,7 +97,29 @@ Run review in distinct passes. Combining them into one pass leads to either spec
    - You MUST NOT modify code - only provide feedback
    - **Validation**: Quality issues documented
 
-6. Verify gate integrity (ratchet review)
+6. Knowledge compliance check
+
+   If knowledge artifacts are available, verify the implementation follows them:
+
+   ```bash
+   source "${CLAUDE_PLUGIN_ROOT}/lib/knowledge.sh"
+   CONVENTIONS=$(dlc_knowledge_read "conventions" 2>/dev/null || echo "")
+   ARCHITECTURE=$(dlc_knowledge_read "architecture" 2>/dev/null || echo "")
+   ```
+
+   When checking:
+   - **Conventions**: Verify naming patterns, error handling, and testing approach match documented conventions
+   - **Architecture**: Verify new code respects module boundaries, data flow patterns, and infrastructure conventions
+
+   Flag as review comments (not blockers) if the implementation reasonably deviates from knowledge artifacts — knowledge is guidance, not law. Only block if the deviation is clearly accidental (e.g., using camelCase when the project uses snake_case and conventions.md documents this).
+
+   If both `CONVENTIONS` and `ARCHITECTURE` are empty, skip this step — no knowledge artifacts exist for this project.
+
+   **Knowledge freshness:** Knowledge artifacts have a `last_updated` timestamp in their frontmatter. If the artifact is older than 90 days, treat its guidance as potentially outdated — the codebase may have evolved. Note any discrepancies you observe between the knowledge and actual code patterns.
+
+   - **Validation**: Knowledge compliance checked (or skipped if no artifacts exist)
+
+7. Verify gate integrity (ratchet review)
    - Compare the current `quality_gates:` in intent.md and unit frontmatter against what was defined during elaboration
    - Use git history to retrieve the elaboration-time gate definitions: `git log --oneline .ai-dlc/{intent-slug}/intent.md` to find the elaboration commit, then `git show <commit>:.ai-dlc/{intent-slug}/intent.md` to read the frontmatter as it was when gates were first written
    - Verify no gates were removed or weakened (commands changed to be more permissive)
@@ -106,14 +128,14 @@ Run review in distinct passes. Combining them into one pass leads to either spec
    - Flag removed or weakened gates as a **High-confidence blocking issue**
    - **Validation**: Gate integrity verified — no gates removed or weakened
 
-7. Scan for anti-patterns
+8. Scan for anti-patterns
    - You MUST search for TODO/FIXME comments in changed files
    - You MUST check for empty function bodies or stub implementations
    - You MUST identify console.log-only functions or placeholder components
    - You MUST flag hardcoded values that should be configurable
    - **Validation**: Anti-pattern scan documented
 
-8. Score and classify findings
+9. Score and classify findings
    - You MUST assign each finding a confidence level:
      - **High**: Deterministic — test fails, type error, missing import, criterion unmet. Auto-fixable.
      - **Medium**: Likely correct but context-dependent — naming, structure, design choices.
@@ -123,20 +145,20 @@ Run review in distinct passes. Combining them into one pass leads to either spec
    - Low-confidence issues MUST NOT block approval
    - **Validation**: All findings scored and classified
 
-9. Check edge cases
+10. Check edge cases
    - You MUST verify error handling is appropriate
    - You SHOULD check boundary conditions
    - You MUST identify missing test cases
    - **Validation**: Edge cases documented
 
-10. Provide structured feedback
+11. Provide structured feedback
     - You MUST be specific about what needs changing
     - You SHOULD explain why changes are needed
     - You MUST prioritize feedback (high → medium → low confidence)
     - You MUST NOT fail a review for low-confidence issues alone
     - **Validation**: Feedback structured by confidence level
 
-11. Make decision
+12. Make decision
     - If all criteria pass, tests pass, and quality acceptable: APPROVE
     - If criteria fail, tests missing, or blocking issues: REQUEST CHANGES
     - You MUST document decision clearly

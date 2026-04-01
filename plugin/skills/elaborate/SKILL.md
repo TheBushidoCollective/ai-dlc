@@ -1752,36 +1752,63 @@ DISCOVERY_FILE=".ai-dlc/${INTENT_SLUG}/discovery.md"
 
 Read the file and look for the `## Quality Gate Candidates` section. Parse the detected gates table.
 
-**Step B — Present gates to user.** If quality gate candidates were found, use `AskUserQuestion` to present them:
+**Step B — Present gates to user.** If quality gate candidates were found, display them and ask via `AskUserQuestion`:
 
-> **Quality Gate Candidates Detected**
->
-> The following quality gates were detected from your project tooling:
->
-> | Name | Command | Source |
-> |------|---------|--------|
-> | {name} | {command} | {source file} |
-> | ... | ... | ... |
->
-> How would you like to proceed?
-> 1. **Use all detected gates** — All gates above will run during construction
-> 2. **Let me choose** — Pick which gates to include
-> 3. **Skip quality gates** — No gates will be enforced (you can add them later)
+First, display the detected gates as a formatted table:
 
-If the user selects **"Let me choose"**, present each gate individually and collect their selections.
+```markdown
+## Quality Gates Detected
 
-After the user confirms (options 1 or 2), inform them how to customize individual commands if needed:
+| Gate | Command | Source |
+|------|---------|--------|
+| {name} | `{command}` | {source file} |
+| ... | `...` | ... |
+```
 
-> Gates confirmed. To modify a gate command (e.g., change `npm test` to `npm test -- --coverage`), edit the `quality_gates:` field in `.ai-dlc/{intent-slug}/intent.md` directly after this step. Gates are written as a YAML list:
->
-> ```yaml
-> - name: tests
->   command: npm test -- --coverage
-> ```
+Then ask:
 
-If no candidates were found in discovery, inform the user:
+```json
+{
+  "questions": [{
+    "question": "These quality gates will be enforced during construction — the AI cannot stop building until all gates pass. Which gates should be active?",
+    "header": "Quality Gates",
+    "options": [
+      {"label": "Use all detected gates", "description": "All {N} gates above will run on every build cycle"},
+      {"label": "Let me choose", "description": "Select which gates to include"},
+      {"label": "Skip quality gates", "description": "No gates enforced (you can add them later in intent.md)"}
+    ],
+    "multiSelect": false
+  }]
+}
+```
 
-> No quality gates were auto-detected from project tooling. You can add custom gates later by editing the `quality_gates:` field in intent.md frontmatter. Proceeding with `quality_gates: []`.
+If the user selects **"Let me choose"**, present each gate as a multi-select:
+
+```json
+{
+  "questions": [{
+    "question": "Select which quality gates to enforce:",
+    "header": "Gates",
+    "options": [
+      {"label": "{name}", "description": "`{command}` (from {source})"}
+    ],
+    "multiSelect": true
+  }]
+}
+```
+
+After the user confirms (options 1 or 2), note:
+
+```
+Gates confirmed. To customize commands later, edit `quality_gates:` in `.ai-dlc/{intent-slug}/intent.md`.
+```
+
+If no candidates were found in discovery, skip the question and note:
+
+```
+No quality gates detected from project tooling. Proceeding with `quality_gates: []`.
+You can add gates later by editing intent.md frontmatter.
+```
 
 **Step C — Update intent.md frontmatter.** Write the confirmed gates to intent.md using `yq`:
 

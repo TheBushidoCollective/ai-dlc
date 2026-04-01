@@ -575,10 +575,10 @@ if [ -z "$READY_UNITS" ] && [ -n "$ACTIVE_PASS" ]; then
   done
 
   if [ "$PASS_COMPLETE" = "true" ]; then
-    # All units for this pass are done — trigger pass transition (Step 5b logic)
-    # Skip to team shutdown / pass transition rather than declaring "all blocked"
+    # All units for this pass are done — proceed to pass transition in Step 5b.
+    # The orchestrator should check PASS_COMPLETE before the "all blocked" handler
+    # and route to the pass transition logic (Step 5c) instead.
     echo "PASS_COMPLETE: All units for pass '$ACTIVE_PASS' are completed."
-    # Flow continues to Step 5 (Teams): Integration Validation and Team Shutdown
   fi
 fi
 ```

@@ -31,6 +31,11 @@ source "$HAT_SCRIPT_DIR/config.sh"
 load_hat_instructions() {
   local hat_name="$1"
 
+  # Validate hat name is a simple identifier (no path traversal)
+  if [[ ! "$hat_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    return 1
+  fi
+
   local plugin_root="${CLAUDE_PLUGIN_ROOT:-${HAT_SCRIPT_DIR}/../..}"
   local builtin="${plugin_root}/hats/${hat_name}.md"
 
@@ -75,6 +80,12 @@ ${project_body}"
 load_hat_metadata() {
   local hat_name="$1"
 
+  # Validate hat name is a simple identifier (no path traversal)
+  if [[ ! "$hat_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    echo "{}"
+    return 1
+  fi
+
   local plugin_root="${CLAUDE_PLUGIN_ROOT:-${HAT_SCRIPT_DIR}/../..}"
   local builtin="${plugin_root}/hats/${hat_name}.md"
 
@@ -99,6 +110,10 @@ load_hat_metadata() {
   local name description
   name=$(dlc_frontmatter_get "name" "$hat_file")
   description=$(dlc_frontmatter_get "description" "$hat_file")
+
+  # JSON-escape string values
+  name="${name//\"/\\\"}"
+  description="${description//\"/\\\"}"
 
   printf '{"name":"%s","description":"%s"}' "$name" "$description"
 }

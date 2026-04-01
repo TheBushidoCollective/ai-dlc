@@ -31,6 +31,11 @@ source "$PASS_SCRIPT_DIR/dag.sh"
 resolve_pass_definition() {
   local pass_name="$1"
 
+  # Validate pass name is a simple identifier (no path traversal)
+  if [[ ! "$pass_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    return 1
+  fi
+
   # Determine plugin root
   local plugin_root="${CLAUDE_PLUGIN_ROOT:-${PASS_SCRIPT_DIR}/../..}"
 
@@ -119,9 +124,20 @@ load_pass_metadata() {
   available_workflows=$(dlc_frontmatter_get "available_workflows" "$def_file")
   default_workflow=$(dlc_frontmatter_get "default_workflow" "$def_file")
 
-  # Build JSON
+  # Convert YAML array to JSON array: [default, tdd] -> ["default","tdd"]
+  local json_workflows
+  json_workflows=$(echo "$available_workflows" | sed 's/\[//;s/\]//' | tr ',' '\n' | \
+    sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v '^$' | \
+    sed 's/.*/"&"/' | paste -sd ',' - | sed 's/^/[/;s/$/]/')
+  [ -z "$json_workflows" ] && json_workflows="[]"
+
+  # JSON-escape string values
+  name="${name//\"/\\\"}"
+  description="${description//\"/\\\"}"
+  default_workflow="${default_workflow//\"/\\\"}"
+
   printf '{"name":"%s","description":"%s","available_workflows":%s,"default_workflow":"%s"}' \
-    "$name" "$description" "$available_workflows" "$default_workflow"
+    "$name" "$description" "$json_workflows" "$default_workflow"
 }
 
 # List all available pass names (union of built-in and project passes, deduplicated)

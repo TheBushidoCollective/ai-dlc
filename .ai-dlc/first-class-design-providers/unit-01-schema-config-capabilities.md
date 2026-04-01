@@ -120,6 +120,7 @@ Create `get_provider_uri_scheme()` returning the URI prefix for a provider:
 - [ ] `get_provider_uri_scheme()` returns correct URI prefix for all 6 providers
 - [ ] Settings schema validates correctly with `ajv` or equivalent for all provider types
 - [ ] Existing `figma` provider configuration continues to work unchanged
+- [ ] `detect_design_provider()` returns providers in documented priority order (canva > figma > openpencil > pencil > penpot > excalidraw) when multiple are available simultaneously
 
 ## Risks
 - **MCP tool naming inconsistency**: Provider tools may use different naming conventions across Claude platform connectors vs local MCP servers. Mitigation: use broad glob patterns with `|` alternation.

@@ -105,6 +105,8 @@ The `needs_agent_export` flag tells the calling context whether the PNG is ready
 - [ ] Resolution output includes provider type, fidelity level, and export instruction path
 - [ ] Existing file-based resolution (png, jpg, html, webp, directory) continues to work unchanged
 - [ ] The three-level priority hierarchy (design_ref > previous iteration > wireframe) is preserved
+- [ ] Instruction file format is explicitly specified (YAML frontmatter with tool name, parameters, expected output path, timeout) and documented for consuming agents
+- [ ] Exported PNG cache uses URI-derived hash naming (SHA-256 truncated to 8 hex chars) and invalidates on new bolt iteration
 
 ## Risks
 - **CLI tool availability**: Headless export via CLI requires tools installed on the user's system. Mitigation: instruction file fallback for agent-based export.

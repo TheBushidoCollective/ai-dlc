@@ -1,7 +1,8 @@
 ---
 status: pending
 last_updated: ""
-depends_on: []
+depends_on:
+  - unit-01-schema-config-capabilities
 branch: ai-dlc/first-class-design-providers/02-design-ref-resolution
 discipline: backend
 pass: ""

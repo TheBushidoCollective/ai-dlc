@@ -2,6 +2,10 @@
 status: pending
 last_updated: ""
 depends_on:
+  - unit-02-design-ref-resolution
+  - unit-03-elaboration-integration
+  - unit-04-designer-hat-integration
+  - unit-05-visual-review-integration
   - unit-06-provider-instructions-schemas
 branch: ai-dlc/first-class-design-providers/07-website-docs
 discipline: documentation

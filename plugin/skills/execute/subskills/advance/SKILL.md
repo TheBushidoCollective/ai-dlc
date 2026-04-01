@@ -684,12 +684,13 @@ After integration passes and before delivery, refresh knowledge artifacts so the
 
 ```bash
 source "${CLAUDE_PLUGIN_ROOT}/lib/config.sh"
-KNOWLEDGE_REFRESH=$(get_setting_value "knowledge_refresh" "true")
+KNOWLEDGE_REFRESH=$(get_setting_value "knowledge_refresh")
+KNOWLEDGE_REFRESH="${KNOWLEDGE_REFRESH:-true}"
 ```
 
 If `KNOWLEDGE_REFRESH` is `"false"`, skip to Pre-Delivery Code Review.
 
-**Step 1: Check if refresh is worthwhile**
+**Step 1: Gather context for synthesis brief**
 
 ```bash
 source "${CLAUDE_PLUGIN_ROOT}/lib/knowledge.sh"

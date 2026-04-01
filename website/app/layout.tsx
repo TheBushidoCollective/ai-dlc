@@ -46,9 +46,21 @@ export const metadata: Metadata = {
 	alternates: {
 		canonical: SITE_URL,
 		types: {
-			"application/rss+xml": "/feed.xml",
-			"application/atom+xml": "/atom.xml",
-			"application/feed+json": "/feed.json",
+			"application/rss+xml": [
+				{ url: "/feed.xml", title: "AI-DLC — All" },
+				{ url: "/blog/feed.xml", title: "AI-DLC — Blog" },
+				{ url: "/changelog/feed.xml", title: "AI-DLC — Changelog" },
+			],
+			"application/atom+xml": [
+				{ url: "/atom.xml", title: "AI-DLC — All" },
+				{ url: "/blog/atom.xml", title: "AI-DLC — Blog" },
+				{ url: "/changelog/atom.xml", title: "AI-DLC — Changelog" },
+			],
+			"application/feed+json": [
+				{ url: "/feed.json", title: "AI-DLC — All" },
+				{ url: "/blog/feed.json", title: "AI-DLC — Blog" },
+				{ url: "/changelog/feed.json", title: "AI-DLC — Changelog" },
+			],
 		},
 	},
 	robots: {

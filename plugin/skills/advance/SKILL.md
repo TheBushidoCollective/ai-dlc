@@ -153,7 +153,25 @@ if [ -n "$TARGET_UNIT" ] && [ "$TARGET_UNIT" = "$CURRENT_UNIT" ]; then
   # Clear targetUnit from state
   STATE=$(echo "$STATE" | dlc_json_set "targetUnit" "")
   dlc_state_save "$INTENT_DIR" "iteration.json" "$STATE"
+```
 
+Clean up the targeted unit's team agents before exiting (if Agent Teams are enabled):
+
+```bash
+  AGENT_TEAMS_ENABLED="${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}"
+```
+
+If `AGENT_TEAMS_ENABLED` is set:
+
+```javascript
+  SendMessage({
+    to: "*",
+    message: { type: "shutdown_request", reason: "Unit complete" }
+  })
+  TeamDelete()
+```
+
+```bash
   echo "## Targeted Unit Complete: ${CURRENT_UNIT}"
   echo ""
   echo "The targeted unit has finished its workflow."
@@ -264,6 +282,33 @@ elif [ "$AUTO_MERGE" = "true" ]; then
 fi
 ```
 
+### Step 2d-1: Clean Up Completed Unit's Team Agents
+
+When Agent Teams are enabled, the completed unit's teammate agents (planner, builder, reviewer, etc.) may still be running. Shut them down before proceeding to the next unit or integration to prevent resource leaks.
+
+```bash
+AGENT_TEAMS_ENABLED="${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}"
+```
+
+If `AGENT_TEAMS_ENABLED` is set:
+
+1. Broadcast `shutdown_request` to all teammates so they exit gracefully:
+
+```javascript
+SendMessage({
+  to: "*",
+  message: { type: "shutdown_request", reason: "Unit complete" }
+})
+```
+
+2. Call `TeamDelete` to release team resources:
+
+```javascript
+TeamDelete()
+```
+
+**Without Agent Teams:** Skip this step — there are no teammate agents to clean up.
+
 ```bash
 # Check if all units are complete using DAG library
 source "${CLAUDE_PLUGIN_ROOT}/lib/dag.sh"
@@ -364,12 +409,21 @@ AGENT_TEAMS_ENABLED="${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}"
 If `AGENT_TEAMS_ENABLED` is set and `READY_COUNT > 0` after completing a unit:
 
 1. Read `teamName` from `iteration.json`
-2. For each newly ready unit:
+2. Recreate the team (it was deleted in Step 2d-1 cleanup):
+
+```javascript
+TeamCreate({
+  team_name: teamName,
+  description: `AI-DLC: ${intentTitle}`
+})
+```
+
+3. For each newly ready unit:
    - Set `hat: planner` and `retries: 0` in unit frontmatter
    - Create unit worktree
    - Mark unit as `in_progress`
    - Spawn planner teammate via Task with `team_name` and `name`
-3. Commit updated unit frontmatter
+4. Commit updated unit frontmatter
 
 This replaces the sequential "loop back to builder" behavior when Agent Teams is active. Instead of the lead picking up the next unit sequentially, newly unblocked units are spawned as parallel teammates immediately.
 

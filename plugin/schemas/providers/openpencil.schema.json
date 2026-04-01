@@ -1,0 +1,18 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://ai-dlc.dev/schemas/providers/openpencil.schema.json",
+	"title": "OpenPencil Provider Config",
+	"description": "Provider-specific configuration for OpenPencil design provider",
+	"type": "object",
+	"properties": {
+		"project_id": {
+			"type": "string",
+			"description": "OpenPencil project ID"
+		},
+		"document_id": {
+			"type": "string",
+			"description": "OpenPencil document ID"
+		}
+	},
+	"additionalProperties": false
+}

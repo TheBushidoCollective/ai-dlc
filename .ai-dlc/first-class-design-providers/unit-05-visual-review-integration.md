@@ -1,6 +1,6 @@
 ---
-status: pending
-last_updated: ""
+status: in_progress
+last_updated: "2026-04-01T19:51:04Z"
 depends_on:
   - unit-01-schema-config-capabilities
   - unit-02-design-ref-resolution
@@ -11,6 +11,7 @@ workflow: ""
 ticket: ""
 design_ref: ""
 views: []
+hat: planner
 ---
 
 # unit-05-visual-review-integration

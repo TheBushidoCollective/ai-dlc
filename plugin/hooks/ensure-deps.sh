@@ -31,7 +31,12 @@ elif command -v apt-get >/dev/null 2>&1; then
     installer="sudo apt-get update && sudo apt-get install -y ${apt_pkgs[*]}"
   fi
   if [ "$yq_needed" = true ]; then
-    yq_url="https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64"
+    yq_arch="amd64"
+    case "$(uname -m)" in
+      aarch64|arm64) yq_arch="arm64" ;;
+      armv7l)        yq_arch="arm"   ;;
+    esac
+    yq_url="https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${yq_arch}"
     yq_cmd="sudo curl -fsSL '$yq_url' -o /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq"
     if [ -n "$installer" ]; then
       installer="$installer && $yq_cmd"

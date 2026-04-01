@@ -46,4 +46,4 @@ Reads `CHANGELOG.md` from the repository root and presents release notes in a re
 4. **After the entries**, show:
    - Total number of releases in the changelog
    - Link to the full changelog: `See the full changelog at CHANGELOG.md`
-   - If viewing the website: `Also available as an RSS feed at https://ai-dlc.dev/changelog/feed.xml`
+   - RSS feed link: `Also available as an RSS feed at https://ai-dlc.dev/changelog/feed.xml`

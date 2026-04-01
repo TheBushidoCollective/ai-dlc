@@ -4,7 +4,7 @@ import { getChangelog } from "@/lib/changelog"
 export const SITE_URL = "https://ai-dlc.dev"
 export const SITE_TITLE = "AI-DLC"
 export const SITE_DESCRIPTION =
-	"A methodology for iterative AI-driven development with hat-based workflows"
+	"A methodology for the era of AI-driven software development — built from first principles, not retrofitted from the past"
 
 export const FEED_HEADERS_XML = {
 	"Content-Type": "application/xml; charset=utf-8",
@@ -99,8 +99,8 @@ export function generateRss(
 			(item) => `
     <item>
       <title>${escapeXml(item.title)}</title>
-      <link>${item.url}</link>
-      <guid isPermaLink="true">${item.url}</guid>
+      <link>${escapeXml(item.url)}</link>
+      <guid isPermaLink="true">${escapeXml(item.url)}</guid>
       <pubDate>${formatRFC822Date(item.date)}</pubDate>
       <description>${escapeXml(item.description)}</description>
       ${item.author ? `<author>${escapeXml(item.author)}</author>` : ""}
@@ -132,8 +132,8 @@ export function generateAtom(
 			(item) => `
   <entry>
     <title>${escapeXml(item.title)}</title>
-    <link href="${item.url}" rel="alternate" type="text/html"/>
-    <id>${item.url}</id>
+    <link href="${escapeXml(item.url)}" rel="alternate" type="text/html"/>
+    <id>${escapeXml(item.url)}</id>
     <published>${formatISO8601(item.date)}</published>
     <updated>${formatISO8601(item.date)}</updated>
     <summary>${escapeXml(item.description)}</summary>
@@ -145,7 +145,9 @@ export function generateAtom(
 
 	const latestDate =
 		items.length > 0
-			? formatISO8601(items[0].date)
+			? formatISO8601(
+					items.reduce((max, item) => (item.date > max ? item.date : max), items[0].date),
+				)
 			: formatISO8601(new Date().toISOString())
 
 	return `<?xml version="1.0" encoding="UTF-8"?>
@@ -160,10 +162,28 @@ export function generateAtom(
 </feed>`
 }
 
+export interface JsonFeed {
+	version: string
+	title: string
+	home_page_url: string
+	feed_url: string
+	description: string
+	language: string
+	items: {
+		id: string
+		url: string
+		title: string
+		summary: string
+		date_published: string
+		authors: { name: string }[]
+		tags?: string[]
+	}[]
+}
+
 export function generateJsonFeed(
 	items: FeedItem[],
 	opts: { title: string; feedUrl: string; description?: string },
-) {
+): JsonFeed {
 	return {
 		version: "https://jsonfeed.org/version/1.1",
 		title: opts.title,

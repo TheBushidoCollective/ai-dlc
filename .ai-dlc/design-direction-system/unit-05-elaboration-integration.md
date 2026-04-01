@@ -1,6 +1,6 @@
 ---
-status: pending
-last_updated: ""
+status: in_progress
+last_updated: "2026-04-01T13:24:48Z"
 depends_on: [unit-02-knowledge-synthesis, unit-03-direction-picker-mcp, unit-04-archetype-library]
 branch: ai-dlc/design-direction-system/05-elaboration-integration
 discipline: backend
@@ -9,6 +9,7 @@ workflow: ""
 ticket: ""
 design_ref: ""
 views: []
+hat: planner
 ---
 
 # unit-05-elaboration-integration

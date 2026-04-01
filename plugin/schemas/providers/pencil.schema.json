@@ -1,0 +1,18 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://ai-dlc.dev/schemas/providers/pencil.schema.json",
+	"title": "Pencil Provider Config",
+	"description": "Provider-specific configuration for Pencil design provider",
+	"type": "object",
+	"properties": {
+		"project_id": {
+			"type": "string",
+			"description": "Pencil project ID"
+		},
+		"document_id": {
+			"type": "string",
+			"description": "Pencil document ID"
+		}
+	},
+	"additionalProperties": false
+}

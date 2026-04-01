@@ -221,7 +221,7 @@
 			"properties": {
 				"type": {
 					"type": "string",
-					"enum": ["figma"],
+					"enum": ["canva", "openpencil", "pencil", "penpot", "excalidraw", "figma", "auto"],
 					"description": "Design provider type"
 				},
 				"config": {
@@ -236,6 +236,26 @@
 			"required": ["type"],
 			"additionalProperties": false,
 			"allOf": [
+				{
+					"if": { "properties": { "type": { "const": "canva" } } },
+					"then": { "properties": { "config": { "$ref": "providers/canva.schema.json" } } }
+				},
+				{
+					"if": { "properties": { "type": { "const": "openpencil" } } },
+					"then": { "properties": { "config": { "$ref": "providers/openpencil.schema.json" } } }
+				},
+				{
+					"if": { "properties": { "type": { "const": "pencil" } } },
+					"then": { "properties": { "config": { "$ref": "providers/pencil.schema.json" } } }
+				},
+				{
+					"if": { "properties": { "type": { "const": "penpot" } } },
+					"then": { "properties": { "config": { "$ref": "providers/penpot.schema.json" } } }
+				},
+				{
+					"if": { "properties": { "type": { "const": "excalidraw" } } },
+					"then": { "properties": { "config": { "$ref": "providers/excalidraw.schema.json" } } }
+				},
 				{
 					"if": { "properties": { "type": { "const": "figma" } } },
 					"then": { "properties": { "config": { "$ref": "providers/figma.schema.json" } } }

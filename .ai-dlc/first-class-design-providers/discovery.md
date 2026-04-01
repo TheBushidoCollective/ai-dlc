@@ -479,3 +479,62 @@ quality_gates:
     enabled: true
 ```
 
+## Domain Model
+
+### Entities
+
+- **DesignProvider**: A configured design tool backend — Fields: `type` (canva|openpencil|pencil|penpot|excalidraw|figma|auto), `config` (provider-specific), `instructions` (inline merge text), `capabilities` (set of supported capabilities), `mcp_hint` (glob pattern for MCP tool discovery), `uri_scheme` (protocol for design_ref URIs), `detected` (boolean, whether auto-detection found this provider)
+
+- **DesignCapability**: An atomic operation a provider can perform — Fields: `name` (read_design|write_design|export_png|generate_wireframe|design_tokens|code_export|collaboration), `required_tools` (list of MCP tool patterns needed), `fallback` (what to do if capability unavailable)
+
+- **DesignArtifact**: A design file or reference produced by a provider — Fields: `path` (local file path or provider URI), `format` (png|jpg|html|op|pen|excalidraw|canva-cloud|figma-cloud), `fidelity` (low|medium|high), `provider_type` (which provider created it), `exportable` (boolean, whether it can be exported to PNG)
+
+- **DesignProviderRegistry**: The runtime registry of available providers — Fields: `configured_provider` (explicitly set in settings.yml or null), `detected_providers` (list of auto-detected providers), `active_provider` (the one actually used, resolved from configured + detected), `fallback_mode` (html, if no provider available)
+
+- **ProviderSchema**: JSON Schema for provider-specific configuration — Fields: `provider_type`, `schema_path` (plugin/schemas/providers/{type}.schema.json), `properties` (provider-specific config fields)
+
+- **ProviderInstructions**: Merged instruction text for a provider — Fields: `builtin` (from plugin/providers/design.md), `inline` (from settings.yml), `project_override` (from .ai-dlc/providers/{type}.md), `merged` (combined text)
+
+### Relationships
+
+- DesignProviderRegistry has many DesignProviders (one configured, zero or more detected)
+- DesignProvider has many DesignCapabilities
+- DesignProvider has one ProviderSchema
+- DesignProvider has one ProviderInstructions (merged from three tiers)
+- DesignArtifact belongs to one DesignProvider (or to the HTML fallback)
+- DesignArtifact is referenced by Unit (via `design_ref:` or `wireframe:` frontmatter)
+- Intent has many Units, each may have zero or one DesignArtifact
+
+### Data Sources
+
+- **Settings YAML** (filesystem: `.ai-dlc/settings.yml`):
+  - Available: `providers.design.type`, `providers.design.config`, `providers.design.instructions`
+  - Missing: New provider types not yet in enum; no `auto` detection config
+  - Format: YAML parsed by `load_repo_settings()` in config.sh
+
+- **MCP Tool Registry** (runtime: ToolSearch):
+  - Available: Tool names, descriptions, parameter schemas for connected MCP servers
+  - Missing: Not cached to disk — requires runtime ToolSearch call
+  - Used for: Auto-detecting available design providers
+
+- **Provider Schemas** (filesystem: `plugin/schemas/providers/*.schema.json`):
+  - Available: `figma.schema.json` only
+  - Missing: Schemas for canva, openpencil, pencil, penpot, excalidraw
+
+- **Provider Instructions** (filesystem: `plugin/providers/design.md`):
+  - Available: Generic design provider instructions
+  - Missing: Provider-specific instruction overrides per tool type
+
+- **Unit Frontmatter** (filesystem: `.ai-dlc/{intent}/unit-*.md`):
+  - Available: `design_ref:`, `wireframe:`, `discipline:`, `views:`
+  - Format: YAML frontmatter parsed by `dlc_frontmatter_get()` in parse.sh
+
+### Data Gaps
+
+- **No auto-detection function for design providers**: `config.sh` has `detect_vcs_hosting()` and `detect_ci_cd()` but no `detect_design_provider()`. This needs to be created following the same pattern.
+- **No provider-specific schemas**: Only `figma.schema.json` exists. Five new schemas needed (canva, openpencil, pencil, penpot, excalidraw).
+- **No MCP hint mappings for new providers**: `_provider_mcp_hint()` only maps `figma`. Six new mappings needed.
+- **Provider URI resolution not implemented**: `resolve-design-ref.sh` detects but does not handle provider URIs. Each provider needs a resolution handler that calls export APIs.
+- **No capability discovery mechanism**: No way to determine at runtime which capabilities a provider supports. This needs to be built.
+- **HTML wireframe fallback not codified**: The fallback from provider wireframes to HTML wireframes is implicit. It should be an explicit fallback chain.
+

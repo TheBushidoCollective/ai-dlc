@@ -124,7 +124,7 @@ _dlc_blueprint_write_knowledge() {
   local knowledge_dir="${intent_dir}/knowledge"
 
   mkdir -p "$knowledge_dir" 2>/dev/null || {
-    echo "ai-dlc: dlc_knowledge_write: cannot create knowledge directory: $knowledge_dir" >&2
+    echo "ai-dlc: _dlc_blueprint_write_knowledge: cannot create knowledge directory: $knowledge_dir" >&2
     return 1
   }
 

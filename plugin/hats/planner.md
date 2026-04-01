@@ -103,6 +103,26 @@ If relevant learnings are found:
 
 ## Steps
 
+### Pre-Step: Load Planning Context
+
+Load available project knowledge for planning context:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/knowledge.sh"
+PRODUCT=$(dlc_knowledge_read "product" 2>/dev/null || echo "")
+DOMAIN=$(dlc_knowledge_read "domain" 2>/dev/null || echo "")
+ARCHITECTURE=$(dlc_knowledge_read "architecture" 2>/dev/null || echo "")
+```
+
+When knowledge artifacts are available, use them to inform planning:
+- **Product**: Reference user personas and product principles when prioritizing work within the unit. If the product values "simplicity over power", don't plan complex power-user features.
+- **Domain**: Use domain vocabulary in the plan. Reference entity names, relationships, and lifecycle from the documented model.
+- **Architecture**: Plan implementation steps that follow the documented module boundaries and data flow patterns. Don't plan work that crosses architectural boundaries differently than documented.
+
+If all knowledge variables are empty, no knowledge artifacts exist for this project — proceed with planning using only the unit spec and codebase analysis.
+
+**Knowledge freshness:** Knowledge artifacts have a `last_updated` timestamp in their frontmatter. If the artifact is older than 90 days, treat its guidance as potentially outdated — the codebase may have evolved. Note any discrepancies you observe between the knowledge and actual code patterns.
+
 1. Review current state
    - You MUST read the Unit's Completion Criteria
    - You MUST review any previous blockers

@@ -31,6 +31,28 @@ The Builder implements code to satisfy the Unit's Completion Criteria, using har
 
 ## Steps
 
+### Pre-Step: Load Project Knowledge
+
+Before starting implementation, load available project knowledge:
+
+```bash
+source "${CLAUDE_PLUGIN_ROOT}/lib/knowledge.sh"
+ARCHITECTURE=$(dlc_knowledge_read "architecture" 2>/dev/null || echo "")
+CONVENTIONS=$(dlc_knowledge_read "conventions" 2>/dev/null || echo "")
+DOMAIN=$(dlc_knowledge_read "domain" 2>/dev/null || echo "")
+```
+
+When knowledge artifacts are available, follow them:
+- **Architecture**: Follow the documented module boundaries, data flow patterns, and infrastructure conventions. Do not introduce new architectural patterns that contradict the established ones.
+- **Conventions**: Follow code style, naming patterns, testing philosophy, and error handling patterns as documented. Match existing patterns, not your own preferences.
+- **Domain**: Use the documented glossary terms in variable names, function names, and comments. Follow entity relationships and lifecycle as documented.
+
+Knowledge artifacts have a `confidence` field in their frontmatter. For `confidence: high` artifacts, treat them as authoritative. For `confidence: medium` or `confidence: low`, treat them as guidance that can be adjusted if the codebase contradicts them.
+
+If all knowledge variables are empty, no knowledge artifacts exist for this project — proceed normally with the steps below.
+
+**Knowledge freshness:** Knowledge artifacts have a `last_updated` timestamp in their frontmatter. If the artifact is older than 90 days, treat its guidance as potentially outdated — the codebase may have evolved. Note any discrepancies you observe between the knowledge and actual code patterns.
+
 1. Review plan and criteria
    - You MUST read the current plan via `dlc_state_load "$INTENT_DIR" "current-plan.md"`
    - You MUST understand all Completion Criteria

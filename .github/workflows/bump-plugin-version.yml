@@ -143,6 +143,20 @@ jobs:
           git tag -f "$TAG"
           git push -f origin "$TAG"
 
+      - name: Setup Node.js
+        if: steps.commit.outputs.released == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build MCP server bundle
+        if: steps.commit.outputs.released == 'true'
+        run: |
+          npx esbuild plugin/mcp-server/src/server.ts \
+            --bundle --platform=node --format=esm \
+            --outfile=plugin/mcp-server/dist/server.mjs \
+            "--banner:js=import{createRequire}from'module';const require=createRequire(import.meta.url);"
+
       - name: Package plugin
         if: steps.commit.outputs.released == 'true'
         run: |

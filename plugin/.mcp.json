@@ -4,7 +4,7 @@
       "command": "bash",
       "args": [
         "-c",
-        "cd \"${CLAUDE_PLUGIN_ROOT}/mcp-server\" && exec npx tsx src/server.ts"
+        "exec node \"${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/server.mjs\""
       ]
     }
   }

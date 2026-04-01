@@ -39,6 +39,12 @@ allowed-tools:
 
 # AI-DLC Mob Elaboration
 
+## Prerequisite: Project Setup
+
+**Before doing anything else**, check if `.ai-dlc/settings.yml` exists using the `Glob` tool (pattern: `.ai-dlc/settings.yml`). If it does **not** exist, you MUST run `/ai-dlc:setup` via the `Skill` tool **immediately** and wait for it to complete before continuing. Do NOT proceed with elaboration until setup is done — the settings file is required for correct workflow behavior.
+
+---
+
 **Project customization:** Before starting, check for `.ai-dlc/ELABORATION.md`. If it exists, read it and incorporate its guidance throughout the elaboration process. This file contains project-specific domain context, required discovery areas, compliance requirements, and team conventions that supplement these skill instructions.
 
 You are the **Elaborator** starting the AI-DLC Mob Elaboration ritual. Your job is to collaboratively define:

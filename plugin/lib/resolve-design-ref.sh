@@ -160,7 +160,7 @@ _generate_export_instructions() {
     canva)
       local design_id="${source#canva://}"
       design_id="${design_id#design/}"
-      tool_name="mcp__claude_ai_Canva__export-design"
+      tool_name="<use ToolSearch to find export tool>"
       parameters="design_id: \"$design_id\"
 format: \"png\""
       ;;

@@ -23,17 +23,13 @@ allowed-tools:
   - "mcp__*__describe*"
   - "mcp__*__explain*"
   - "mcp__*__memory"
-  # MCP design provider tools (for wireframe generation via providers)
-  - "mcp__*__design*"
-  - "mcp__*__create*"
-  - "mcp__*__generate*"
-  - "mcp__*__export*"
-  - "mcp__*__insert*"
-  - "mcp__*__batch*"
-  - "mcp__*__open*"
-  - "mcp__*__set*"
-  - "mcp__*__import*"
-  - "mcp__*__snapshot*"
+  # MCP design provider tools (scoped to known design providers)
+  - "mcp__*canva*__*"
+  - "mcp__*pencil*__*"
+  - "mcp__*openpencil*__*"
+  - "mcp__*penpot*__*"
+  - "mcp__*excalidraw*__*"
+  - "mcp__*figma*__*"
   # ToolSearch for provider tool discovery
   - ToolSearch
 ---

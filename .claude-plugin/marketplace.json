@@ -2,7 +2,7 @@
   "name": "ai-dlc",
   "owner": {
     "name": "The Bushido Collective",
-    "url": "https://thebushido.co"
+    "url": "https://withbushido.ai"
   },
   "metadata": {
     "description": "AI-DLC — the software development profile of H·AI·K·U. Iterative AI-driven development with git integration, test suites, PR workflows, CI/CD pipelines, and deployment gates.",

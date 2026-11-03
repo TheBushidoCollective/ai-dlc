@@ -4,7 +4,7 @@
   "description": "AI-DLC — the software development profile of H·AI·K·U. Iterative AI-driven development with git integration, test suites, PR workflows, CI/CD pipelines, and deployment gates.",
   "owner": {
     "name": "The Bushido Collective",
-    "email": "hello@thebushido.co"
+    "email": "hello@withbushido.ai"
   },
   "plugins": [
     {
